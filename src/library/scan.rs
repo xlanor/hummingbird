@@ -106,8 +106,10 @@ fn retrieve_base_paths() -> Vec<PathBuf> {
 
 fn file_is_scannable_with_provider(path: &PathBuf, exts: &&[&str]) -> bool {
     for extension in exts.iter() {
-        if path.extension().unwrap() == *extension {
-            return true;
+        if let Some(ext) = path.extension() {
+            if ext == *extension {
+                return true;
+            }
         }
     }
 
