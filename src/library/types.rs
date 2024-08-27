@@ -51,5 +51,5 @@ pub struct Track {
     pub genres: Option<Vec<String>>,
     #[sqlx(skip)]
     pub tags: Option<Vec<String>>,
-    pub location: PathBuf,
+    pub location: String,
 }

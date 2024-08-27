@@ -202,7 +202,7 @@ pub fn find_fonts(cx: &mut AppContext) -> gpui::Result<()> {
     results
 }
 
-struct Pool(pub SqlitePool);
+pub struct Pool(pub SqlitePool);
 
 impl Global for Pool {}
 
