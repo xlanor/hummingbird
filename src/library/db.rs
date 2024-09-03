@@ -30,7 +30,7 @@ pub enum AlbumSortMethod {
 pub async fn list_albums(
     pool: &SqlitePool,
     sort_method: AlbumSortMethod,
-) -> Result<Vec<Album>, sqlx::Error> {
+) -> Result<Vec<(u32, String)>, sqlx::Error> {
     let query = match sort_method {
         AlbumSortMethod::TitleAsc => {
             include_str!("../../queries/library/find_albums_title_asc.sql")
@@ -40,7 +40,9 @@ pub async fn list_albums(
         }
     };
 
-    let albums = sqlx::query_as::<_, Album>(query).fetch_all(pool).await?;
+    let albums = sqlx::query_as::<_, (u32, String)>(query)
+        .fetch_all(pool)
+        .await?;
 
     Ok(albums)
 }
@@ -59,17 +61,26 @@ pub async fn list_tracks_in_album(
     Ok(albums)
 }
 
-pub trait LibraryAccess {
-    fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<Album>, sqlx::Error>;
-    fn list_tracks_in_album(&self, album_id: i64) -> Result<Vec<Track>, sqlx::Error>;
+pub async fn get_album_by_id(pool: &SqlitePool, album_id: i64) -> Result<Album, sqlx::Error> {
+    let query = include_str!("../../queries/library/find_album_by_id.sql");
+
+    let album = sqlx::query_as::<_, Album>(query)
+        .bind(album_id)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(album)
 }
 
-// TODO: in theory, blocking DB accesses are not a concern with SQLite read speeds
-// but this is only in theory, this needs to be tested with large library sizes
-// I'm also worried about loading images upfront here: this seems like a good candidate for a
-// virtual scrolling implementation, but not sure how that would be done
+pub trait LibraryAccess {
+    fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error>;
+    fn list_tracks_in_album(&self, album_id: i64) -> Result<Vec<Track>, sqlx::Error>;
+    fn get_album_by_id(&self, album_id: i64) -> Result<Album, sqlx::Error>;
+}
+
+// TODO: profile this with a large library
 impl<'a> LibraryAccess for WindowContext<'a> {
-    fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<Album>, sqlx::Error> {
+    fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
         task::block_on(list_albums(&pool.0, sort_method))
     }
@@ -77,5 +88,10 @@ impl<'a> LibraryAccess for WindowContext<'a> {
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Vec<Track>, sqlx::Error> {
         let pool: &Pool = self.global();
         task::block_on(list_tracks_in_album(&pool.0, album_id))
+    }
+
+    fn get_album_by_id(&self, album_id: i64) -> Result<Album, sqlx::Error> {
+        let pool: &Pool = self.global();
+        task::block_on(get_album_by_id(&pool.0, album_id))
     }
 }

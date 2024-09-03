@@ -17,12 +17,13 @@ use crate::{
 
 use super::{
     arguments::parse_args_and_prepare, assets::Assets, global_actions::register_actions,
-    header::Header, models::build_models, queue::Queue,
+    header::Header, library::Library, models::build_models, queue::Queue,
 };
 
 struct WindowShadow {
     pub header: View<Header>,
     pub queue: View<Queue>,
+    pub library: View<Library>,
 }
 
 impl Render for WindowShadow {
@@ -157,6 +158,7 @@ impl Render for WindowShadow {
                             .h_full()
                             .flex()
                             .relative()
+                            .child(self.library.clone())
                             .child(self.queue.clone()),
                     ),
             )
@@ -270,6 +272,7 @@ pub async fn run() {
                     WindowShadow {
                         header: Header::new(cx),
                         queue: Queue::new(cx),
+                        library: Library::new(cx),
                     }
                 })
             },
