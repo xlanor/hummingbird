@@ -18,6 +18,10 @@ impl Library {
 
 impl Render for Library {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        div().child(self.album_view.clone())
+        div()
+            .w_full()
+            .h_full()
+            .flex()
+            .child(self.album_view.clone())
     }
 }

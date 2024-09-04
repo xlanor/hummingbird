@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use async_std::task;
-use gpui::WindowContext;
+use gpui::{AppContext, WindowContext};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use tracing::debug;
 
@@ -79,7 +79,7 @@ pub trait LibraryAccess {
 }
 
 // TODO: profile this with a large library
-impl<'a> LibraryAccess for WindowContext<'a> {
+impl LibraryAccess for AppContext {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
         task::block_on(list_albums(&pool.0, sort_method))

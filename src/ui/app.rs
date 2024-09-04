@@ -158,6 +158,7 @@ impl Render for WindowShadow {
                             .h_full()
                             .flex()
                             .relative()
+                            .bg(rgb(0x00FF00))
                             .child(self.library.clone())
                             .child(self.queue.clone()),
                     ),

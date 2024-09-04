@@ -7,7 +7,7 @@ pub struct Artist {
     pub name_sortable: Option<String>,
     #[sqlx(default)]
     pub bio: Option<String>,
-    pub creation_date: chrono::NaiveDateTime,
+    pub created_at: chrono::NaiveDateTime,
     #[sqlx(default)]
     pub image: Option<Box<[u8]>>,
     #[sqlx(default)]
@@ -24,7 +24,7 @@ pub struct Album {
     pub artist_id: i64,
     #[sqlx(default)]
     pub release_date: Option<chrono::NaiveDateTime>,
-    pub creation_date: chrono::NaiveDateTime,
+    pub created_at: chrono::NaiveDateTime,
     #[sqlx(default)]
     pub image: Option<Box<[u8]>>,
     #[sqlx(default)]
@@ -46,7 +46,7 @@ pub struct Track {
     pub disc_number: Option<i32>,
     #[sqlx(default)]
     pub duration: Option<i64>,
-    pub creation_date: chrono::NaiveDateTime,
+    pub created_at: chrono::NaiveDateTime,
     #[sqlx(skip)]
     pub genres: Option<Vec<String>>,
     #[sqlx(skip)]
