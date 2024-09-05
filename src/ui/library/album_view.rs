@@ -5,7 +5,7 @@ use tracing::{debug, error};
 
 use crate::library::{
     db::{AlbumSortMethod, LibraryAccess},
-    types::Album,
+    types::{Album, Artist},
 };
 
 #[derive(Clone)]
@@ -29,15 +29,10 @@ impl AlbumView {
                             px(300.0),
                             move |idx, cx| {
                                 // TODO: error handling
-                                let album = Rc::new(
-                                    cx.get_album_by_id(album_ids_copy[idx].0 as i64)
-                                        .expect("Failed to retrieve album"),
-                                );
                                 div()
-                                    .w(px(100.0))
-                                    .h(px(200.0))
+                                    .w_full()
                                     .bg(rgb(0x00FF00))
-                                    .child(AlbumItem::new(cx, album.clone()))
+                                    .child(AlbumItem::new(cx, album_ids_copy[idx].0 as i64))
                                     .into_any_element()
                             },
                         ),
@@ -75,42 +70,27 @@ impl Render for AlbumView {
 
 pub struct AlbumItem {
     album: Rc<Album>,
+    artist: Rc<Option<String>>,
 }
 
 impl AlbumItem {
-    pub fn new(cx: &mut WindowContext, album: Rc<Album>) -> View<Self> {
-        cx.new_view(|_| AlbumItem { album })
+    pub fn new(cx: &mut WindowContext, album_id: i64) -> View<Self> {
+        let album = Rc::new(
+            cx.get_album_by_id(album_id as i64)
+                .expect("Failed to retrieve album"),
+        );
+        let artist = Rc::new(cx.get_artist_name_by_id(album.artist_id).ok());
+        cx.new_view(|_| AlbumItem { album, artist })
     }
 }
 
 impl Render for AlbumItem {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         debug!("Rendering album item: {:?}", self.album.title.clone());
-        div()
-            .w(px(100.0))
-            .h(px(200.0))
-            .bg(rgb(0x0000FF))
-            .child("album")
-            .child(format!(
-                "{} - {}",
-                self.album.artist_id,
-                self.album.title.clone()
-            ))
+        div().w_full().child(format!(
+            "{} - {}",
+            (*self.artist).clone().unwrap_or("Unknown".to_string()),
+            self.album.title.clone()
+        ))
     }
 }
-
-// impl RenderOnce for AlbumItem {
-//     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
-//         debug!("Rendering album item: {:?}", self.album.title.clone());
-//         div()
-//             .w(px(100.0))
-//             .h(px(200.0))
-//             .bg(rgb(0x0000FF))
-//             .child("album")
-//             .child(format!(
-//                 "{} - {}",
-//                 self.album.artist_id,
-//                 self.album.title.clone()
-//             ))
-//     }
-// }

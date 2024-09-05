@@ -72,10 +72,25 @@ pub async fn get_album_by_id(pool: &SqlitePool, album_id: i64) -> Result<Album, 
     Ok(album)
 }
 
+pub async fn get_artist_name_by_id(
+    pool: &SqlitePool,
+    artist_id: i64,
+) -> Result<String, sqlx::Error> {
+    let query = include_str!("../../queries/library/find_artist_name_by_id.sql");
+
+    let artist_name = sqlx::query_scalar(query)
+        .bind(artist_id)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(artist_name)
+}
+
 pub trait LibraryAccess {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error>;
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Vec<Track>, sqlx::Error>;
     fn get_album_by_id(&self, album_id: i64) -> Result<Album, sqlx::Error>;
+    fn get_artist_name_by_id(&self, artist_id: i64) -> Result<String, sqlx::Error>;
 }
 
 // TODO: profile this with a large library
@@ -93,5 +108,10 @@ impl LibraryAccess for AppContext {
     fn get_album_by_id(&self, album_id: i64) -> Result<Album, sqlx::Error> {
         let pool: &Pool = self.global();
         task::block_on(get_album_by_id(&pool.0, album_id))
+    }
+
+    fn get_artist_name_by_id(&self, artist_id: i64) -> Result<String, sqlx::Error> {
+        let pool: &Pool = self.global();
+        task::block_on(get_artist_name_by_id(&pool.0, artist_id))
     }
 }
