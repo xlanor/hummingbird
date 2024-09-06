@@ -16,7 +16,7 @@ pub struct Artist {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Clone)]
 pub struct Album {
     pub id: i64,
     pub title: String,

@@ -9,7 +9,7 @@ use tracing::{debug, error};
 use crate::{
     data::{interface::GPUIDataInterface, thread::DataThread},
     library::{
-        db::create_pool,
+        db::{create_cache, create_pool},
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::GPUIPlaybackInterface, thread::PlaybackThread},
@@ -158,7 +158,6 @@ impl Render for WindowShadow {
                             .h_full()
                             .flex()
                             .relative()
-                            .bg(rgb(0x00FF00))
                             .child(self.library.clone())
                             .child(self.queue.clone()),
                     ),
@@ -248,6 +247,7 @@ pub async fn run() {
 
         cx.set_global(playback_interface);
         cx.set_global(data_interface);
+        cx.set_global(create_cache());
 
         cx.open_window(
             WindowOptions {

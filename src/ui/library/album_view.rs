@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use gpui::*;
+use prelude::FluentBuilder;
 use tracing::{debug, error};
 
 use crate::library::{
@@ -20,7 +21,6 @@ impl AlbumView {
             let album_ids = cx.list_albums(AlbumSortMethod::TitleAsc);
             match album_ids {
                 Ok(album_ids) => {
-                    debug!("Retrieved {} album IDs from SQLite", album_ids.len());
                     let album_ids_copy = album_ids.clone();
                     AlbumView {
                         list_state: ListState::new(
@@ -31,7 +31,6 @@ impl AlbumView {
                                 // TODO: error handling
                                 div()
                                     .w_full()
-                                    .bg(rgb(0x00FF00))
                                     .child(AlbumItem::new(cx, album_ids_copy[idx].0 as i64))
                                     .into_any_element()
                             },
@@ -63,7 +62,6 @@ impl Render for AlbumView {
             .w_full()
             .h_full()
             .flex()
-            .bg(rgb(0xFF0000))
             .child(list(self.list_state.clone()).w_full().h_full())
     }
 }
@@ -76,9 +74,10 @@ pub struct AlbumItem {
 impl AlbumItem {
     pub fn new(cx: &mut WindowContext, album_id: i64) -> View<Self> {
         let album = Rc::new(
-            cx.get_album_by_id(album_id as i64)
+            cx.get_album_by_id(album_id)
                 .expect("Failed to retrieve album"),
         );
+
         let artist = Rc::new(cx.get_artist_name_by_id(album.artist_id).ok());
         cx.new_view(|_| AlbumItem { album, artist })
     }
@@ -86,11 +85,30 @@ impl AlbumItem {
 
 impl Render for AlbumItem {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        debug!("Rendering album item: {:?}", self.album.title.clone());
-        div().w_full().child(format!(
-            "{} - {}",
-            (*self.artist).clone().unwrap_or("Unknown".to_string()),
-            self.album.title.clone()
-        ))
+        div()
+            .w_full()
+            .flex()
+            .border_b_1()
+            .border_color(rgb(0x334155))
+            .child(
+                div()
+                    .pt(px(3.0))
+                    .px(px(8.0))
+                    .pb(px(4.0))
+                    .w(px(200.0))
+                    .text_sm()
+                    .when_some((*self.artist).clone(), |this, v| this.child(v)),
+            )
+            .child(
+                div()
+                    .pt(px(3.0))
+                    .px(px(8.0))
+                    .pb(px(4.0))
+                    .border_l_1()
+                    .border_color(rgb(0x334155))
+                    .text_sm()
+                    .w(px(300.0))
+                    .child(self.album.title.clone()),
+            )
     }
 }

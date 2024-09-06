@@ -1,7 +1,8 @@
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use async_std::task;
-use gpui::{AppContext, WindowContext};
+use gpui::{AppContext, Global, WindowContext};
+use moka::future::Cache;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use tracing::debug;
 
@@ -19,6 +20,29 @@ pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Err
     sqlx::migrate!("./migrations").run(&pool).await?;
 
     Ok(pool)
+}
+
+pub struct DbCache {
+    artist_name_cache: Cache<i64, String>,
+    album_cache: Cache<i64, Album>,
+}
+
+impl Global for DbCache {}
+
+pub fn create_cache() -> DbCache {
+    let artist_name_cache = Cache::builder()
+        .time_to_live(Duration::from_secs(60 * 5))
+        .max_capacity(256)
+        .build();
+    let album_cache = Cache::builder()
+        .time_to_live(Duration::from_secs(60 * 5))
+        .max_capacity(256)
+        .build();
+
+    DbCache {
+        artist_name_cache,
+        album_cache,
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -61,29 +85,46 @@ pub async fn list_tracks_in_album(
     Ok(albums)
 }
 
-pub async fn get_album_by_id(pool: &SqlitePool, album_id: i64) -> Result<Album, sqlx::Error> {
-    let query = include_str!("../../queries/library/find_album_by_id.sql");
+pub async fn get_album_by_id(
+    pool: &SqlitePool,
+    db_cache: &DbCache,
+    album_id: i64,
+) -> Result<Album, sqlx::Error> {
+    if let Some(name) = db_cache.album_cache.get(&album_id).await {
+        Ok(name)
+    } else {
+        let query = include_str!("../../queries/library/find_album_by_id.sql");
 
-    let album = sqlx::query_as::<_, Album>(query)
-        .bind(album_id)
-        .fetch_one(pool)
-        .await?;
+        let album: Album = sqlx::query_as(query).bind(album_id).fetch_one(pool).await?;
 
-    Ok(album)
+        db_cache.album_cache.insert(album_id, album.clone()).await;
+
+        Ok(album)
+    }
 }
 
 pub async fn get_artist_name_by_id(
     pool: &SqlitePool,
+    db_cache: &DbCache,
     artist_id: i64,
 ) -> Result<String, sqlx::Error> {
-    let query = include_str!("../../queries/library/find_artist_name_by_id.sql");
+    if let Some(name) = db_cache.artist_name_cache.get(&artist_id).await {
+        Ok(name)
+    } else {
+        let query = include_str!("../../queries/library/find_artist_name_by_id.sql");
 
-    let artist_name = sqlx::query_scalar(query)
-        .bind(artist_id)
-        .fetch_one(pool)
-        .await?;
+        let artist_name: String = sqlx::query_scalar(query)
+            .bind(artist_id)
+            .fetch_one(pool)
+            .await?;
 
-    Ok(artist_name)
+        db_cache
+            .artist_name_cache
+            .insert(artist_id, artist_name.clone())
+            .await;
+
+        Ok(artist_name)
+    }
 }
 
 pub trait LibraryAccess {
@@ -107,11 +148,13 @@ impl LibraryAccess for AppContext {
 
     fn get_album_by_id(&self, album_id: i64) -> Result<Album, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(get_album_by_id(&pool.0, album_id))
+        let db_cache: &DbCache = self.global();
+        task::block_on(get_album_by_id(&pool.0, db_cache, album_id))
     }
 
     fn get_artist_name_by_id(&self, artist_id: i64) -> Result<String, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(get_artist_name_by_id(&pool.0, artist_id))
+        let db_cache: &DbCache = self.global();
+        task::block_on(get_artist_name_by_id(&pool.0, db_cache, artist_id))
     }
 }
