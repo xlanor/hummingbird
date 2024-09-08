@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use gpui::*;
 use prelude::FluentBuilder;
@@ -67,18 +67,17 @@ impl Render for AlbumView {
 }
 
 pub struct AlbumItem {
-    album: Rc<Album>,
-    artist: Rc<Option<String>>,
+    album: Arc<Album>,
+    artist: Option<Arc<String>>,
 }
 
 impl AlbumItem {
     pub fn new(cx: &mut WindowContext, album_id: i64) -> View<Self> {
-        let album = Rc::new(
-            cx.get_album_by_id(album_id)
-                .expect("Failed to retrieve album"),
-        );
+        let album = cx
+            .get_album_by_id(album_id)
+            .expect("Failed to retrieve album");
 
-        let artist = Rc::new(cx.get_artist_name_by_id(album.artist_id).ok());
+        let artist = cx.get_artist_name_by_id(album.artist_id).ok();
         cx.new_view(|_| AlbumItem { album, artist })
     }
 }
@@ -92,22 +91,24 @@ impl Render for AlbumItem {
             .border_color(rgb(0x334155))
             .child(
                 div()
-                    .pt(px(3.0))
-                    .px(px(8.0))
-                    .pb(px(4.0))
+                    .pt(px(6.0))
+                    .px(px(12.0))
+                    .pb(px(7.0))
                     .w(px(200.0))
                     .text_sm()
-                    .when_some((*self.artist).clone(), |this, v| this.child(v)),
+                    .whitespace_nowrap()
+                    .overflow_x_hidden()
+                    .when_some(self.artist.clone(), |this, v| this.child((*v).clone())),
             )
             .child(
                 div()
-                    .pt(px(3.0))
-                    .px(px(8.0))
-                    .pb(px(4.0))
-                    .border_l_1()
-                    .border_color(rgb(0x334155))
+                    .pt(px(6.0))
+                    .px(px(12.0))
+                    .pb(px(7.0))
                     .text_sm()
-                    .w(px(300.0))
+                    .whitespace_nowrap()
+                    .overflow_x_hidden()
+                    .w_full()
                     .child(self.album.title.clone()),
             )
     }

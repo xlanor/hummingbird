@@ -8,6 +8,8 @@ use super::types::UIQueueItem;
 pub enum ImageType {
     CurrentAlbumArt,
     CachedImage(u64),
+    AlbumArt(i64),
+    ArtistPortrait(i64),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

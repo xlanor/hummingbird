@@ -5,7 +5,7 @@ use std::{
 
 use gpui::AppContext;
 
-use crate::ui::models::Models;
+use crate::ui::models::{ImageTransfer, Models};
 
 use super::events::{DataCommand, DataEvent, ImageLayout, ImageType};
 
@@ -53,6 +53,12 @@ impl GPUIDataInterface {
             .expect("could not send tx");
     }
 
+    pub fn evict_cache(&self) {
+        self.commands_tx
+            .send(DataCommand::EvictQueueCache)
+            .expect("could not send tx");
+    }
+
     /// Starts the broadcast loop that will read events from the data thread and update data models
     /// accordingly. This function should be called once, and will panic if called more than once.
     pub fn start_broadcast(&mut self, cx: &mut AppContext) {
@@ -61,6 +67,7 @@ impl GPUIDataInterface {
 
         let albumart_model = cx.global::<Models>().albumart.clone();
         let queue_model = cx.global::<Models>().queue.clone();
+        let image_transfer_model = cx.global::<Models>().image_transfer_model.clone();
 
         if let Some(events_rx) = events_rx {
             cx.spawn(|mut cx| async move {
@@ -76,7 +83,9 @@ impl GPUIDataInterface {
                                         })
                                         .expect("failed to update albumart");
                                 }
-                                _ => todo!(),
+                                _ => image_transfer_model
+                                    .update(&mut cx, |_, cx| cx.emit(ImageTransfer(image_type, v)))
+                                    .expect("failed to transfer image"),
                             },
                             DataEvent::DecodeError(image_type) => match image_type {
                                 ImageType::CurrentAlbumArt => {

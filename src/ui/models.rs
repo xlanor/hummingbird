@@ -25,6 +25,7 @@ pub struct Models {
     pub metadata: Model<Metadata>,
     pub albumart: Model<Option<Arc<ImageData>>>,
     pub queue: Model<Vec<UIQueueItem>>,
+    pub image_transfer_model: Model<Option<u8>>,
 }
 
 impl Global for Models {}
@@ -39,11 +40,16 @@ pub struct PlaybackInfo {
 
 impl Global for PlaybackInfo {}
 
+pub struct ImageTransfer(pub ImageType, pub Arc<ImageData>);
+
+impl EventEmitter<ImageTransfer> for Option<u8> {}
+
 pub fn build_models(cx: &mut AppContext) {
     debug!("Building models");
     let metadata: Model<Metadata> = cx.new_model(|_| Metadata::default());
     let albumart: Model<Option<Arc<ImageData>>> = cx.new_model(|_| None);
     let queue: Model<Vec<UIQueueItem>> = cx.new_model(|_| Vec::new());
+    let image_transfer_model: Model<Option<u8>> = cx.new_model(|_| None);
 
     cx.subscribe(&albumart, |_, ev, cx| {
         let img = ev.0.clone();
@@ -59,6 +65,7 @@ pub fn build_models(cx: &mut AppContext) {
         metadata,
         albumart,
         queue,
+        image_transfer_model,
     });
 
     let position: Model<u64> = cx.new_model(|_| 0);
