@@ -25,7 +25,7 @@ pub struct Models {
     pub metadata: Model<Metadata>,
     pub albumart: Model<Option<Arc<RenderImage>>>,
     pub queue: Model<Vec<UIQueueItem>>,
-    pub image_transfer_model: Model<Option<u8>>,
+    pub image_transfer_model: Model<TransferDummy>,
 }
 
 impl Global for Models {}
@@ -41,15 +41,16 @@ pub struct PlaybackInfo {
 impl Global for PlaybackInfo {}
 
 pub struct ImageTransfer(pub ImageType, pub Arc<RenderImage>);
+pub struct TransferDummy;
 
-impl EventEmitter<ImageTransfer> for Option<u8> {}
+impl EventEmitter<ImageTransfer> for TransferDummy {}
 
 pub fn build_models(cx: &mut AppContext) {
     debug!("Building models");
     let metadata: Model<Metadata> = cx.new_model(|_| Metadata::default());
     let albumart: Model<Option<Arc<RenderImage>>> = cx.new_model(|_| None);
     let queue: Model<Vec<UIQueueItem>> = cx.new_model(|_| Vec::new());
-    let image_transfer_model: Model<Option<u8>> = cx.new_model(|_| None);
+    let image_transfer_model: Model<TransferDummy> = cx.new_model(|_| TransferDummy);
 
     cx.subscribe(&albumart, |_, ev, cx| {
         let img = ev.0.clone();

@@ -6,11 +6,18 @@ use prelude::FluentBuilder;
 use tracing::{debug, error};
 
 use crate::{
+    data::{
+        events::{ImageLayout, ImageType},
+        interface::GPUIDataInterface,
+    },
     library::{
         db::{AlbumSortMethod, LibraryAccess},
         types::{Album, Artist},
     },
-    ui::util::{create_or_retrieve_view, prune_views},
+    ui::{
+        models::{Models, TransferDummy},
+        util::{create_or_retrieve_view, prune_views},
+    },
 };
 
 #[derive(Clone)]
@@ -98,6 +105,8 @@ impl Render for AlbumView {
 pub struct AlbumItem {
     album: Arc<Album>,
     artist: Option<Arc<String>>,
+    image_transfer_model: Model<TransferDummy>,
+    image: Option<Arc<RenderImage>>,
 }
 
 impl AlbumItem {
@@ -109,7 +118,33 @@ impl AlbumItem {
             .expect("Failed to retrieve album");
 
         let artist = cx.get_artist_name_by_id(album.artist_id).ok();
-        cx.new_view(|_| AlbumItem { album, artist })
+        cx.new_view(|cx| {
+            let model = cx.global::<Models>().image_transfer_model.clone();
+
+            cx.subscribe(&model, move |this: &mut AlbumItem, _, image, cx| {
+                if image.0 == ImageType::AlbumArt(album_id) {
+                    debug!("captured decoded image for album ID: {}", album_id);
+                    this.image = Some(image.1.clone());
+                    cx.notify();
+                }
+            })
+            .detach();
+
+            if let Some(image) = album.image.clone() {
+                cx.global::<GPUIDataInterface>().decode_image(
+                    image,
+                    ImageType::AlbumArt(album_id),
+                    ImageLayout::BGR,
+                );
+            }
+
+            AlbumItem {
+                album,
+                artist,
+                image_transfer_model: model,
+                image: None,
+            }
+        })
     }
 }
 
@@ -120,6 +155,26 @@ impl Render for AlbumItem {
             .flex()
             .border_b_1()
             .border_color(rgb(0x334155))
+            .child(
+                div()
+                    .id("album-art")
+                    .rounded(px(4.0))
+                    .bg(rgb(0x4b5563))
+                    .shadow_sm()
+                    .w(px(24.0))
+                    .h(px(24.0))
+                    .ml(px(12.0))
+                    .my(px(6.0))
+                    .flex_shrink_0()
+                    .when(self.image.is_some(), |div| {
+                        div.child(
+                            img(self.image.clone().unwrap())
+                                .w(px(24.0))
+                                .h(px(24.0))
+                                .rounded(px(4.0)),
+                        )
+                    }),
+            )
             .child(
                 div()
                     .pt(px(6.0))
