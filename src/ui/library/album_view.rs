@@ -95,10 +95,64 @@ impl AlbumView {
 impl Render for AlbumView {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         div()
+            .flex()
+            .flex_col()
             .w_full()
             .h_full()
-            .flex()
-            .child(list(self.list_state.clone()).w_full().h_full())
+            .max_w(px(1280.0))
+            .mx_auto()
+            .pt(px(20.0))
+            .pb(px(0.0))
+            .child(
+                div()
+                    .w_full()
+                    .mb(px(11.0))
+                    .px(px(11.0))
+                    .line_height(px(26.0))
+                    .font_weight(FontWeight::BOLD)
+                    .text_size(px(26.0))
+                    .child("Albums"),
+            )
+            .child(
+                div()
+                    .flex()
+                    .w_full()
+                    .border_color(rgb(0x1e293b))
+                    .border_b_1()
+                    .child(div().w(px(22.0 + 11.0 + 6.0)))
+                    .child(
+                        div()
+                            .w(px(294.0))
+                            .pt(px(6.0))
+                            .px(px(6.0))
+                            .pb(px(7.0))
+                            .w(px(300.0))
+                            .min_w(px(300.0))
+                            .max_w(px(300.0))
+                            .text_sm()
+                            .font_weight(FontWeight::BOLD)
+                            .child("Title"),
+                    )
+                    .child(
+                        div()
+                            .w(px(294.0))
+                            .pt(px(6.0))
+                            .px(px(6.0))
+                            .pb(px(7.0))
+                            .w(px(300.0))
+                            .min_w(px(300.0))
+                            .max_w(px(300.0))
+                            .text_sm()
+                            .font_weight(FontWeight::BOLD)
+                            .child("Album"),
+                    ),
+            )
+            .child(
+                list(self.list_state.clone())
+                    .w_full()
+                    .h_full()
+                    .max_w(px(1280.0)),
+            )
     }
 }
 
@@ -154,17 +208,17 @@ impl Render for AlbumItem {
             .w_full()
             .flex()
             .border_b_1()
-            .border_color(rgb(0x334155))
+            .border_color(rgb(0x1e293b))
             .child(
                 div()
                     .id("album-art")
-                    .rounded(px(4.0))
+                    .rounded(px(2.0))
                     .bg(rgb(0x4b5563))
                     .shadow_sm()
-                    .w(px(24.0))
-                    .h(px(24.0))
+                    .w(px(22.0))
+                    .h(px(22.0))
                     .ml(px(12.0))
-                    .my(px(6.0))
+                    .my(px(8.0))
                     .flex_shrink_0()
                     .when(self.image.is_some(), |div| {
                         div.child(
@@ -180,22 +234,25 @@ impl Render for AlbumItem {
                     .pt(px(6.0))
                     .px(px(12.0))
                     .pb(px(7.0))
-                    .w(px(200.0))
+                    .w(px(300.0))
+                    .min_w(px(300.0))
+                    .max_w(px(300.0))
                     .text_sm()
+                    .font_weight(FontWeight::BOLD)
                     .whitespace_nowrap()
-                    .overflow_x_hidden()
-                    .when_some(self.artist.clone(), |this, v| this.child((*v).clone())),
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(self.album.title.clone()),
             )
             .child(
                 div()
                     .pt(px(6.0))
-                    .px(px(12.0))
                     .pb(px(7.0))
+                    .px(px(12.0))
                     .text_sm()
                     .whitespace_nowrap()
                     .overflow_x_hidden()
-                    .w_full()
-                    .child(self.album.title.clone()),
+                    .when_some(self.artist.clone(), |this, v| this.child((*v).clone())),
             )
     }
 }
