@@ -161,13 +161,14 @@ impl Queue {
 impl Render for Queue {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         div()
-            .absolute()
-            .top_0()
-            .right_0()
+            // .absolute()
+            // .top_0()
+            // .right_0()
             .h_full()
             .w(px(275.0))
             .bg(rgb(0x111827))
             .border_l(px(1.0))
+            .flex_shrink_0()
             .border_color(rgb(0x1e293b))
             .pt(px(20.0))
             .pb(px(0.0))

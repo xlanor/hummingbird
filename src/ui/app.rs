@@ -220,7 +220,7 @@ pub async fn run() {
     let pool = create_pool(file).await;
 
     App::new().with_assets(Assets).run(|cx: &mut AppContext| {
-        let bounds = Bounds::centered(None, size(px(1024.0), px(768.0)), cx);
+        let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
         find_fonts(cx).expect("unable to load fonts");
 
         register_actions(cx);
@@ -254,6 +254,7 @@ pub async fn run() {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 window_background: WindowBackgroundAppearance::Opaque,
                 window_decorations: Some(WindowDecorations::Client),
+                window_min_size: Some(size(px(800.0), px(600.0))),
                 titlebar: Some(TitlebarOptions {
                     title: Some(SharedString::from("Muzak")),
                     appears_transparent: true,

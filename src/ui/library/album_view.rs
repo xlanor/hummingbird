@@ -99,7 +99,7 @@ impl Render for AlbumView {
             .flex_col()
             .w_full()
             .h_full()
-            .max_w(px(1280.0))
+            .max_w(px(1000.0))
             .mx_auto()
             .pt(px(20.0))
             .pb(px(0.0))
@@ -119,7 +119,7 @@ impl Render for AlbumView {
                     .w_full()
                     .border_color(rgb(0x1e293b))
                     .border_b_1()
-                    .child(div().w(px(22.0 + 11.0 + 6.0)))
+                    .child(div().w(px(22.0 + 11.0 + 6.0)).flex_shrink_0())
                     .child(
                         div()
                             .w(px(294.0))
@@ -129,22 +129,19 @@ impl Render for AlbumView {
                             .w(px(300.0))
                             .min_w(px(300.0))
                             .max_w(px(300.0))
+                            .flex_shrink()
                             .text_sm()
                             .font_weight(FontWeight::BOLD)
                             .child("Title"),
                     )
                     .child(
                         div()
-                            .w(px(294.0))
                             .pt(px(6.0))
                             .px(px(6.0))
                             .pb(px(7.0))
-                            .w(px(300.0))
-                            .min_w(px(300.0))
-                            .max_w(px(300.0))
                             .text_sm()
                             .font_weight(FontWeight::BOLD)
-                            .child("Album"),
+                            .child("Artist"),
                     ),
             )
             .child(
@@ -237,6 +234,7 @@ impl Render for AlbumItem {
                     .w(px(300.0))
                     .min_w(px(300.0))
                     .max_w(px(300.0))
+                    .flex_shrink()
                     .text_sm()
                     .font_weight(FontWeight::BOLD)
                     .whitespace_nowrap()
@@ -250,6 +248,7 @@ impl Render for AlbumItem {
                     .pb(px(7.0))
                     .px(px(12.0))
                     .text_sm()
+                    .flex_shrink()
                     .whitespace_nowrap()
                     .overflow_x_hidden()
                     .when_some(self.artist.clone(), |this, v| this.child((*v).clone())),
