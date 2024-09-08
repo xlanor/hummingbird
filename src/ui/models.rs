@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gpui::{AppContext, Context, EventEmitter, Global, ImageData, Model};
+use gpui::{AppContext, Context, EventEmitter, Global, Model, RenderImage};
 use tracing::debug;
 
 use crate::{
@@ -19,11 +19,11 @@ impl EventEmitter<Metadata> for Metadata {}
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImageEvent(pub Box<[u8]>);
 
-impl EventEmitter<ImageEvent> for Option<Arc<ImageData>> {}
+impl EventEmitter<ImageEvent> for Option<Arc<RenderImage>> {}
 
 pub struct Models {
     pub metadata: Model<Metadata>,
-    pub albumart: Model<Option<Arc<ImageData>>>,
+    pub albumart: Model<Option<Arc<RenderImage>>>,
     pub queue: Model<Vec<UIQueueItem>>,
     pub image_transfer_model: Model<Option<u8>>,
 }
@@ -40,14 +40,14 @@ pub struct PlaybackInfo {
 
 impl Global for PlaybackInfo {}
 
-pub struct ImageTransfer(pub ImageType, pub Arc<ImageData>);
+pub struct ImageTransfer(pub ImageType, pub Arc<RenderImage>);
 
 impl EventEmitter<ImageTransfer> for Option<u8> {}
 
 pub fn build_models(cx: &mut AppContext) {
     debug!("Building models");
     let metadata: Model<Metadata> = cx.new_model(|_| Metadata::default());
-    let albumart: Model<Option<Arc<ImageData>>> = cx.new_model(|_| None);
+    let albumart: Model<Option<Arc<RenderImage>>> = cx.new_model(|_| None);
     let queue: Model<Vec<UIQueueItem>> = cx.new_model(|_| Vec::new());
     let image_transfer_model: Model<Option<u8>> = cx.new_model(|_| None);
 

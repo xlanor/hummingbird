@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gpui::ImageData;
+use gpui::RenderImage;
 
 use super::types::UIQueueItem;
 
@@ -40,7 +40,7 @@ pub enum DataCommand {
 #[derive(Debug, Clone)]
 pub enum DataEvent {
     /// Indicates that the data processing thread has decoded the specified image.
-    ImageDecoded(Arc<ImageData>, ImageType),
+    ImageDecoded(Arc<RenderImage>, ImageType),
     /// Indicates that the data processing thread has encountered an error while decoding the
     /// specified image.
     DecodeError(ImageType),

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gpui::ImageData;
+use gpui::RenderImage;
 
 use crate::media::metadata::Metadata;
 
@@ -8,5 +8,5 @@ use crate::media::metadata::Metadata;
 pub struct UIQueueItem {
     pub metadata: Metadata,
     pub file_path: String,
-    pub album_art: Option<Arc<ImageData>>,
+    pub album_art: Option<Arc<RenderImage>>,
 }

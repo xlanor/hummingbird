@@ -46,7 +46,7 @@ impl Render for QueueItem {
             .item
             .album_art
             .as_ref()
-            .map(|v| ImageSource::Data(v.clone()));
+            .map(|v| ImageSource::Render(v.clone()));
 
         let idx = self.idx;
 

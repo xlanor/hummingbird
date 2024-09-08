@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use gpui::{AppContext, ImageData, Model};
+use gpui::{AppContext, Model, RenderImage};
 
 use crate::{
     data::interface::GPUIDataInterface,
@@ -129,7 +129,8 @@ impl GPUIPlaybackInterface {
         std::mem::swap(&mut self.events_rx, &mut events_rx);
 
         let metadata_model: Model<Metadata> = cx.global::<Models>().metadata.clone();
-        let albumart_model: Model<Option<Arc<ImageData>>> = cx.global::<Models>().albumart.clone();
+        let albumart_model: Model<Option<Arc<RenderImage>>> =
+            cx.global::<Models>().albumart.clone();
 
         let playback_info = cx.global::<PlaybackInfo>().clone();
 

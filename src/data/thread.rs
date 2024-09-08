@@ -8,7 +8,7 @@ use std::{
 };
 
 use ahash::{AHashMap, RandomState};
-use gpui::ImageData;
+use gpui::RenderImage;
 use image::{imageops::thumbnail, Delay, Frame};
 use smallvec::SmallVec;
 use tracing::{debug, warn};
@@ -41,7 +41,7 @@ fn create_generic_queue_item(path: String) -> UIQueueItem {
 pub struct DataThread {
     commands_rx: Receiver<DataCommand>,
     events_tx: Sender<DataEvent>,
-    image_cache: AHashMap<u64, Arc<ImageData>>,
+    image_cache: AHashMap<u64, Arc<RenderImage>>,
     // TODO: get metadata from other providers as well
     media_provider: Box<dyn MediaProvider>,
     hash_state: RandomState,
@@ -117,7 +117,7 @@ impl DataThread {
 
         self.events_tx
             .send(DataEvent::ImageDecoded(
-                Arc::new(ImageData::new(SmallVec::from_vec(vec![Frame::new(
+                Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
                     thumbnail(&image, 80, 80),
                 )]))),
                 image_type,
@@ -189,9 +189,10 @@ impl DataThread {
 
                         rgb_to_bgr(&mut image);
 
-                        let value = Arc::new(ImageData::new(SmallVec::from_vec(vec![Frame::new(
-                            thumbnail(&image, 80, 80),
-                        )])));
+                        let value =
+                            Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
+                                thumbnail(&image, 80, 80),
+                            )])));
                         self.image_cache.insert(key, value.clone());
 
                         Some(value)
@@ -216,7 +217,7 @@ impl DataThread {
             let value = self.image_cache.get(&key).unwrap();
 
             // no clue how this could possibly be less than 2 but it doesn't hurt to check
-            if Arc::<gpui::ImageData>::strong_count(value) <= 2 {
+            if Arc::<gpui::RenderImage>::strong_count(value) <= 2 {
                 debug!("evicting {}", key);
                 self.image_cache.remove(&key);
             }
