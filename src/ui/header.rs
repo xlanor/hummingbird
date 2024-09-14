@@ -126,6 +126,7 @@ impl Render for InfoSection {
                     .m(px(12.0))
                     .gap(px(10.0))
                     .flex()
+                    .overflow_x_hidden()
                     .child(
                         div()
                             .id("album-art")
@@ -163,10 +164,19 @@ impl Render for InfoSection {
                                 .line_height(rems(1.0))
                                 .text_size(px(15.0))
                                 .gap_1()
-                                .child(div().font_weight(FontWeight::EXTRA_BOLD).child(
-                                    metadata.artist.clone().unwrap_or("Unknown Artist".into()),
-                                ))
-                                .child(div().child(
+                                .overflow_x_hidden()
+                                .child(
+                                    div()
+                                        .overflow_x_hidden()
+                                        .font_weight(FontWeight::EXTRA_BOLD)
+                                        .child(
+                                            metadata
+                                                .artist
+                                                .clone()
+                                                .unwrap_or("Unknown Artist".into()),
+                                        ),
+                                )
+                                .child(div().overflow_x_hidden().text_ellipsis().child(
                                     metadata.name.clone().unwrap_or("Unknown Track".into()),
                                 )),
                         )
