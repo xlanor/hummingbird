@@ -26,7 +26,7 @@ pub enum DataCommand {
     /// Requests that the data proccessing thread decode the specified image. The image type is
     /// used to keep track of which image is being decoded, and the layout is used to determine
     /// whether or not RGB to BGR conversion is necessary.
-    DecodeImage(Box<[u8]>, ImageType, ImageLayout),
+    DecodeImage(Box<[u8]>, ImageType, ImageLayout, bool),
     /// Requests that the data processing thread read the metadata for the specified files. This
     /// is used to display track information in the user interface.
     ReadQueueMetadata(Vec<String>),

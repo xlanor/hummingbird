@@ -64,6 +64,7 @@ impl ReleaseView {
                     image,
                     ImageType::AlbumArt(album_id),
                     ImageLayout::BGR,
+                    false,
                 );
             }
 
@@ -82,9 +83,13 @@ impl ReleaseView {
 impl Render for ReleaseView {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         div()
+            .mt(px(24.0))
             .w_full()
             .flex_shrink()
             .overflow_x_hidden()
+            .w_full()
+            .max_w(px(1000.0))
+            .mx_auto()
             .flex()
             .flex_col()
             .child(
@@ -92,6 +97,7 @@ impl Render for ReleaseView {
                     .flex_shrink()
                     .flex()
                     .overflow_x_hidden()
+                    .px(px(24.0))
                     .w_full()
                     .child(
                         div()
@@ -100,13 +106,21 @@ impl Render for ReleaseView {
                             .shadow_sm()
                             .w(px(160.0))
                             .h(px(160.0))
-                            .ml(px(12.0))
                             .flex_shrink_0()
+                            .overflow_hidden()
                             .when(self.image.is_some(), |div| {
                                 div.child(
                                     img(self.image.clone().unwrap())
-                                        .w(px(160.0))
-                                        .h(px(160.0))
+                                        .min_w(px(160.0))
+                                        .min_h(px(160.0))
+                                        .max_w(px(160.0))
+                                        .max_h(px(160.0))
+                                        .overflow_hidden()
+                                        .flex()
+                                        // TODO: Ideally this should be ObjectFit::Cover, but for
+                                        // some reason that makes the element bigger
+                                        // FIXME: Is this a GPUI bug?
+                                        .object_fit(ObjectFit::Fill)
                                         .rounded(px(4.0)),
                                 )
                             }),
@@ -144,11 +158,15 @@ impl Render for ReleaseView {
                                         .border_1()
                                         .border_color(rgb(0x374151))
                                         .rounded(px(4.0))
-                                        .px(px(12.0))
-                                        .py(px(4.0))
+                                        .pl(px(11.0))
+                                        .pr(px(10.0))
+                                        .py(px(3.0))
                                         .shadow_sm()
                                         .text_sm()
+                                        .flex()
+                                        .hover(|this| this.bg(rgb(0x374151)))
                                         .font_weight(FontWeight::BOLD)
+                                        .active(|style| style.bg(rgb(0x111827)))
                                         .on_click(cx.listener(|this: &mut ReleaseView, _, cx| {
                                             let paths = this
                                                 .tracks
@@ -158,7 +176,9 @@ impl Render for ReleaseView {
 
                                             replace_queue(paths, cx)
                                         }))
-                                        .child("Play"),
+                                        .gap(px(6.0))
+                                        .child(div().font_family("Font Awesome 6 Free").child(""))
+                                        .child(div().child("Play")),
                                 ),
                             ),
                     ),

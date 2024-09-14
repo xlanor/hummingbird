@@ -114,16 +114,16 @@ impl Render for AlbumView {
             .flex()
             .flex_col()
             .w_full()
-            .h_full()
             .max_w(px(1000.0))
             .mx_auto()
-            .pt(px(20.0))
+            .pt(px(24.0))
             .pb(px(0.0))
+            .px(px(12.0))
             .child(
                 div()
                     .w_full()
                     .mb(px(11.0))
-                    .px(px(11.0))
+                    .px(px(12.0))
                     .line_height(px(26.0))
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(26.0))
@@ -160,12 +160,7 @@ impl Render for AlbumView {
                             .child("Artist"),
                     ),
             )
-            .child(
-                list(self.list_state.clone())
-                    .w_full()
-                    .h_full()
-                    .max_w(px(1280.0)),
-            )
+            .child(list(self.list_state.clone()).w_full().h_full())
     }
 }
 
@@ -208,6 +203,7 @@ impl AlbumItem {
                     image,
                     ImageType::AlbumArt(album_id),
                     ImageLayout::BGR,
+                    true,
                 );
             }
 

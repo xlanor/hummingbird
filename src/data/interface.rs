@@ -41,9 +41,20 @@ impl DataInterface for GPUIDataInterface {
 }
 
 impl GPUIDataInterface {
-    pub fn decode_image(&self, data: Box<[u8]>, image_type: ImageType, image_layout: ImageLayout) {
+    pub fn decode_image(
+        &self,
+        data: Box<[u8]>,
+        image_type: ImageType,
+        image_layout: ImageLayout,
+        thumb: bool,
+    ) {
         self.commands_tx
-            .send(DataCommand::DecodeImage(data, image_type, image_layout))
+            .send(DataCommand::DecodeImage(
+                data,
+                image_type,
+                image_layout,
+                thumb,
+            ))
             .expect("could not send tx");
     }
 

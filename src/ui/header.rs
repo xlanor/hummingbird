@@ -218,7 +218,7 @@ impl Render for PlaybackSection {
                 .mt(px(6.0))
                 .border(px(1.0))
                 .rounded(px(4.0))
-                .border_color(rgb(0x334155))
+                .border_color(rgb(0x374151))
                 .flex()
                 .child(
                     div()
@@ -230,7 +230,7 @@ impl Render for PlaybackSection {
                         .flex()
                         .items_center()
                         .justify_center()
-                        .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                        .hover(|style| style.bg(rgb(0x374151)).cursor_pointer())
                         .id("header-prev-button")
                         .active(|style| style.bg(rgb(0x111827)))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
@@ -248,12 +248,12 @@ impl Render for PlaybackSection {
                         .bg(rgb(0x1f2937))
                         .border_l(px(1.0))
                         .border_r(px(1.0))
-                        .border_color(rgb(0x334155))
+                        .border_color(rgb(0x374151))
                         .font_family("Font Awesome 6 Free")
                         .flex()
                         .items_center()
                         .justify_center()
-                        .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                        .hover(|style| style.bg(rgb(0x374151)).cursor_pointer())
                         .id("header-play-button")
                         .active(|style| style.bg(rgb(0x111827)))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
@@ -275,7 +275,7 @@ impl Render for PlaybackSection {
                         .flex()
                         .items_center()
                         .justify_center()
-                        .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                        .hover(|style| style.bg(rgb(0x374151)).cursor_pointer())
                         .id("header-next-button")
                         .active(|style| style.bg(rgb(0x111827)))
                         .on_mouse_down(MouseButton::Left, |_, cx| {

@@ -74,8 +74,8 @@ impl DataThread {
     fn run(&mut self) {
         while let Ok(command) = self.commands_rx.recv() {
             match command {
-                DataCommand::DecodeImage(data, image_type, layout) => {
-                    if self.decode_image(data, image_type, layout).is_err() {
+                DataCommand::DecodeImage(data, image_type, layout, thumb) => {
+                    if self.decode_image(data, image_type, layout, thumb).is_err() {
                         self.events_tx
                             .send(DataEvent::DecodeError(image_type))
                             .expect("could not send event");
@@ -103,6 +103,7 @@ impl DataThread {
         data: Box<[u8]>,
         image_type: ImageType,
         image_layout: ImageLayout,
+        thumb: bool,
     ) -> Result<(), ()> {
         let mut image = image::io::Reader::new(Cursor::new(data.clone()))
             .with_guessed_format()
@@ -115,14 +116,25 @@ impl DataThread {
             rgb_to_bgr(&mut image);
         }
 
-        self.events_tx
-            .send(DataEvent::ImageDecoded(
-                Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
-                    thumbnail(&image, 80, 80),
-                )]))),
-                image_type,
-            ))
-            .expect("could not send event");
+        if thumb {
+            self.events_tx
+                .send(DataEvent::ImageDecoded(
+                    Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
+                        thumbnail(&image, 80, 80),
+                    )]))),
+                    image_type,
+                ))
+                .expect("could not send event");
+        } else {
+            self.events_tx
+                .send(DataEvent::ImageDecoded(
+                    Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
+                        image,
+                    )]))),
+                    image_type,
+                ))
+                .expect("could not send event");
+        }
 
         Ok(())
     }

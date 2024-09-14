@@ -58,6 +58,7 @@ pub fn build_models(cx: &mut AppContext) {
             img,
             ImageType::CurrentAlbumArt,
             ImageLayout::BGR,
+            true,
         );
     })
     .detach();
