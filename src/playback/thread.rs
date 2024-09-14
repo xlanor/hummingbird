@@ -147,6 +147,7 @@ impl PlaybackThread {
                 PlaybackCommand::Jump(v) => self.jump(v),
                 PlaybackCommand::Seek(v) => self.seek(v),
                 PlaybackCommand::SetVolume(_) => todo!(),
+                PlaybackCommand::ReplaceQueue(v) => self.replace_queue(v),
             }
         }
     }
@@ -348,6 +349,16 @@ impl PlaybackThread {
             self.open(&self.queue[index].clone());
             self.queue_next = index + 1;
         }
+    }
+
+    fn replace_queue(&mut self, paths: Vec<String>) {
+        info!("Replacing queue with: {:?}", paths);
+        self.queue = paths;
+        self.queue_next = 0;
+        self.jump(0);
+        self.events_tx
+            .send(PlaybackEvent::QueueUpdated(self.queue.clone()))
+            .expect("unable to send event");
     }
 
     fn play_audio(&mut self) {

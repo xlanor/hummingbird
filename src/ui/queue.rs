@@ -61,7 +61,6 @@ impl Render for QueueItem {
             .id(ElementId::View(cx.entity_id()))
             .flex()
             .overflow_x_hidden()
-            .flex_shrink_0()
             .gap(px(11.0))
             .p(px(11.0))
             .border_t(px(1.0))
@@ -92,6 +91,7 @@ impl Render for QueueItem {
                     .line_height(rems(1.0))
                     .text_size(px(15.0))
                     .gap_1()
+                    .overflow_x_hidden()
                     .child(
                         div().font_weight(FontWeight::EXTRA_BOLD).child(
                             self.item
@@ -102,9 +102,7 @@ impl Render for QueueItem {
                         ),
                     )
                     .child(
-                        // TODO: this goes off the screen if the name is too long
-                        // no idea how to fix this with current GPUI limitations
-                        div().w_full().overflow_x_hidden().child(
+                        div().text_ellipsis().child(
                             self.item.metadata.name.clone().unwrap_or(
                                 self.item
                                     .file_path
@@ -165,10 +163,13 @@ impl Render for Queue {
             // .top_0()
             // .right_0()
             .h_full()
+            .min_w(px(275.0))
+            .max_w(px(275.0))
             .w(px(275.0))
             .bg(rgb(0x111827))
             .border_l(px(1.0))
             .flex_shrink_0()
+            .border_r(px(3.0))
             .border_color(rgb(0x1e293b))
             .pt(px(20.0))
             .pb(px(0.0))

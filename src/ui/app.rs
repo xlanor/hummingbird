@@ -158,6 +158,9 @@ impl Render for WindowShadow {
                             .h_full()
                             .flex()
                             .relative()
+                            .max_w_full()
+                            .max_h_full()
+                            .overflow_hidden()
                             .child(self.library.clone())
                             .child(self.queue.clone()),
                     ),

@@ -121,6 +121,12 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
+    pub fn replace_queue(&self, paths: Vec<String>) {
+        self.commands_tx
+            .send(PlaybackCommand::ReplaceQueue(paths.clone()))
+            .expect("could not send tx");
+    }
+
     /// Starts the broadcast loop that will read events from the playback thread and update data
     /// models accordingly. This function should be called once, and will panic if called more than
     /// once.
@@ -219,4 +225,22 @@ impl GPUIPlaybackInterface {
             panic!("broadcast thread already started");
         }
     }
+}
+
+// TODO: this should be in a trait for AppContext
+pub fn replace_queue(paths: Vec<String>, cx: &mut AppContext) {
+    let playback_interface = cx.global::<GPUIPlaybackInterface>();
+    playback_interface.replace_queue(paths.clone());
+
+    let queue = cx.global::<Models>().queue.clone();
+
+    queue.update(cx, |m, cx| {
+        m.clear();
+        // no reason to notify because it will just be immediately overwritten
+    });
+
+    let data_interface = cx.global::<GPUIDataInterface>();
+
+    data_interface.evict_cache();
+    data_interface.get_metadata_for_queue(paths);
 }

@@ -13,6 +13,7 @@ use crate::{
         db::LibraryAccess,
         types::{Album, Artist, Track},
     },
+    playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::models::{Models, TransferDummy},
 };
 
@@ -80,44 +81,87 @@ impl ReleaseView {
 
 impl Render for ReleaseView {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        div().child(
-            div()
-                .flex()
-                .child(
-                    div()
-                        .rounded(px(8.0))
-                        .bg(rgb(0x4b5563))
-                        .shadow_sm()
-                        .w(px(120.0))
-                        .h(px(120.0))
-                        .ml(px(12.0))
-                        .my(px(8.0))
-                        .flex_shrink_0()
-                        .when(self.image.is_some(), |div| {
-                            div.child(
-                                img(self.image.clone().unwrap())
-                                    .w(px(120.0))
-                                    .h(px(120.0))
-                                    .rounded(px(8.0)),
+        div()
+            .w_full()
+            .flex_shrink()
+            .overflow_x_hidden()
+            .flex()
+            .flex_col()
+            .child(
+                div()
+                    .flex_shrink()
+                    .flex()
+                    .overflow_x_hidden()
+                    .w_full()
+                    .child(
+                        div()
+                            .rounded(px(4.0))
+                            .bg(rgb(0x4b5563))
+                            .shadow_sm()
+                            .w(px(160.0))
+                            .h(px(160.0))
+                            .ml(px(12.0))
+                            .flex_shrink_0()
+                            .when(self.image.is_some(), |div| {
+                                div.child(
+                                    img(self.image.clone().unwrap())
+                                        .w(px(160.0))
+                                        .h(px(160.0))
+                                        .rounded(px(4.0)),
+                                )
+                            }),
+                    )
+                    .child(
+                        div()
+                            .ml(px(18.0))
+                            .mt_auto()
+                            .flex_shrink()
+                            .flex()
+                            .flex_col()
+                            .w_full()
+                            .overflow_x_hidden()
+                            .child(div().font_weight(FontWeight::SEMIBOLD).when_some(
+                                self.artist.as_ref().map(|v| v.name.clone()),
+                                |this, artist| this.child(artist.unwrap()),
+                            ))
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::EXTRA_BOLD)
+                                    .text_size(rems(2.5))
+                                    .line_height(rems(2.75))
+                                    .overflow_x_hidden()
+                                    .min_w_0()
+                                    .text_ellipsis()
+                                    .child(self.album.title.clone()),
                             )
-                        }),
-                )
-                .child(
-                    div()
-                        .ml(px(12.0))
-                        .my_auto()
-                        .child(div().font_weight(FontWeight::SEMIBOLD).when_some(
-                            self.artist.as_ref().map(|v| v.name.clone()),
-                            |this, artist| this.child(artist.unwrap()),
-                        ))
-                        .child(
-                            div()
-                                .font_weight(FontWeight::EXTRA_BOLD)
-                                .text_size(rems(2.5))
-                                .line_height(rems(2.5))
-                                .child(self.album.title.clone()),
-                        ),
-                ),
-        )
+                            .child(
+                                // TODO: add shuffle, add to queue buttons
+                                div().flex().flex_row().child(
+                                    div()
+                                        .mt(px(10.0))
+                                        .id("play-button-awefg")
+                                        .bg(rgb(0x1f2937))
+                                        .border_1()
+                                        .border_color(rgb(0x374151))
+                                        .rounded(px(4.0))
+                                        .px(px(12.0))
+                                        .py(px(4.0))
+                                        .shadow_sm()
+                                        .text_sm()
+                                        .font_weight(FontWeight::BOLD)
+                                        .on_click(cx.listener(|this: &mut ReleaseView, _, cx| {
+                                            let paths = this
+                                                .tracks
+                                                .iter()
+                                                .map(|track| track.location.clone())
+                                                .collect();
+
+                                            replace_queue(paths, cx)
+                                        }))
+                                        .child("Play"),
+                                ),
+                            ),
+                    ),
+            )
     }
 }

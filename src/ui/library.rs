@@ -56,9 +56,15 @@ impl Library {
 
 impl Render for Library {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        div().w_full().h_full().flex().child(match &self.view {
-            LibraryView::Album(album_view) => album_view.clone().into_any_element(),
-            LibraryView::Release(release_view) => release_view.clone().into_any_element(),
-        })
+        div()
+            .w_full()
+            .h_full()
+            .flex()
+            .flex_shrink()
+            .overflow_x_hidden()
+            .child(match &self.view {
+                LibraryView::Album(album_view) => album_view.clone().into_any_element(),
+                LibraryView::Release(release_view) => release_view.clone().into_any_element(),
+            })
     }
 }

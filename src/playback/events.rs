@@ -1,4 +1,3 @@
-
 use crate::media::metadata::Metadata;
 
 use super::thread::PlaybackState;
@@ -34,6 +33,9 @@ pub enum PlaybackCommand {
     Seek(f64),
     /// Requests that the playback thread set the volume to the specified level.
     SetVolume(u8),
+    /// Requests that the playback thread replace the current queue with the specified queue.
+    /// This will set the current playing track to the first item in the queue.
+    ReplaceQueue(Vec<String>),
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback
