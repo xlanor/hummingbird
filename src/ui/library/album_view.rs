@@ -245,17 +245,17 @@ impl Render for AlbumItem {
                     .when(self.image.is_some(), |div| {
                         div.child(
                             img(self.image.clone().unwrap())
-                                .w(px(24.0))
-                                .h(px(24.0))
-                                .rounded(px(4.0)),
+                                .w(px(22.0))
+                                .h(px(22.0))
+                                .rounded(px(2.0)),
                         )
                     }),
             )
             .child(
                 div()
-                    .pt(px(6.0))
+                    .my_auto()
                     .px(px(12.0))
-                    .pb(px(7.0))
+                    .pb(px(1.0))
                     .w(px(300.0))
                     .min_w(px(300.0))
                     .max_w(px(300.0))
@@ -269,8 +269,8 @@ impl Render for AlbumItem {
             )
             .child(
                 div()
-                    .pt(px(6.0))
-                    .pb(px(7.0))
+                    .my_auto()
+                    .pb(px(1.0))
                     .px(px(12.0))
                     .text_sm()
                     .flex_shrink()
