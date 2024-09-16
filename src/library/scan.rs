@@ -298,11 +298,13 @@ impl ScanThread {
     }
 
     async fn insert_artist(&self, metadata: &Metadata) -> Option<i64> {
-        if let Some(artist) = &metadata.artist {
+        let artist = metadata.album_artist.clone().or(metadata.artist.clone());
+
+        if let Some(artist) = artist {
             let result: Result<(i64,), sqlx::Error> =
                 sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
-                    .bind(artist)
-                    .bind(artist)
+                    .bind(&artist)
+                    .bind(&artist)
                     .fetch_one(&self.pool)
                     .await;
 
@@ -311,7 +313,7 @@ impl ScanThread {
                 Err(sqlx::Error::RowNotFound) => {
                     let result: Result<(i64,), sqlx::Error> =
                         sqlx::query_as(include_str!("../../queries/scan/get_artist_id.sql"))
-                            .bind(artist)
+                            .bind(&artist)
                             .fetch_one(&self.pool)
                             .await;
 

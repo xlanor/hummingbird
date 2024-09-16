@@ -93,13 +93,16 @@ impl Render for QueueItem {
                     .gap_1()
                     .overflow_x_hidden()
                     .child(
-                        div().font_weight(FontWeight::EXTRA_BOLD).child(
-                            self.item
-                                .metadata
-                                .artist
-                                .clone()
-                                .unwrap_or("Unknown Artist".into()),
-                        ),
+                        div()
+                            .text_ellipsis()
+                            .font_weight(FontWeight::EXTRA_BOLD)
+                            .child(
+                                self.item
+                                    .metadata
+                                    .artist
+                                    .clone()
+                                    .unwrap_or("Unknown Artist".into()),
+                            ),
                     )
                     .child(
                         div().text_ellipsis().child(
