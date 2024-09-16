@@ -56,7 +56,8 @@ impl Render for WindowShadow {
                             move |_bounds, hitbox, cx| {
                                 let mouse = cx.mouse_position();
                                 let size = cx.window_bounds().get_bounds().size;
-                                let Some(edge) = resize_edge(mouse, shadow_size, size) else {
+                                let Some(edge) = resize_edge(mouse, shadow_size, size, tiling)
+                                else {
                                     return;
                                 };
                                 cx.set_cursor_style(
@@ -100,7 +101,7 @@ impl Render for WindowShadow {
                         let size = cx.window_bounds().get_bounds().size;
                         let pos = e.position;
 
-                        if let Some(edge) = resize_edge(pos, shadow_size, size) {
+                        if let Some(edge) = resize_edge(pos, shadow_size, size, tiling) {
                             cx.start_window_resize(edge)
                         };
                     }),
@@ -168,22 +169,39 @@ impl Render for WindowShadow {
     }
 }
 
-fn resize_edge(pos: Point<Pixels>, shadow_size: Pixels, size: Size<Pixels>) -> Option<ResizeEdge> {
-    let edge = if pos.y < shadow_size && pos.x < shadow_size {
+fn resize_edge(
+    pos: Point<Pixels>,
+    shadow_size: Pixels,
+    size: Size<Pixels>,
+    tiling: Tiling,
+) -> Option<ResizeEdge> {
+    let edge = if pos.y < shadow_size && pos.x < shadow_size && !tiling.top && !tiling.left {
         ResizeEdge::TopLeft
-    } else if pos.y < shadow_size && pos.x > size.width - shadow_size {
+    } else if pos.y < shadow_size
+        && pos.x > size.width - shadow_size
+        && !tiling.top
+        && !tiling.right
+    {
         ResizeEdge::TopRight
-    } else if pos.y < shadow_size {
+    } else if pos.y < shadow_size && !tiling.top {
         ResizeEdge::Top
-    } else if pos.y > size.height - shadow_size && pos.x < shadow_size {
+    } else if pos.y > size.height - shadow_size
+        && pos.x < shadow_size
+        && !tiling.bottom
+        && !tiling.left
+    {
         ResizeEdge::BottomLeft
-    } else if pos.y > size.height - shadow_size && pos.x > size.width - shadow_size {
+    } else if pos.y > size.height - shadow_size
+        && pos.x > size.width - shadow_size
+        && !tiling.bottom
+        && !tiling.right
+    {
         ResizeEdge::BottomRight
-    } else if pos.y > size.height - shadow_size {
+    } else if pos.y > size.height - shadow_size && !tiling.bottom {
         ResizeEdge::Bottom
-    } else if pos.x < shadow_size {
+    } else if pos.x < shadow_size && !tiling.left {
         ResizeEdge::Left
-    } else if pos.x > size.width - shadow_size {
+    } else if pos.x > size.width - shadow_size && !tiling.right {
         ResizeEdge::Right
     } else {
         return None;
