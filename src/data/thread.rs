@@ -91,7 +91,7 @@ impl DataThread {
                 DataCommand::EvictQueueCache => self.evict_unneeded_data(),
             }
 
-            sleep(std::time::Duration::from_millis(10));
+            sleep(std::time::Duration::from_millis(1));
         }
     }
 

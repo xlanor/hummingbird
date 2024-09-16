@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::{collections::VecDeque, rc::Rc, sync::Arc};
 
 use ahash::AHashMap;
 use gpui::*;
@@ -28,13 +28,13 @@ pub struct AlbumView {
     views_model: Model<AHashMap<usize, View<AlbumItem>>>,
     render_counter: Model<usize>,
     list_state: ListState,
-    view_switch_model: Model<ViewSwitchDummy>,
+    view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
 }
 
 impl AlbumView {
-    pub fn new<V: 'static>(
+    pub(super) fn new<V: 'static>(
         cx: &mut ViewContext<V>,
-        view_switch_model: Model<ViewSwitchDummy>,
+        view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
     ) -> View<Self> {
         cx.new_view(|cx| {
             // TODO: update when albums are added or removed
@@ -114,6 +114,7 @@ impl Render for AlbumView {
             .flex()
             .flex_col()
             .w_full()
+            .h_full()
             .max_w(px(1000.0))
             .mx_auto()
             .pt(px(24.0))
@@ -169,15 +170,15 @@ pub struct AlbumItem {
     artist: Option<Arc<String>>,
     image_transfer_model: Model<TransferDummy>,
     image: Option<Arc<RenderImage>>,
-    view_switch_model: Model<ViewSwitchDummy>,
+    view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
     id: SharedString,
 }
 
 impl AlbumItem {
-    pub fn new(
+    pub(self) fn new(
         cx: &mut WindowContext,
         album_id: i64,
-        view_switch_model: Model<ViewSwitchDummy>,
+        view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
     ) -> View<Self> {
         debug!("Creating AlbumItem view for album ID: {}", album_id);
 
@@ -225,6 +226,7 @@ impl Render for AlbumItem {
             .id(self.id.clone())
             .w_full()
             .flex()
+            .cursor_pointer()
             .border_b_1()
             .border_color(rgb(0x1e293b))
             .child(

@@ -121,7 +121,7 @@ impl GPUIDataInterface {
                     }
 
                     cx.background_executor()
-                        .timer(Duration::from_millis(10))
+                        .timer(Duration::from_millis(1))
                         .await;
                 }
             })

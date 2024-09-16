@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 
 use gpui::*;
 use prelude::FluentBuilder;
@@ -17,7 +17,7 @@ use crate::{
     ui::models::{Models, TransferDummy},
 };
 
-use super::ViewSwitchDummy;
+use super::ViewSwitchMessage;
 
 pub struct ReleaseView {
     album: Arc<Album>,
@@ -25,14 +25,14 @@ pub struct ReleaseView {
     image: Option<Arc<RenderImage>>,
     artist: Option<Arc<Artist>>,
     tracks: Arc<Vec<Track>>,
-    view_switcher_model: Model<ViewSwitchDummy>,
+    view_switcher_model: Model<VecDeque<ViewSwitchMessage>>,
 }
 
 impl ReleaseView {
-    pub fn new<V: 'static>(
+    pub(super) fn new<V: 'static>(
         cx: &mut ViewContext<V>,
         album_id: i64,
-        view_switcher_model: Model<ViewSwitchDummy>,
+        view_switcher_model: Model<VecDeque<ViewSwitchMessage>>,
     ) -> View<Self> {
         cx.new_view(|cx| {
             let image = None;
@@ -153,7 +153,7 @@ impl Render for ReleaseView {
                                 div().flex().flex_row().child(
                                     div()
                                         .mt(px(10.0))
-                                        .id("play-button-awefg")
+                                        .id("play-button")
                                         .bg(rgb(0x1f2937))
                                         .border_1()
                                         .border_color(rgb(0x374151))
@@ -164,6 +164,7 @@ impl Render for ReleaseView {
                                         .shadow_sm()
                                         .text_sm()
                                         .flex()
+                                        .cursor_pointer()
                                         .hover(|this| this.bg(rgb(0x374151)))
                                         .font_weight(FontWeight::BOLD)
                                         .active(|style| style.bg(rgb(0x111827)))

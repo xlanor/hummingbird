@@ -169,7 +169,6 @@ impl Render for Queue {
             .bg(rgb(0x111827))
             .border_l(px(1.0))
             .flex_shrink_0()
-            .border_r(px(3.0))
             .border_color(rgb(0x1e293b))
             .pt(px(20.0))
             .pb(px(0.0))
