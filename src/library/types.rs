@@ -117,8 +117,7 @@ pub struct Track {
     pub track_number: Option<i32>,
     #[sqlx(default)]
     pub disc_number: Option<i32>,
-    #[sqlx(default)]
-    pub duration: Option<i64>,
+    pub duration: i64,
     pub created_at: chrono::NaiveDateTime,
     #[sqlx(skip)]
     pub genres: Option<Vec<String>>,

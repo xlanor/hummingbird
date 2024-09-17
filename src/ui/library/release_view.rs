@@ -224,7 +224,8 @@ impl Render for ReleaseView {
                     .w_full()
                     .flex()
                     .h_full()
-                    .flex_col(),
+                    .flex_col()
+                    .mx_auto(),
             )
             .child(
                 div()
@@ -234,7 +235,7 @@ impl Render for ReleaseView {
                     .ml(px(24.0))
                     .mt(px(24.0))
                     .font_weight(FontWeight::SEMIBOLD)
-                    .text_color(rgb(0x9CA3AF))
+                    .text_color(rgb(0xd1d5db))
                     .when(!release_info.is_empty(), |this| {
                         this.child(div().child(release_info))
                     })
@@ -256,7 +257,50 @@ struct TrackItem {
 
 impl RenderOnce for TrackItem {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
-        debug!("rendering {}", self.track.title);
-        div().flex().flex_row().child(self.track.title)
+        debug!("rendering {:02}", self.track.title);
+        div()
+            .flex()
+            .flex_col()
+            .w_full()
+            .when(self.is_start, |this| {
+                this.child(
+                    div()
+                        .text_color(rgb(0xd1d5db))
+                        .text_sm()
+                        .font_weight(FontWeight::SEMIBOLD)
+                        .px(px(24.0))
+                        .border_b_1()
+                        .w_full()
+                        .border_color(rgb(0x1e293b))
+                        .mt(px(24.0))
+                        .pb(px(6.0))
+                        .child(format!(
+                            "DISC {}",
+                            self.track.disc_number.unwrap_or_default()
+                        )),
+                )
+            })
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .border_b_1()
+                    .w_full()
+                    .border_color(rgb(0x1e293b))
+                    .px(px(24.0))
+                    .py(px(6.0))
+                    .max_w_full()
+                    .child(
+                        div()
+                            .w(px(62.0))
+                            .child(format!("{}", self.track.track_number.unwrap_or_default())),
+                    )
+                    .child(div().font_weight(FontWeight::BOLD).child(self.track.title))
+                    .child(div().ml_auto().child(format!(
+                        "{}:{:02}",
+                        self.track.duration / 60,
+                        self.track.duration % 60
+                    ))),
+            )
     }
 }

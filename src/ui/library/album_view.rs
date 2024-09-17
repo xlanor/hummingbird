@@ -119,12 +119,11 @@ impl Render for AlbumView {
             .mx_auto()
             .pt(px(24.0))
             .pb(px(0.0))
-            .px(px(12.0))
             .child(
                 div()
                     .w_full()
                     .mb(px(11.0))
-                    .px(px(12.0))
+                    .px(px(24.0))
                     .line_height(px(26.0))
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(26.0))
@@ -136,7 +135,7 @@ impl Render for AlbumView {
                     .w_full()
                     .border_color(rgb(0x1e293b))
                     .border_b_1()
-                    .child(div().w(px(22.0 + 11.0 + 6.0)).flex_shrink_0())
+                    .child(div().w(px(22.0 + 23.0 + 6.0)).flex_shrink_0())
                     .child(
                         div()
                             .w(px(294.0))
@@ -203,6 +202,7 @@ impl Render for AlbumItem {
             .cursor_pointer()
             .border_b_1()
             .border_color(rgb(0x1e293b))
+            .px(px(24.0))
             .child(
                 div()
                     .id("album-art")
@@ -211,7 +211,6 @@ impl Render for AlbumItem {
                     .shadow_sm()
                     .w(px(22.0))
                     .h(px(22.0))
-                    .ml(px(12.0))
                     .my(px(8.0))
                     .flex_shrink_0()
                     .when(self.album.thumb.is_some(), |div| {
