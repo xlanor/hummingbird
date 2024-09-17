@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS album (
     release_date DATE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     image BLOB,
+    thumb BLOB,
     tags TEXT,
     FOREIGN KEY (artist_id) REFERENCES artist (id)
 );

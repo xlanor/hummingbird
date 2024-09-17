@@ -1,7 +1,7 @@
 use std::{
     borrow::BorrowMut,
     fs::{self, File},
-    io::{BufReader, Write},
+    io::{BufReader, BufWriter, Cursor, Write},
     path::PathBuf,
     sync::mpsc,
     time::SystemTime,
@@ -9,6 +9,7 @@ use std::{
 
 use ahash::AHashMap;
 use async_std::task;
+use image::imageops::thumbnail;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
@@ -342,12 +343,36 @@ impl ScanThread {
         image: &Option<Box<[u8]>>,
     ) -> Option<i64> {
         if let Some(album) = &metadata.album {
+            let thumb = match image {
+                Some(image) => {
+                    let decoded = image::ImageReader::new(Cursor::new(&image))
+                        .with_guessed_format()
+                        .ok()?
+                        .decode()
+                        .ok()?
+                        .into_rgba8();
+
+                    let thumb = thumbnail(&decoded, 70, 70);
+
+                    let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+
+                    thumb
+                        .write_to(&mut buf, image::ImageFormat::Bmp)
+                        .expect("i don't know how Cursor could fail");
+                    buf.flush().expect("could not flush buffer");
+
+                    Some(buf.get_mut().clone())
+                }
+                None => None,
+            };
+
             let result: Result<(i64,), sqlx::Error> =
                 sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
                     .bind(album)
                     .bind(album)
                     .bind(artist_id)
                     .bind(image)
+                    .bind(thumb)
                     .fetch_one(&self.pool)
                     .await;
 

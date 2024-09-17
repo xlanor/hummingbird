@@ -10,7 +10,7 @@ use crate::{
         interface::GPUIDataInterface,
     },
     library::{
-        db::LibraryAccess,
+        db::{AlbumMethod, LibraryAccess},
         types::{Album, Artist, Track},
     },
     playback::interface::{replace_queue, GPUIPlaybackInterface},
@@ -38,7 +38,7 @@ impl ReleaseView {
             let image = None;
             // TODO: error handling
             let album = cx
-                .get_album_by_id(album_id)
+                .get_album_by_id(album_id, AlbumMethod::Cached)
                 .expect("Failed to retrieve album");
             let tracks = cx
                 .list_tracks_in_album(album_id)

@@ -10,6 +10,13 @@ use crate::ui::app::Pool;
 
 use super::types::{Album, Artist, Track};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AlbumMethod {
+    Cached,
+    Uncached,
+    UncachedThumb,
+}
+
 pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Error> {
     debug!("Creating database pool at {:?}", path.as_ref());
     let options = SqliteConnectOptions::new()
@@ -97,16 +104,32 @@ pub async fn get_album_by_id(
     pool: &SqlitePool,
     db_cache: &DbCache,
     album_id: i64,
+    method: AlbumMethod,
 ) -> Result<Arc<Album>, sqlx::Error> {
-    if let Some(name) = db_cache.album_cache.get(&album_id).await {
+    // TODO: this sucks, when if-let chaining comes out fix this
+    if let (Some(name), AlbumMethod::Cached) = (db_cache.album_cache.get(&album_id).await, method) {
         Ok(name)
     } else {
         let query = include_str!("../../queries/library/find_album_by_id.sql");
 
-        let album: Arc<Album> =
-            Arc::new(sqlx::query_as(query).bind(album_id).fetch_one(pool).await?);
+        let album: Arc<Album> = Arc::new({
+            let mut data: Album = sqlx::query_as(query).bind(album_id).fetch_one(pool).await?;
 
-        db_cache.album_cache.insert(album_id, album.clone()).await;
+            match method {
+                AlbumMethod::Cached | AlbumMethod::Uncached => {
+                    data.thumb = None;
+                }
+                AlbumMethod::UncachedThumb => {
+                    data.image = None;
+                }
+            }
+
+            data
+        });
+
+        if method == AlbumMethod::Cached {
+            db_cache.album_cache.insert(album_id, album.clone()).await;
+        }
 
         Ok(album)
     }
@@ -167,7 +190,11 @@ pub async fn get_artist_by_id(
 pub trait LibraryAccess {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error>;
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Arc<Vec<Track>>, sqlx::Error>;
-    fn get_album_by_id(&self, album_id: i64) -> Result<Arc<Album>, sqlx::Error>;
+    fn get_album_by_id(
+        &self,
+        album_id: i64,
+        method: AlbumMethod,
+    ) -> Result<Arc<Album>, sqlx::Error>;
     fn get_artist_name_by_id(&self, artist_id: i64) -> Result<Arc<String>, sqlx::Error>;
     fn get_artist_by_id(&self, artist_id: i64) -> Result<Arc<Artist>, sqlx::Error>;
 }
@@ -184,10 +211,14 @@ impl LibraryAccess for AppContext {
         task::block_on(list_tracks_in_album(&pool.0, album_id))
     }
 
-    fn get_album_by_id(&self, album_id: i64) -> Result<Arc<Album>, sqlx::Error> {
+    fn get_album_by_id(
+        &self,
+        album_id: i64,
+        method: AlbumMethod,
+    ) -> Result<Arc<Album>, sqlx::Error> {
         let pool: &Pool = self.global();
         let db_cache: &DbCache = self.global();
-        task::block_on(get_album_by_id(&pool.0, db_cache, album_id))
+        task::block_on(get_album_by_id(&pool.0, db_cache, album_id, method))
     }
 
     fn get_artist_name_by_id(&self, artist_id: i64) -> Result<Arc<String>, sqlx::Error> {

@@ -4,7 +4,7 @@ use gpui::*;
 use prelude::FluentBuilder;
 use tracing::debug;
 
-use crate::library::db::LibraryAccess;
+use crate::library::db::{AlbumMethod, LibraryAccess};
 
 use super::ViewSwitchMessage;
 
@@ -35,7 +35,7 @@ impl NavigationView {
 
                 this.description = match this.current_message {
                     ViewSwitchMessage::Release(id) => cx
-                        .get_album_by_id(id)
+                        .get_album_by_id(id, AlbumMethod::Cached)
                         .ok()
                         .map(|v| SharedString::from(v.title.clone())),
                     _ => None,
@@ -65,7 +65,9 @@ impl Render for NavigationView {
                     div()
                         .flex()
                         .id("back")
-                        .pr(px(19.0))
+                        .font_family("Font Awesome 6 Free")
+                        .when(cfg!(not(target_os = "macos")), |this| this.pr(px(19.0)))
+                        .when(cfg!(target_os = "macos"), |this| this.pr(px(16.0)))
                         .pl(px(16.0))
                         .py(px(8.0))
                         .mr(px(16.0))

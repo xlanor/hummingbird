@@ -11,7 +11,7 @@ use crate::{
         interface::GPUIDataInterface,
     },
     library::{
-        db::{AlbumSortMethod, LibraryAccess},
+        db::{AlbumMethod, AlbumSortMethod, LibraryAccess},
         types::{Album, Artist},
     },
     ui::{
@@ -168,8 +168,6 @@ impl Render for AlbumView {
 pub struct AlbumItem {
     album: Arc<Album>,
     artist: Option<Arc<String>>,
-    image_transfer_model: Model<TransferDummy>,
-    image: Option<Arc<RenderImage>>,
     view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
     id: SharedString,
 }
@@ -183,39 +181,15 @@ impl AlbumItem {
         debug!("Creating AlbumItem view for album ID: {}", album_id);
 
         let album = cx
-            .get_album_by_id(album_id)
+            .get_album_by_id(album_id, AlbumMethod::UncachedThumb)
             .expect("Failed to retrieve album");
 
         let artist = cx.get_artist_name_by_id(album.artist_id).ok();
-        cx.new_view(|cx| {
-            let model = cx.global::<Models>().image_transfer_model.clone();
-
-            cx.subscribe(&model, move |this: &mut AlbumItem, _, image, cx| {
-                if image.0 == ImageType::AlbumArt(album_id) {
-                    debug!("captured decoded image for album ID: {}", album_id);
-                    this.image = Some(image.1.clone());
-                    cx.notify();
-                }
-            })
-            .detach();
-
-            if let Some(image) = album.image.clone() {
-                cx.global::<GPUIDataInterface>().decode_image(
-                    image,
-                    ImageType::AlbumArt(album_id),
-                    ImageLayout::BGR,
-                    true,
-                );
-            }
-
-            AlbumItem {
-                id: SharedString::from(format!("album-item-{}", album.id)),
-                album,
-                artist,
-                image_transfer_model: model,
-                image: None,
-                view_switch_model,
-            }
+        cx.new_view(|cx| AlbumItem {
+            id: SharedString::from(format!("album-item-{}", album.id)),
+            album,
+            artist,
+            view_switch_model,
         })
     }
 }
@@ -240,9 +214,9 @@ impl Render for AlbumItem {
                     .ml(px(12.0))
                     .my(px(8.0))
                     .flex_shrink_0()
-                    .when(self.image.is_some(), |div| {
+                    .when(self.album.thumb.is_some(), |div| {
                         div.child(
-                            img(self.image.clone().unwrap())
+                            img(self.album.thumb.clone().unwrap().0)
                                 .w(px(22.0))
                                 .h(px(22.0))
                                 .rounded(px(2.0)),
