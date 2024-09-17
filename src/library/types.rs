@@ -98,9 +98,15 @@ pub struct Album {
     pub image_mime: Option<String>,
     #[sqlx(skip)]
     pub tags: Option<Vec<String>>,
+    #[sqlx(default)]
+    pub label: Option<String>,
+    #[sqlx(default)]
+    pub catalog_number: Option<String>,
+    #[sqlx(default)]
+    pub isrc: Option<String>,
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Clone)]
 pub struct Track {
     pub id: i64,
     pub title: String,

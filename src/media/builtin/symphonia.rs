@@ -113,6 +113,15 @@ impl SymphoniaProvider {
                         _ => None,
                     }
                 }
+                Some(StandardTagKey::Label) => {
+                    self.current_metadata.label = Some(tag.value.to_string())
+                }
+                Some(StandardTagKey::IdentCatalogNumber) => {
+                    self.current_metadata.catalog = Some(tag.value.to_string())
+                }
+                Some(StandardTagKey::IdentIsrc) => {
+                    self.current_metadata.isrc = Some(tag.value.to_string())
+                }
                 _ => (),
             }
         }

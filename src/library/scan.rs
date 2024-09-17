@@ -373,6 +373,10 @@ impl ScanThread {
                     .bind(artist_id)
                     .bind(image)
                     .bind(thumb)
+                    .bind(&metadata.date)
+                    .bind(&metadata.label)
+                    .bind(&metadata.catalog)
+                    .bind(&metadata.isrc)
                     .fetch_one(&self.pool)
                     .await;
 

@@ -26,6 +26,7 @@ pub struct ReleaseView {
     artist: Option<Arc<Artist>>,
     tracks: Arc<Vec<Track>>,
     view_switcher_model: Model<VecDeque<ViewSwitchMessage>>,
+    track_list_state: ListState,
 }
 
 impl ReleaseView {
@@ -68,6 +69,21 @@ impl ReleaseView {
                 );
             }
 
+            let tracks_clone = tracks.clone();
+
+            let state =
+                ListState::new(tracks.len(), ListAlignment::Top, px(25.0), move |idx, _| {
+                    TrackItem {
+                        track: tracks_clone[idx].clone(),
+                        is_start: if let Some(track) = tracks_clone.get(idx - 1) {
+                            track.disc_number != tracks_clone[idx].disc_number
+                        } else {
+                            true
+                        },
+                    }
+                    .into_any_element()
+                });
+
             ReleaseView {
                 album,
                 image_transfer_model,
@@ -75,6 +91,7 @@ impl ReleaseView {
                 artist,
                 tracks,
                 view_switcher_model,
+                track_list_state: state,
             }
         })
     }
@@ -82,12 +99,30 @@ impl ReleaseView {
 
 impl Render for ReleaseView {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let release_info = {
+            let mut info = String::new();
+
+            if let Some(label) = &self.album.label {
+                info += label;
+            }
+
+            if self.album.label.is_some() && self.album.catalog_number.is_some() {
+                info += " • ";
+            }
+
+            if let Some(catalog_number) = &self.album.catalog_number {
+                info += catalog_number;
+            }
+
+            info
+        };
+
         div()
             .mt(px(24.0))
             .w_full()
             .flex_shrink()
             .overflow_x_hidden()
-            .w_full()
+            .h_full()
             .max_w(px(1000.0))
             .mx_auto()
             .flex()
@@ -184,5 +219,44 @@ impl Render for ReleaseView {
                             ),
                     ),
             )
+            .child(
+                list(self.track_list_state.clone())
+                    .w_full()
+                    .flex()
+                    .h_full()
+                    .flex_col(),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .text_sm()
+                    .ml(px(24.0))
+                    .mt(px(24.0))
+                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_color(rgb(0x9CA3AF))
+                    .when(!release_info.is_empty(), |this| {
+                        this.child(div().child(release_info))
+                    })
+                    .when_some(self.album.release_date, |this, date| {
+                        this.child(div().child(format!("Released {}", date.format("%B %e, %Y"))))
+                    })
+                    .when_some(self.album.isrc.as_ref(), |this, isrc| {
+                        this.child(div().child(format!("{}", isrc)))
+                    }),
+            )
+    }
+}
+
+#[derive(IntoElement)]
+struct TrackItem {
+    pub track: Track,
+    pub is_start: bool,
+}
+
+impl RenderOnce for TrackItem {
+    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+        debug!("rendering {}", self.track.title);
+        div().flex().flex_row().child(self.track.title)
     }
 }
