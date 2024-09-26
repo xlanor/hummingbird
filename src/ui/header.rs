@@ -123,7 +123,9 @@ impl Render for InfoSection {
             .flex_shrink_0()
             .child(
                 div()
-                    .m(px(12.0))
+                    .mx(px(12.0))
+                    .mt(px(12.0))
+                    .mb(px(9.0))
                     .gap(px(10.0))
                     .flex()
                     .overflow_x_hidden()
@@ -153,6 +155,7 @@ impl Render for InfoSection {
                                 .flex()
                                 .h_full()
                                 .items_center()
+                                .pb(px(3.0))
                                 .child("Muzak"),
                         )
                     })
@@ -176,9 +179,11 @@ impl Render for InfoSection {
                                                 .unwrap_or("Unknown Artist".into()),
                                         ),
                                 )
-                                .child(div().overflow_x_hidden().text_ellipsis().child(
-                                    metadata.name.clone().unwrap_or("Unknown Track".into()),
-                                )),
+                                .child(
+                                    div().overflow_x_hidden().pb(px(3.0)).text_ellipsis().child(
+                                        metadata.name.clone().unwrap_or("Unknown Track".into()),
+                                    ),
+                                ),
                         )
                     }),
             )

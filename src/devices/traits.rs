@@ -64,4 +64,9 @@ pub trait OutputStream {
     /// in order to avoid playing stale data (e.g. if a user pauses before seeking or changing
     /// tracks).
     fn reset(&mut self) -> Result<(), ResetError>;
+    /// Tells the device to set the volume to the given value. The volume should be a value between
+    /// 0.0 and 1.0. Note that some device providers may not support hardware or OS-level volume
+    /// control, and will instead use this value to adjust the volume of the audio data before
+    /// submitting it to the device.
+    fn set_volume(&mut self, volume: f32) -> Result<(), StateError>;
 }

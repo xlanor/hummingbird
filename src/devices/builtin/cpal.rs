@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{Div, Mul, Range};
 
 use crate::{
     devices::{
@@ -149,8 +149,15 @@ fn create_stream_internal<
     Ok((stream, prod))
 }
 
+trait CpalSample: SizedSample + GetInnerSamples + Default + Send + Sized + 'static + Mute {}
+
+impl<T> CpalSample for T where
+    T: SizedSample + GetInnerSamples + Default + Send + Sized + 'static + Mute
+{
+}
+
 impl CpalDevice {
-    fn create_stream<T: SizedSample + GetInnerSamples + Default + Send + Sized + 'static + Mute>(
+    fn create_stream<T: CpalSample>(
         &mut self,
         format: FormatInfo,
     ) -> Result<Box<dyn OutputStream>, OpenError> {
@@ -173,6 +180,7 @@ impl CpalDevice {
             config,
             buffer_size,
             device: self.device.clone(),
+            volume: 1.0,
         }))
     }
 }
@@ -267,11 +275,12 @@ where
     pub device: cpal::Device,
     pub format: FormatInfo,
     pub buffer_size: usize,
+    pub volume: f32,
 }
 
 impl<T> OutputStream for CpalStream<T>
 where
-    T: GetInnerSamples + SizedSample + Default + Send + 'static + Mute,
+    T: CpalSample,
 {
     fn submit_frame(&mut self, frame: PlaybackFrame) -> Result<(), SubmissionError> {
         let samples = T::inner(frame.samples);
@@ -314,5 +323,9 @@ where
         self.ring_buf = prod;
 
         Ok(())
+    }
+
+    fn set_volume(&mut self, volume: f32) -> Result<(), StateError> {
+        todo!()
     }
 }
