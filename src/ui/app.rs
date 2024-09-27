@@ -251,7 +251,9 @@ pub async fn run() {
         if let Ok(pool) = pool {
             let mut scan_interface: ScanInterface = ScanThread::start(pool.clone());
             scan_interface.scan();
-            // TODO: start scan broadcast
+            scan_interface.start_broadcast(cx);
+
+            cx.set_global(scan_interface);
             cx.set_global(Pool(pool));
         } else {
             error!("unable to create database pool: {}", pool.err().unwrap());

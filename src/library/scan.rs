@@ -2,30 +2,35 @@ use std::{
     borrow::BorrowMut,
     fs::{self, File},
     io::{BufReader, BufWriter, Cursor, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::mpsc,
-    time::SystemTime,
+    time::{Duration, SystemTime},
 };
 
 use ahash::AHashMap;
 use async_std::task;
+use gpui::{AppContext, Global};
 use image::imageops::thumbnail;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
 
-use crate::media::{
-    builtin::symphonia::SymphoniaProvider,
-    metadata::Metadata,
-    traits::{MediaPlugin, MediaProvider},
+use crate::{
+    media::{
+        builtin::symphonia::SymphoniaProvider,
+        metadata::Metadata,
+        traits::{MediaPlugin, MediaProvider},
+    },
+    ui::models::Models,
 };
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-enum ScanEvent {
+pub enum ScanEvent {
+    Cleaning,
     DiscoverProgress(u64),
-    DiscoverComplete(u64),
-    ScanProgress(u64),
-    ScanComplete,
+    ScanProgress { current: u64, total: u64 },
+    ScanCompleteWatching,
+    ScanCompleteIdle,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -35,17 +40,17 @@ enum ScanCommand {
 }
 
 pub struct ScanInterface {
-    event_rx: mpsc::Receiver<ScanEvent>,
+    events_rx: Option<mpsc::Receiver<ScanEvent>>,
     command_tx: mpsc::Sender<ScanCommand>,
 }
 
 impl ScanInterface {
     pub(self) fn new(
-        event_rx: mpsc::Receiver<ScanEvent>,
+        events_rx: Option<mpsc::Receiver<ScanEvent>>,
         command_tx: mpsc::Sender<ScanCommand>,
     ) -> Self {
         ScanInterface {
-            event_rx,
+            events_rx,
             command_tx,
         }
     }
@@ -61,7 +66,36 @@ impl ScanInterface {
             .send(ScanCommand::Stop)
             .expect("could not send tx");
     }
+
+    pub fn start_broadcast(&mut self, cx: &mut AppContext) {
+        let mut events_rx = None;
+        std::mem::swap(&mut self.events_rx, &mut events_rx);
+
+        let state_model = cx.global::<Models>().scan_state.clone();
+
+        if let Some(events_rx) = events_rx {
+            cx.spawn(|mut cx| async move {
+                loop {
+                    while let Ok(event) = events_rx.try_recv() {
+                        state_model
+                            .update(&mut cx, |m, cx| {
+                                *m = event;
+                                cx.notify()
+                            })
+                            .expect("failed to update scan state model");
+                    }
+
+                    cx.background_executor()
+                        .timer(Duration::from_millis(10))
+                        .await;
+                }
+            })
+            .detach();
+        }
+    }
 }
+
+impl Global for ScanInterface {}
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ScanState {
@@ -83,6 +117,8 @@ pub struct ScanThread {
     provider_table: Vec<(&'static [&'static str], Box<dyn MediaProvider>)>,
     scan_record: AHashMap<PathBuf, u64>,
     scan_record_path: Option<PathBuf>,
+    scanned: u64,
+    discovered_total: u64,
 }
 
 fn build_provider_table() -> Vec<(&'static [&'static str], Box<dyn MediaProvider>)> {
@@ -153,13 +189,15 @@ impl ScanThread {
                     base_paths: retrieve_base_paths(),
                     scan_record: AHashMap::new(),
                     scan_record_path: None,
+                    scanned: 0,
+                    discovered_total: 0,
                 };
 
                 thread.run();
             })
             .expect("could not start playback thread");
 
-        ScanInterface::new(events_rx, commands_tx)
+        ScanInterface::new(Some(events_rx), commands_tx)
     }
 
     fn run(&mut self) {
@@ -221,6 +259,11 @@ impl ScanThread {
                     if self.scan_state == ScanState::Idle {
                         self.discovered = self.base_paths.clone();
                         self.scan_state = ScanState::Cleanup;
+                        self.scanned = 0;
+                        self.discovered_total = 0;
+                        self.event_tx
+                            .send(ScanEvent::Cleaning)
+                            .expect("could not send scan started event");
                     }
                 }
                 ScanCommand::Stop => {
@@ -292,6 +335,14 @@ impl ScanThread {
                 self.discovered.push(path);
             } else if self.file_is_scannable(&path) {
                 self.to_process.push(path);
+
+                self.discovered_total += 1;
+
+                if self.discovered_total % 20 == 0 {
+                    self.event_tx
+                        .send(ScanEvent::DiscoverProgress(self.discovered_total))
+                        .expect("could not send discovered event");
+                }
             }
         }
 
@@ -373,7 +424,7 @@ impl ScanThread {
                     .bind(artist_id)
                     .bind(image)
                     .bind(thumb)
-                    .bind(&metadata.date)
+                    .bind(metadata.date)
                     .bind(&metadata.label)
                     .bind(&metadata.catalog)
                     .bind(&metadata.isrc)
@@ -411,7 +462,7 @@ impl ScanThread {
         &self,
         metadata: &Metadata,
         album_id: Option<i64>,
-        path: &PathBuf,
+        path: &Path,
         length: u64,
     ) {
         // literally i do not know how this could possibly fail
@@ -450,7 +501,7 @@ impl ScanThread {
     async fn update_metadata(
         &mut self,
         metadata: (Metadata, u64, Option<Box<[u8]>>),
-        path: &PathBuf,
+        path: &Path,
     ) -> anyhow::Result<()> {
         debug!(
             "Adding/updating record for {:?} - {:?}",
@@ -500,6 +551,7 @@ impl ScanThread {
             info!("Scan complete, writing scan record and stopping");
             self.write_scan_record();
             self.scan_state = ScanState::Idle;
+            self.event_tx.send(ScanEvent::ScanCompleteIdle).unwrap();
             return;
         }
 
@@ -508,6 +560,17 @@ impl ScanThread {
 
         if let Some(metadata) = metadata {
             task::block_on(self.update_metadata(metadata, &path)).unwrap();
+
+            self.scanned += 1;
+
+            if self.scanned % 10 == 0 {
+                self.event_tx
+                    .send(ScanEvent::ScanProgress {
+                        current: self.scanned,
+                        total: self.discovered_total,
+                    })
+                    .unwrap();
+            }
         } else {
             warn!("Could not read metadata for file: {:?}", path);
         }
@@ -536,7 +599,7 @@ impl ScanThread {
             .filter(|v| !v.0.exists())
             .map(|v| v.0)
             .for_each(|v| {
-                task::block_on(self.delete_track(&v));
+                task::block_on(self.delete_track(v));
             });
 
         self.scan_state = ScanState::Discovering;

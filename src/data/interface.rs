@@ -83,7 +83,7 @@ impl GPUIDataInterface {
         if let Some(events_rx) = events_rx {
             cx.spawn(|mut cx| async move {
                 loop {
-                    if let Ok(event) = events_rx.try_recv() {
+                    while let Ok(event) = events_rx.try_recv() {
                         match event {
                             DataEvent::ImageDecoded(v, image_type) => match image_type {
                                 ImageType::CurrentAlbumArt => {

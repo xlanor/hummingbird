@@ -9,6 +9,7 @@ use crate::{
         interface::GPUIDataInterface,
         types::UIQueueItem,
     },
+    library::scan::ScanEvent,
     media::metadata::Metadata,
     playback::thread::PlaybackState,
 };
@@ -26,6 +27,7 @@ pub struct Models {
     pub albumart: Model<Option<Arc<RenderImage>>>,
     pub queue: Model<Vec<UIQueueItem>>,
     pub image_transfer_model: Model<TransferDummy>,
+    pub scan_state: Model<ScanEvent>,
 }
 
 impl Global for Models {}
@@ -51,6 +53,7 @@ pub fn build_models(cx: &mut AppContext) {
     let albumart: Model<Option<Arc<RenderImage>>> = cx.new_model(|_| None);
     let queue: Model<Vec<UIQueueItem>> = cx.new_model(|_| Vec::new());
     let image_transfer_model: Model<TransferDummy> = cx.new_model(|_| TransferDummy);
+    let scan_state: Model<ScanEvent> = cx.new_model(|_| ScanEvent::ScanCompleteIdle);
 
     cx.subscribe(&albumart, |_, ev, cx| {
         let img = ev.0.clone();
@@ -68,6 +71,7 @@ pub fn build_models(cx: &mut AppContext) {
         albumart,
         queue,
         image_transfer_model,
+        scan_state,
     });
 
     let position: Model<u64> = cx.new_model(|_| 0);
