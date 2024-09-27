@@ -12,6 +12,7 @@ use crate::{
     },
     library::{
         db::{AlbumMethod, AlbumSortMethod, LibraryAccess},
+        scan::ScanEvent,
         types::{Album, Artist},
     },
     ui::{
@@ -37,74 +38,108 @@ impl AlbumView {
         view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
     ) -> View<Self> {
         cx.new_view(|cx| {
-            // TODO: update when albums are added or removed
-            // this involves clearing views_model and render_counter
-            let album_ids = cx.list_albums(AlbumSortMethod::TitleAsc);
+            let album_ids = cx.list_albums(AlbumSortMethod::TitleAsc).map_err(|e| {
+                error!("Failed to retrieve album IDs from SQLite: {:?}", e);
+            });
             let views_model = cx.new_model(|_| AHashMap::new());
             let render_counter = cx.new_model(|_| 0);
-            match album_ids {
-                Ok(album_ids) => {
-                    let album_ids_copy = Rc::new(album_ids.clone());
-                    let views_model_copy = views_model.clone();
-                    let render_counter_copy = render_counter.clone();
-                    let view_switch_model_copy = view_switch_model.clone();
-                    AlbumView {
-                        list_state: ListState::new(
-                            album_ids.len(),
-                            ListAlignment::Top,
-                            px(300.0),
-                            move |idx, cx| {
-                                let album_ids = album_ids_copy.clone();
-                                let view_switch_model = view_switch_model_copy.clone();
 
-                                prune_views(
-                                    views_model_copy.clone(),
-                                    render_counter_copy.clone(),
-                                    idx,
-                                    cx,
-                                );
-                                // TODO: error handling
-                                div()
-                                    .w_full()
-                                    .child(create_or_retrieve_view(
-                                        views_model_copy.clone(),
-                                        idx,
-                                        move |cx| {
-                                            AlbumItem::new(
-                                                cx,
-                                                album_ids[idx].0 as i64,
-                                                view_switch_model,
-                                            )
-                                        },
-                                        cx,
-                                    ))
-                                    .into_any_element()
-                            },
-                        ),
-                        views_model,
-                        render_counter,
-                        album_ids: cx.new_model(|_| album_ids),
-                        view_switch_model,
+            let list_state = AlbumView::make_list_state(
+                album_ids.clone().ok(),
+                views_model.clone(),
+                render_counter.clone(),
+                view_switch_model.clone(),
+            );
+
+            let state = cx.global::<Models>().scan_state.clone();
+
+            cx.observe(&state, move |this: &mut AlbumView, e, cx| {
+                let value = e.read(cx);
+                match value {
+                    ScanEvent::ScanCompleteIdle => {
+                        this.regenerate_list_state(cx);
                     }
-                }
-                Err(e) => {
-                    error!("Failed to retrieve album IDs from SQLite: {:?}", e);
-                    error!("Returning empty album view");
-                    AlbumView {
-                        album_ids: cx.new_model(|_| Vec::new()),
-                        views_model,
-                        render_counter,
-                        list_state: ListState::new(
-                            0,
-                            ListAlignment::Top,
-                            px(300.0),
-                            move |_, _| div().into_any_element(),
-                        ),
-                        view_switch_model,
+                    ScanEvent::ScanProgress { current, .. } => {
+                        if current % 50 == 0 {
+                            this.regenerate_list_state(cx);
+                        }
                     }
+                    _ => {}
                 }
+            })
+            .detach();
+
+            AlbumView {
+                album_ids: match album_ids {
+                    Ok(album_ids) => cx.new_model(|_| album_ids),
+                    Err(_) => cx.new_model(|_| Vec::new()),
+                },
+                views_model,
+                render_counter,
+                list_state,
+                view_switch_model,
             }
         })
+    }
+
+    fn regenerate_list_state<V: 'static>(&mut self, cx: &mut ViewContext<V>) {
+        let curr_scroll = self.list_state.logical_scroll_top();
+        let album_ids = cx.list_albums(AlbumSortMethod::TitleAsc).map_err(|e| {
+            error!("Failed to retrieve album IDs from SQLite: {:?}", e);
+        });
+        self.views_model = cx.new_model(|_| AHashMap::new());
+        self.render_counter = cx.new_model(|_| 0);
+
+        self.list_state = AlbumView::make_list_state(
+            album_ids.ok(),
+            self.views_model.clone(),
+            self.render_counter.clone(),
+            self.view_switch_model.clone(),
+        );
+
+        self.list_state.scroll_to(curr_scroll);
+
+        cx.notify();
+    }
+
+    fn make_list_state(
+        album_ids: Option<Vec<(u32, String)>>,
+        views_model: Model<AHashMap<usize, View<AlbumItem>>>,
+        render_counter: Model<usize>,
+        view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
+    ) -> ListState {
+        match album_ids {
+            Some(album_ids) => {
+                let album_ids_copy = Rc::new(album_ids.clone());
+
+                ListState::new(
+                    album_ids.len(),
+                    ListAlignment::Top,
+                    px(300.0),
+                    move |idx, cx| {
+                        let album_ids = album_ids_copy.clone();
+                        let view_switch_model = view_switch_model.clone();
+
+                        prune_views(views_model.clone(), render_counter.clone(), idx, cx);
+                        // TODO: error handling
+                        div()
+                            .w_full()
+                            .child(create_or_retrieve_view(
+                                views_model.clone(),
+                                idx,
+                                move |cx| {
+                                    AlbumItem::new(cx, album_ids[idx].0 as i64, view_switch_model)
+                                },
+                                cx,
+                            ))
+                            .into_any_element()
+                    },
+                )
+            }
+            None => ListState::new(0, ListAlignment::Top, px(300.0), move |_, _| {
+                div().into_any_element()
+            }),
+        }
     }
 }
 

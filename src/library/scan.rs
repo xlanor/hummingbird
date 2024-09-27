@@ -563,7 +563,7 @@ impl ScanThread {
 
             self.scanned += 1;
 
-            if self.scanned % 10 == 0 {
+            if self.scanned % 5 == 0 {
                 self.event_tx
                     .send(ScanEvent::ScanProgress {
                         current: self.scanned,

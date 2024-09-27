@@ -38,7 +38,10 @@ impl Render for StatusBar {
             .child(match self.scan_model.read(cx) {
                 ScanEvent::ScanCompleteIdle => "Not scanning".to_string(),
                 ScanEvent::ScanProgress { current, total } => {
-                    format!("Scanning... ({}/{})", current, total)
+                    format!(
+                        "Scanning... ({}%)",
+                        (*current as f64 / *total as f64 * 100.0).round()
+                    )
                 }
                 ScanEvent::DiscoverProgress(progress) => {
                     format!("Discovered {} files", progress)
