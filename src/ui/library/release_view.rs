@@ -80,6 +80,7 @@ impl ReleaseView {
                         } else {
                             true
                         },
+                        tracks: tracks_clone.clone(),
                     }
                     .into_any_element()
                 });
@@ -253,11 +254,11 @@ impl Render for ReleaseView {
 struct TrackItem {
     pub track: Track,
     pub is_start: bool,
+    pub tracks: Arc<Vec<Track>>,
 }
 
 impl RenderOnce for TrackItem {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
-        debug!("rendering {:02}", self.track.title);
         div()
             .flex()
             .flex_col()

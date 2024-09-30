@@ -143,6 +143,12 @@ pub fn match_bit_depth(target_frame: PlaybackFrame, target_depth: SampleFormat) 
             SampleFormat::Unsigned32 => Samples::Unsigned32(convert_samples(target_frame.samples)),
             SampleFormat::Signed24 => Samples::Signed24(convert_samples(target_frame.samples)),
             SampleFormat::Unsigned24 => Samples::Unsigned24(convert_samples(target_frame.samples)),
+            SampleFormat::Signed24Packed => {
+                Samples::Signed24(convert_samples(target_frame.samples))
+            }
+            SampleFormat::Unsigned24Packed => {
+                Samples::Unsigned24(convert_samples(target_frame.samples))
+            }
             SampleFormat::Signed16 => Samples::Signed16(convert_samples(target_frame.samples)),
             SampleFormat::Unsigned16 => Samples::Unsigned16(convert_samples(target_frame.samples)),
             SampleFormat::Signed8 => Samples::Signed8(convert_samples(target_frame.samples)),

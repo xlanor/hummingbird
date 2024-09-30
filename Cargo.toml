@@ -27,3 +27,8 @@ anyhow = "1.0.86"
 serde = { version = "1.0.207", features = ["derive"] }
 serde_json = "1.0.124"
 moka = { version = "0.12.8", features = ["future"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libpulse-binding = "2.28.1"
+libpulse-simple-binding = "2.28.1"
+pulsectl-rs = "0.3.2"
