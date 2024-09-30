@@ -75,8 +75,12 @@ impl ReleaseView {
                 ListState::new(tracks.len(), ListAlignment::Top, px(25.0), move |idx, _| {
                     TrackItem {
                         track: tracks_clone[idx].clone(),
-                        is_start: if let Some(track) = tracks_clone.get(idx - 1) {
-                            track.disc_number != tracks_clone[idx].disc_number
+                        is_start: if idx > 0 {
+                            if let Some(track) = tracks_clone.get(idx - 1) {
+                                track.disc_number != tracks_clone[idx].disc_number
+                            } else {
+                                true
+                            }
                         } else {
                             true
                         },
