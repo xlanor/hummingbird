@@ -238,6 +238,7 @@ impl Render for AlbumItem {
             .border_b_1()
             .border_color(rgb(0x1e293b))
             .px(px(24.0))
+            .hover(|this| this.bg(rgb(0x1e293b)))
             .child(
                 div()
                     .id("album-art")

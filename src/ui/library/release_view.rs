@@ -263,10 +263,21 @@ struct TrackItem {
 
 impl RenderOnce for TrackItem {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+        let tracks = self.tracks.clone();
+        let track_id = self.track.id;
         div()
             .flex()
             .flex_col()
             .w_full()
+            .id(self.track.id as usize)
+            .on_click(move |_, cx| {
+                let paths = tracks.iter().map(|track| track.location.clone()).collect();
+
+                replace_queue(paths, cx);
+
+                let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                playback_interface.jump(tracks.iter().position(|t| t.id == track_id).unwrap())
+            })
             .when(self.is_start, |this| {
                 this.child(
                     div()
@@ -292,8 +303,10 @@ impl RenderOnce for TrackItem {
                     .border_b_1()
                     .w_full()
                     .border_color(rgb(0x1e293b))
+                    .cursor_pointer()
                     .px(px(24.0))
                     .py(px(6.0))
+                    .hover(|this| this.bg(rgb(0x1e293b)))
                     .max_w_full()
                     .child(
                         div()
