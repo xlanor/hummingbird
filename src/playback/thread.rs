@@ -86,7 +86,6 @@ impl PlaybackThread {
         if cfg!(target_os = "linux") {
             self.device_provider = Some(Box::new(PulseProvider::default()));
         } else {
-            panic!("not using pulse");
             self.device_provider = Some(Box::new(CpalProvider::default()));
         }
 
