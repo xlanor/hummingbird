@@ -1,6 +1,6 @@
+use intx::{I24, U24};
 use rubato::{FftFixedIn, VecResampler};
 use tracing::info;
-use ux::{i24, u24};
 
 use crate::media::playback::{PlaybackFrame, Samples};
 
@@ -40,15 +40,15 @@ pub trait SampleInto<T> {
     fn sample_into(self) -> T;
 }
 
-impl SampleInto<f64> for u24 {
+impl SampleInto<f64> for U24 {
     fn sample_into(self) -> f64 {
-        f64::from(u32::from(self)) / f64::from(i32::from(i24::MAX)) - 1.0
+        f64::from(u32::from(self)) / f64::from(i32::from(I24::MAX)) - 1.0
     }
 }
 
-impl SampleInto<f64> for i24 {
+impl SampleInto<f64> for I24 {
     fn sample_into(self) -> f64 {
-        f64::from(i32::from(self)) / f64::from(i32::from(i24::MAX)) - 1.0
+        f64::from(i32::from(self)) / f64::from(i32::from(I24::MAX)) - 1.0
     }
 }
 
@@ -79,16 +79,16 @@ pub trait SampleFrom<T> {
     fn sample_from(value: T) -> Self;
 }
 
-impl SampleFrom<f64> for u24 {
+impl SampleFrom<f64> for U24 {
     fn sample_from(value: f64) -> Self {
-        u24::try_from(((value + 1.0) * f64::from(i32::from(i24::MAX))) as u32)
-            .expect("out of u24 bounds")
+        U24::try_from(((value + 1.0) * f64::from(i32::from(I24::MAX))) as u32)
+            .expect("out of U24 bounds")
     }
 }
 
-impl SampleFrom<f64> for i24 {
+impl SampleFrom<f64> for I24 {
     fn sample_from(value: f64) -> Self {
-        i24::try_from((value * f64::from(i32::from(i24::MAX))) as i32).expect("out of u24 bounds")
+        I24::try_from((value * f64::from(i32::from(I24::MAX))) as i32).expect("out of U24 bounds")
     }
 }
 

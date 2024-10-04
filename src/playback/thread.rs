@@ -5,6 +5,9 @@ use std::{
 
 use tracing::{debug, info};
 
+#[cfg(target_os = "linux")]
+use crate::devices::builtin::pulse::PulseProvider;
+
 use crate::{
     devices::{
         builtin::cpal::CpalProvider,
@@ -80,7 +83,13 @@ impl PlaybackThread {
     pub fn run(&mut self) {
         // for now just throw in the default Providers and pick the default Device
         // TODO: Add a way to select the Device and MediaProvider
-        self.device_provider = Some(Box::new(CpalProvider::default()));
+        if cfg!(target_os = "linux") {
+            self.device_provider = Some(Box::new(PulseProvider::default()));
+        } else {
+            panic!("not using pulse");
+            self.device_provider = Some(Box::new(CpalProvider::default()));
+        }
+
         self.media_provider = Some(Box::new(SymphoniaProvider::default()));
         self.device = Some(
             self.device_provider

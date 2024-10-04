@@ -1,4 +1,7 @@
+use std::marker::PhantomData;
+
 use bitflags::Flags;
+use intx::I24;
 use libpulse_binding::{
     channelmap::{Map, Position},
     sample::{Format, Spec},
@@ -7,11 +10,21 @@ use libpulse_binding::{
 use libpulse_simple_binding::Simple;
 use pulsectl::controllers::{types::DeviceInfo, DeviceControl, SinkController};
 
-use crate::devices::{
-    errors::{FindError, InfoError, InitializationError, ListError, OpenError},
-    format::{BufferSize, ChannelSpec, Channels, FormatInfo, SampleFormat, SupportedFormat},
-    traits::{Device, DeviceProvider, OutputStream},
+use crate::{
+    devices::{
+        errors::{FindError, InfoError, InitializationError, ListError, OpenError},
+        format::{BufferSize, ChannelSpec, Channels, FormatInfo, SampleFormat, SupportedFormat},
+        traits::{Device, DeviceProvider, OutputStream},
+        util::interleave,
+        util::Packed,
+    },
+    media::playback::GetInnerSamples,
 };
+
+// The code for this is absolutely awful because PulseAudio is awful. I'm sorry.
+// Perhaps one day I will feel masochistic enough to rewrite this to not use 3 different libraries,
+// properly support pausing, and use the PulseAudio volume control API. But for now, I can't be
+// bothered.
 
 pub struct PulseProvider {
     controller: SinkController,
@@ -119,7 +132,7 @@ fn pulse_spec(format: FormatInfo) -> Spec {
 
 impl Device for PulseDevice {
     fn open_device(&mut self, format: FormatInfo) -> Result<Box<dyn OutputStream>, OpenError> {
-        let spec = pulse_spec(format);
+        let spec = pulse_spec(format.clone());
         assert!(spec.is_valid());
 
         let stream = Simple::new(
@@ -134,7 +147,29 @@ impl Device for PulseDevice {
         )
         .map_err(|_| OpenError::Unknown)?;
 
-        todo!()
+        let sample_type = format.sample_type.clone();
+
+        Ok(match sample_type {
+            SampleFormat::Float32 => {
+                Box::new(PulseStream::<f32>::new(stream, format)) as Box<dyn OutputStream>
+            }
+            SampleFormat::Signed32 => {
+                Box::new(PulseStream::<i32>::new(stream, format)) as Box<dyn OutputStream>
+            }
+            SampleFormat::Signed24 => {
+                Box::new(PulseStream::<I24>::new(stream, format)) as Box<dyn OutputStream>
+            }
+            SampleFormat::Signed24Packed => {
+                Box::new(PulseStream::<I24>::new(stream, format)) as Box<dyn OutputStream>
+            }
+            SampleFormat::Signed16 => {
+                Box::new(PulseStream::<i16>::new(stream, format)) as Box<dyn OutputStream>
+            }
+            SampleFormat::Unsigned8 => {
+                Box::new(PulseStream::<u8>::new(stream, format)) as Box<dyn OutputStream>
+            }
+            _ => unimplemented!(),
+        })
     }
 
     fn get_supported_formats(&self) -> Result<Vec<SupportedFormat>, InfoError> {
@@ -171,22 +206,53 @@ impl Device for PulseDevice {
     }
 }
 
-struct PulseStream {
+trait PulseSample: GetInnerSamples + PartialEq + Copy {}
+
+impl<T> PulseSample for T where T: GetInnerSamples + PartialEq + Copy {}
+
+struct PulseStream<T> {
+    phantom: PhantomData<T>,
     stream: Simple,
+    format: FormatInfo,
 }
 
-impl From<Simple> for PulseStream {
-    fn from(stream: Simple) -> Self {
-        Self { stream }
+impl<T> PulseStream<T> {
+    pub fn new(stream: Simple, format: FormatInfo) -> Self {
+        Self {
+            stream,
+            format,
+            phantom: PhantomData,
+        }
     }
 }
 
-impl OutputStream for PulseStream {
+impl<T> OutputStream for PulseStream<T>
+where
+    T: PulseSample,
+    [T]: Packed,
+    i32: FromWrapper<T>,
+{
     fn submit_frame(
         &mut self,
         frame: crate::media::playback::PlaybackFrame,
     ) -> Result<(), crate::devices::errors::SubmissionError> {
-        todo!()
+        let samples = T::inner(frame.samples);
+        let interleaved = interleave(samples);
+        let packed = if self.format.sample_type == SampleFormat::Signed24 {
+            interleaved
+                .into_iter()
+                .map(|v| i32::from_wrapper(v))
+                .collect::<Vec<_>>()
+                .as_slice()
+                .pack()
+        } else {
+            interleaved.as_slice().pack()
+        };
+        let slice = packed.as_slice();
+
+        self.stream
+            .write(slice)
+            .map_err(|_| crate::devices::errors::SubmissionError::Unknown)
     }
 
     fn close_stream(&mut self) -> Result<(), crate::devices::errors::CloseError> {
@@ -194,26 +260,56 @@ impl OutputStream for PulseStream {
     }
 
     fn needs_input(&self) -> bool {
-        todo!()
+        !self.stream.drain().is_err()
     }
 
     fn get_current_format(&self) -> Result<&FormatInfo, InfoError> {
-        todo!()
+        Ok(&self.format)
     }
 
     fn play(&mut self) -> Result<(), crate::devices::errors::StateError> {
-        todo!()
+        Ok(())
     }
 
     fn pause(&mut self) -> Result<(), crate::devices::errors::StateError> {
-        todo!()
+        Ok(())
     }
 
     fn reset(&mut self) -> Result<(), crate::devices::errors::ResetError> {
-        todo!()
+        self.stream
+            .flush()
+            .map_err(|_| crate::devices::errors::ResetError::Unknown)
     }
 
     fn set_volume(&mut self, volume: f32) -> Result<(), crate::devices::errors::StateError> {
         todo!()
+    }
+}
+
+trait FromWrapper<T> {
+    fn from_wrapper(source: T) -> Self;
+}
+
+macro_rules! wrap_u32 {
+    ($t: ty) => {
+        impl FromWrapper<$t> for i32 {
+            fn from_wrapper(source: $t) -> i32 {
+                i32::try_from(source).unwrap()
+            }
+        }
+    };
+}
+
+wrap_u32!(I24);
+
+// all of this is just to avoid having to write a seperate implemenation of OutputStream for I24
+// it's never executed
+wrap_u32!(i32);
+wrap_u32!(i16);
+wrap_u32!(u8);
+
+impl FromWrapper<f32> for i32 {
+    fn from_wrapper(source: f32) -> i32 {
+        f32::round(source) as i32
     }
 }

@@ -8,6 +8,7 @@ use crate::{
         },
         format::{BufferSize, ChannelSpec, FormatInfo, SampleFormat, SupportedFormat},
         traits::{Device, DeviceProvider, OutputStream},
+        util::interleave,
     },
     media::playback::{GetInnerSamples, Mute, PlaybackFrame},
 };
@@ -95,24 +96,6 @@ fn cpal_config_from_info(format: &FormatInfo) -> Result<cpal::StreamConfig, ()> 
             buffer_size: cpal::BufferSize::Default,
         })
     }
-}
-
-fn interleave<T>(samples: Vec<Vec<T>>) -> Vec<T>
-where
-    T: Copy + PartialEq,
-{
-    if samples.is_empty() {
-        return vec![];
-    }
-
-    let length = samples.len();
-    let mut result = vec![];
-
-    for i in 0..(samples.len() * samples[0].len()) {
-        result.push(samples[i % length][i / length]);
-    }
-
-    result
 }
 
 enum CpalDeviceCommand<T>

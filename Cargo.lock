@@ -2488,6 +2488,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "intx"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6f38a50a899dc47a6d0ed5508e7f601a2e34c3a85303514b5d137f3c10a0c75"
+
+[[package]]
 name = "io-lifetimes"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2965,6 +2971,7 @@ dependencies = [
  "directories",
  "gpui",
  "image",
+ "intx",
  "libpulse-binding",
  "libpulse-simple-binding",
  "moka",
@@ -2979,7 +2986,6 @@ dependencies = [
  "symphonia",
  "tracing",
  "tracing-subscriber",
- "ux",
 ]
 
 [[package]]
@@ -5502,12 +5508,6 @@ dependencies = [
  "serde",
  "sha1_smol",
 ]
-
-[[package]]
-name = "ux"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b59fc5417e036e53226bbebd90196825d358624fd5577432c4e486c95b1b096"
 
 [[package]]
 name = "v_frame"

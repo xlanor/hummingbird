@@ -1,4 +1,4 @@
-use ux::{i24, u24};
+use intx::{I24, U24};
 
 use crate::devices::format::SampleFormat;
 
@@ -7,8 +7,8 @@ pub enum Samples {
     Float32(Vec<Vec<f32>>),
     Signed32(Vec<Vec<i32>>),
     Unsigned32(Vec<Vec<u32>>),
-    Signed24(Vec<Vec<i24>>),
-    Unsigned24(Vec<Vec<u24>>),
+    Signed24(Vec<Vec<I24>>),
+    Unsigned24(Vec<Vec<U24>>),
     Signed16(Vec<Vec<i16>>),
     Unsigned16(Vec<Vec<u16>>),
     Signed8(Vec<Vec<i8>>),
@@ -51,11 +51,11 @@ macro_rules! mute_impl {
 mute_impl!(f64, 0.0);
 mute_impl!(f32, 0.0);
 mute_impl!(u32, 2147483647);
-mute_impl!(u24, u24::new(8388607));
+mute_impl!(U24, U24::try_from(8388607).unwrap());
 mute_impl!(u16, 32767);
 mute_impl!(u8, 127);
 mute_impl!(i32, 0);
-mute_impl!(i24, i24::new(0));
+mute_impl!(I24, I24::from(0 as u8));
 mute_impl!(i16, 0);
 mute_impl!(i8, 0);
 
@@ -79,11 +79,11 @@ macro_rules! unwrap_impl {
 unwrap_impl!(f64, Samples::Float64);
 unwrap_impl!(f32, Samples::Float32);
 unwrap_impl!(u32, Samples::Unsigned32);
-unwrap_impl!(u24, Samples::Unsigned24);
+unwrap_impl!(U24, Samples::Unsigned24);
 unwrap_impl!(u16, Samples::Unsigned16);
 unwrap_impl!(u8, Samples::Unsigned8);
 unwrap_impl!(i32, Samples::Signed32);
-unwrap_impl!(i24, Samples::Signed24);
+unwrap_impl!(I24, Samples::Signed24);
 unwrap_impl!(i16, Samples::Signed16);
 unwrap_impl!(i8, Samples::Signed8);
 unwrap_impl!(bool, Samples::DSD);
@@ -111,7 +111,7 @@ macro_rules! inner_impl {
     };
 }
 
-inner_impl!(f64, f32, u32, u24, u16, u8, i32, i24, i16, i8, bool);
+inner_impl!(f64, f32, u32, U24, u16, u8, i32, I24, i16, i8, bool);
 
 pub enum SampleFromError {
     WrongFormat,
@@ -161,7 +161,7 @@ impl TryFrom<Samples> for Vec<Vec<u16>> {
     }
 }
 
-impl TryFrom<Samples> for Vec<Vec<u24>> {
+impl TryFrom<Samples> for Vec<Vec<U24>> {
     type Error = SampleFromError;
 
     fn try_from(value: Samples) -> Result<Self, Self::Error> {
@@ -205,7 +205,7 @@ impl TryFrom<Samples> for Vec<Vec<i16>> {
     }
 }
 
-impl TryFrom<Samples> for Vec<Vec<i24>> {
+impl TryFrom<Samples> for Vec<Vec<I24>> {
     type Error = SampleFromError;
 
     fn try_from(value: Samples) -> Result<Self, Self::Error> {

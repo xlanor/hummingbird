@@ -1,5 +1,6 @@
 use std::fs::File;
 
+use intx::{I24, U24};
 use symphonia::{
     core::{
         audio::{AudioBufferRef, Signal},
@@ -13,7 +14,6 @@ use symphonia::{
     },
     default::get_codecs,
 };
-use ux::{i24, u24};
 
 use crate::media::{
     errors::{
@@ -288,13 +288,13 @@ impl MediaProvider for SymphoniaProvider {
                                     });
                                 }
                                 AudioBufferRef::U24(v) => {
-                                    let mut samples: Vec<Vec<u24>> = Vec::new();
+                                    let mut samples: Vec<Vec<U24>> = Vec::new();
 
                                     for i in 0..channel_count {
                                         samples.push(Vec::new());
                                         for sample in v.chan(i) {
                                             samples[i].push(
-                                                u24::try_from(sample.0)
+                                                U24::try_from(sample.0)
                                                     .expect("24bit number is not 24bits long"),
                                             );
                                         }
@@ -351,13 +351,13 @@ impl MediaProvider for SymphoniaProvider {
                                     });
                                 }
                                 AudioBufferRef::S24(v) => {
-                                    let mut samples: Vec<Vec<i24>> = Vec::new();
+                                    let mut samples: Vec<Vec<I24>> = Vec::new();
 
                                     for i in 0..channel_count {
                                         samples.push(Vec::new());
                                         for sample in v.chan(i) {
                                             samples[i].push(
-                                                i24::try_from(sample.0)
+                                                I24::try_from(sample.0)
                                                     .expect("24bit number is not 24bits long"),
                                             );
                                         }
