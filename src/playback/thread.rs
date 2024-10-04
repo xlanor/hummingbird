@@ -83,9 +83,12 @@ impl PlaybackThread {
     pub fn run(&mut self) {
         // for now just throw in the default Providers and pick the default Device
         // TODO: Add a way to select the Device and MediaProvider
-        if cfg!(target_os = "linux") {
+        #[cfg(target_os = "linux")]
+        {
             self.device_provider = Some(Box::new(PulseProvider::default()));
-        } else {
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
             self.device_provider = Some(Box::new(CpalProvider::default()));
         }
 
