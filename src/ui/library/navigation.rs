@@ -66,10 +66,9 @@ impl Render for NavigationView {
                         .flex()
                         .id("back")
                         .font_family("Font Awesome 6 Free")
-                        .pr(px(16.0))
-                        .pl(px(16.0))
-                        .py(px(8.0))
-                        .mr(px(16.0))
+                        .px(px(12.0))
+                        .py(px(5.0))
+                        .mr(px(12.0))
                         .text_sm()
                         .border_r_1()
                         .border_color(rgb(0x1e293b))
@@ -85,7 +84,7 @@ impl Render for NavigationView {
                 )
                 .child(
                     div()
-                        .pt(px(7.0))
+                        .pt(px(5.0))
                         .flex()
                         .child(div().text_sm().child(match self.current_message {
                             ViewSwitchMessage::Albums => "Albums",
@@ -97,7 +96,7 @@ impl Render for NavigationView {
                         .when_some(self.description.clone(), |this, description| {
                             this.child(
                                 div()
-                                    .ml(px(12.0))
+                                    .ml(px(8.0))
                                     .font_weight(FontWeight::BOLD)
                                     .text_sm()
                                     .child(description),

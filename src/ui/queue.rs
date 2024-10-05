@@ -78,6 +78,7 @@ impl Render for QueueItem {
                 .flex()
                 .overflow_x_hidden()
                 .gap(px(11.0))
+                .h(px(59.0))
                 .p(px(11.0))
                 .border_t(px(1.0))
                 .border_color(rgb(0x1e293b))
@@ -134,7 +135,12 @@ impl Render for QueueItem {
                 )
         } else {
             // TODO: Skeleton for this
-            div().id(ElementId::View(cx.entity_id()))
+            div()
+                .h(px(59.0))
+                .border_t(px(1.0))
+                .border_color(rgb(0x1e293b))
+                .w_full()
+                .id(ElementId::View(cx.entity_id()))
         }
     }
 }
@@ -219,7 +225,7 @@ impl Render for Queue {
                         .child(
                             div()
                                 .ml(px(12.0))
-                                .pt(px(7.0))
+                                .pt(px(5.0))
                                 .flex()
                                 .font_weight(FontWeight::BOLD)
                                 .child(div().text_sm().child("Queue")),
@@ -229,9 +235,9 @@ impl Render for Queue {
                                 .flex()
                                 .id("back")
                                 .font_family("Font Awesome 6 Free")
-                                .pr(px(16.0))
-                                .pl(px(16.0))
-                                .py(px(8.0))
+                                .pr(px(12.0))
+                                .pl(px(12.0))
+                                .py(px(5.0))
                                 .ml_auto()
                                 .text_sm()
                                 .border_l_1()
