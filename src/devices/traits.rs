@@ -58,7 +58,12 @@ pub trait OutputStream {
     fn get_current_format(&self) -> Result<&FormatInfo, InfoError>;
     /// Tells the device to start playing audio.
     fn play(&mut self) -> Result<(), StateError>;
-    /// Tells the device to stop playing audio.
+    /// Tells the device to stop playing audio. Note that some providers may not actually stop
+    /// playback at all - this function may be a no-op.
+    ///
+    /// When implementing this function, the device should never drop submitted audio data. If the
+    /// options are between dropping audio data and this function being a no-op, the function
+    /// should be a no-op.
     fn pause(&mut self) -> Result<(), StateError>;
     /// Tells the device to reset the buffer. This is useful for restarting playback after a pause,
     /// in order to avoid playing stale data (e.g. if a user pauses before seeking or changing
