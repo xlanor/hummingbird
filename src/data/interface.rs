@@ -113,7 +113,6 @@ impl GPUIDataInterface {
                             DataEvent::MetadataRead(queue, item) => {
                                 queue_model
                                     .update(&mut cx, |m, cx| {
-                                        info!("event emitted for {}", item.file_path);
                                         cx.emit(item);
                                     })
                                     .expect("failed to update queue");

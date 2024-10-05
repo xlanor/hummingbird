@@ -157,7 +157,7 @@ impl Render for AlbumView {
             .child(
                 div()
                     .w_full()
-                    .mb(px(11.0))
+                    .pb(px(11.0))
                     .px(px(24.0))
                     .line_height(px(26.0))
                     .font_weight(FontWeight::BOLD)

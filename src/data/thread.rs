@@ -214,8 +214,6 @@ impl DataThread {
                 }
             });
 
-        info!("decoded metadata for {}", path);
-
         UIQueueItem {
             metadata,
             file_path: path,

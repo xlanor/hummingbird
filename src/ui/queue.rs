@@ -40,7 +40,6 @@ impl QueueItem {
             cx.subscribe(&queue_model, move |this: &mut QueueItem, _, ev, cx| {
                 if ev.file_path == this.path {
                     this.item = Some(ev.clone());
-                    info!("Got metadata for {}", ev.file_path);
                     cx.notify();
                 }
             })
@@ -164,7 +163,7 @@ impl Queue {
                 this.state = ListState::new(
                     items.0.len(),
                     ListAlignment::Top,
-                    px(128.0),
+                    px(200.0),
                     move |idx, cx| {
                         let item = items.0.get(idx).unwrap().clone();
                         let was_removed =
@@ -188,7 +187,7 @@ impl Queue {
             Self {
                 views_model,
                 render_counter,
-                state: ListState::new(0, ListAlignment::Top, px(32.0), move |_, _| {
+                state: ListState::new(0, ListAlignment::Top, px(200.0), move |_, _| {
                     div().into_any_element()
                 }),
             }
@@ -206,24 +205,55 @@ impl Render for Queue {
             .min_w(px(275.0))
             .max_w(px(275.0))
             .w(px(275.0))
-            .bg(rgb(0x111827))
             .border_l(px(1.0))
             .flex_shrink_0()
             .border_color(rgb(0x1e293b))
-            .pt(px(20.0))
             .pb(px(0.0))
+            .flex()
+            .flex_col()
+            .child(
+                div().flex().border_b_1().border_color(rgb(0x1e293b)).child(
+                    div()
+                        .flex()
+                        .w_full()
+                        .child(
+                            div()
+                                .ml(px(12.0))
+                                .pt(px(7.0))
+                                .flex()
+                                .font_weight(FontWeight::BOLD)
+                                .child(div().text_sm().child("Queue")),
+                        )
+                        .child(
+                            div()
+                                .flex()
+                                .id("back")
+                                .font_family("Font Awesome 6 Free")
+                                .pr(px(16.0))
+                                .pl(px(16.0))
+                                .py(px(8.0))
+                                .ml_auto()
+                                .text_sm()
+                                .border_l_1()
+                                .border_color(rgb(0x1e293b))
+                                .hover(|this| this.bg(rgb(0x1e293b)))
+                                .active(|this| this.bg(rgb(0x111827)))
+                                .cursor_pointer()
+                                .child(""),
+                        ),
+                ),
+            )
             .child(
                 div()
-                    .mb(px(11.0))
-                    .mx(px(11.0))
+                    .w_full()
+                    .pt(px(24.0))
+                    .pb(px(11.0))
+                    .px(px(12.0))
                     .line_height(px(26.0))
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(26.0))
-                    .child("Queue")
-                    .id("queue-title"),
+                    .child("Queue"),
             )
-            .flex()
-            .flex_col()
             .child(list(self.state.clone()).w_full().h_full().flex().flex_col())
     }
 }

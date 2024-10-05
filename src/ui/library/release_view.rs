@@ -238,7 +238,8 @@ impl Render for ReleaseView {
                     .flex_col()
                     .text_sm()
                     .ml(px(24.0))
-                    .mt(px(24.0))
+                    .pt(px(12.0))
+                    .pb(px(24.0))
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(rgb(0xd1d5db))
                     .when(!release_info.is_empty(), |this| {
