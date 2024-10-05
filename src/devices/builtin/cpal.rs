@@ -98,13 +98,6 @@ fn cpal_config_from_info(format: &FormatInfo) -> Result<cpal::StreamConfig, ()> 
     }
 }
 
-enum CpalDeviceCommand<T>
-where
-    T: GetInnerSamples + SizedSample + Default,
-{
-    ChangeBuffer(Consumer<T>),
-}
-
 fn create_stream_internal<
     T: SizedSample + GetInnerSamples + Default + Send + Sized + 'static + Mute,
 >(

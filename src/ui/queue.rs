@@ -1,31 +1,54 @@
 use std::path::MAIN_SEPARATOR;
 
+use ahash::AHashMap;
 use gpui::*;
 use prelude::FluentBuilder;
-use tracing::debug;
+use tracing::{debug, info};
 
-use crate::{data::types::UIQueueItem, playback::interface::GPUIPlaybackInterface};
+use crate::{
+    data::{interface::GPUIDataInterface, types::UIQueueItem},
+    playback::interface::GPUIPlaybackInterface,
+};
 
-use super::models::{Models, PlaybackInfo};
+use super::{
+    models::{Models, PlaybackInfo},
+    util::{create_or_retrieve_view, prune_views},
+};
 
 pub struct QueueItem {
-    item: UIQueueItem,
+    item: Option<UIQueueItem>,
+    path: String,
     current_track: Model<Option<String>>,
     idx: usize,
 }
 
 impl QueueItem {
-    pub fn new(cx: &mut WindowContext, item: UIQueueItem, idx: usize) -> View<Self> {
+    pub fn new(cx: &mut WindowContext, path: String, idx: usize, clear_cache: bool) -> View<Self> {
         cx.new_view(move |cx| {
             let current_track = cx.global::<PlaybackInfo>().current_track.clone();
 
-            cx.observe(&current_track, move |_, _, cx| {
-                cx.notify();
+            let interface = cx.global::<GPUIDataInterface>();
+
+            if clear_cache {
+                interface.evict_cache();
+            }
+
+            interface.get_metadata(path.clone());
+
+            let queue_model = cx.global::<Models>().queue.clone();
+
+            cx.subscribe(&queue_model, move |this: &mut QueueItem, _, ev, cx| {
+                if ev.file_path == this.path {
+                    this.item = Some(ev.clone());
+                    info!("Got metadata for {}", ev.file_path);
+                    cx.notify();
+                }
             })
             .detach();
 
             Self {
-                item,
+                item: None,
+                path,
                 current_track,
                 idx,
             }
@@ -35,122 +58,136 @@ impl QueueItem {
 
 impl Render for QueueItem {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let is_current = self
-            .current_track
-            .read(cx)
-            .as_ref()
-            .map(|v| v == &self.item.file_path)
-            .unwrap_or(false);
+        if let Some(item) = self.item.as_ref() {
+            let is_current = self
+                .current_track
+                .read(cx)
+                .as_ref()
+                .map(|v| v == &item.file_path)
+                .unwrap_or(false);
 
-        let album_art = self
-            .item
-            .album_art
-            .as_ref()
-            .map(|v| ImageSource::Render(v.clone()));
+            let album_art = item
+                .album_art
+                .as_ref()
+                .map(|v| ImageSource::Render(v.clone()));
 
-        let idx = self.idx;
+            let idx = self.idx;
 
-        /*debug!(
-            "Rendering queue item at index {}, eid = {:?}",
-            idx,
-            cx.entity_id()
-        );*/
-
-        div()
-            .w_full()
-            .id(ElementId::View(cx.entity_id()))
-            .flex()
-            .overflow_x_hidden()
-            .gap(px(11.0))
-            .p(px(11.0))
-            .border_t(px(1.0))
-            .border_color(rgb(0x1e293b))
-            .when(is_current, |div| div.bg(rgb(0x1f2937)))
-            .child(
-                div()
-                    .id("album-art")
-                    .rounded(px(4.0))
-                    .bg(rgb(0x4b5563))
-                    .shadow_sm()
-                    .w(px(36.0))
-                    .h(px(36.0))
-                    .flex_shrink_0()
-                    .when(album_art.is_some(), |div| {
-                        div.child(
-                            img(album_art.unwrap())
-                                .w(px(36.0))
-                                .h(px(36.0))
-                                .rounded(px(4.0)),
+            div()
+                .w_full()
+                .id(ElementId::View(cx.entity_id()))
+                .flex()
+                .overflow_x_hidden()
+                .gap(px(11.0))
+                .p(px(11.0))
+                .border_t(px(1.0))
+                .border_color(rgb(0x1e293b))
+                .when(is_current, |div| div.bg(rgb(0x1f2937)))
+                .on_click(move |_, cx| {
+                    cx.global::<GPUIPlaybackInterface>().jump(idx);
+                })
+                .hover(|div| div.bg(rgb(0x1f2937)))
+                .active(|div| div.bg(rgb(0x030712)))
+                .child(
+                    div()
+                        .id("album-art")
+                        .rounded(px(4.0))
+                        .bg(rgb(0x4b5563))
+                        .shadow_sm()
+                        .w(px(36.0))
+                        .h(px(36.0))
+                        .flex_shrink_0()
+                        .when(album_art.is_some(), |div| {
+                            div.child(
+                                img(album_art.unwrap())
+                                    .w(px(36.0))
+                                    .h(px(36.0))
+                                    .rounded(px(4.0)),
+                            )
+                        }),
+                )
+                .child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .line_height(rems(1.0))
+                        .text_size(px(15.0))
+                        .gap_1()
+                        .overflow_x_hidden()
+                        .child(
+                            div()
+                                .text_ellipsis()
+                                .font_weight(FontWeight::EXTRA_BOLD)
+                                .child(
+                                    item.metadata
+                                        .artist
+                                        .clone()
+                                        .unwrap_or("Unknown Artist".into()),
+                                ),
                         )
-                    }),
-            )
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .line_height(rems(1.0))
-                    .text_size(px(15.0))
-                    .gap_1()
-                    .overflow_x_hidden()
-                    .child(
-                        div()
-                            .text_ellipsis()
-                            .font_weight(FontWeight::EXTRA_BOLD)
-                            .child(
-                                self.item
-                                    .metadata
-                                    .artist
-                                    .clone()
-                                    .unwrap_or("Unknown Artist".into()),
-                            ),
-                    )
-                    .child(
-                        div().text_ellipsis().child(
-                            self.item.metadata.name.clone().unwrap_or(
-                                self.item
-                                    .file_path
-                                    .split(MAIN_SEPARATOR)
-                                    .last()
-                                    .unwrap()
-                                    .into(),
-                            ),
+                        .child(
+                            div()
+                                .text_ellipsis()
+                                .child(item.metadata.name.clone().unwrap_or(
+                                    item.file_path.split(MAIN_SEPARATOR).last().unwrap().into(),
+                                )),
                         ),
-                    ),
-            )
+                )
+        } else {
+            // TODO: Skeleton for this
+            div().id(ElementId::View(cx.entity_id()))
+        }
     }
 }
 
 pub struct Queue {
+    views_model: Model<AHashMap<usize, View<QueueItem>>>,
+    render_counter: Model<usize>,
     state: ListState,
 }
 
 impl Queue {
     pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
         cx.new_view(|cx| {
+            let views_model = cx.new_model(|_| AHashMap::new());
+            let render_counter = cx.new_model(|_| 0);
             let items = cx.global::<Models>().queue.clone();
 
-            cx.observe(&items, |this: &mut Queue, m, cx| {
+            cx.observe(&items, move |this: &mut Queue, m, cx| {
+                this.views_model = cx.new_model(|_| AHashMap::new());
+                this.render_counter = cx.new_model(|_| 0);
+
                 let items = m.read(cx).clone();
-                debug!("Queue updated, new length is {}", items.len());
-                this.state =
-                    ListState::new(items.len(), ListAlignment::Top, px(32.0), move |idx, cx| {
-                        let item = items.get(idx).unwrap().clone();
+                let views_model = this.views_model.clone();
+                let render_counter = this.render_counter.clone();
+
+                this.state = ListState::new(
+                    items.0.len(),
+                    ListAlignment::Top,
+                    px(128.0),
+                    move |idx, cx| {
+                        let item = items.0.get(idx).unwrap().clone();
+                        let was_removed =
+                            prune_views(views_model.clone(), render_counter.clone(), idx, cx);
+
                         div()
-                            .child(QueueItem::new(cx, item, idx))
-                            .id(("queue-item-wrapper", idx))
-                            .on_click(move |_, cx| {
-                                debug!("Clicked on index {}", idx);
-                                cx.global::<GPUIPlaybackInterface>().jump(idx);
-                            })
-                            .hover(|div| div.bg(rgb(0x1f2937)))
-                            .active(|div| div.bg(rgb(0x030712)))
+                            .child(create_or_retrieve_view(
+                                views_model.clone(),
+                                idx,
+                                move |cx| QueueItem::new(cx, item, idx, was_removed),
+                                cx,
+                            ))
                             .into_any_element()
-                    });
+                    },
+                );
+
                 cx.notify();
             })
             .detach();
 
             Self {
+                views_model,
+                render_counter,
                 state: ListState::new(0, ListAlignment::Top, px(32.0), move |_, _| {
                     div().into_any_element()
                 }),

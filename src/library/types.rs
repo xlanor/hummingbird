@@ -3,6 +3,7 @@ use std::{
     sync::Arc,
 };
 
+use chrono::{DateTime, Utc};
 use gpui::RenderImage;
 use image::Frame;
 use smallvec::SmallVec;
@@ -17,7 +18,7 @@ pub struct Artist {
     pub name_sortable: Option<String>,
     #[sqlx(default)]
     pub bio: Option<String>,
-    pub created_at: chrono::NaiveDateTime,
+    pub created_at: DateTime<Utc>,
     #[sqlx(default)]
     pub image: Option<Box<[u8]>>,
     #[sqlx(default)]
@@ -88,8 +89,8 @@ pub struct Album {
     pub title_sortable: String,
     pub artist_id: i64,
     #[sqlx(default)]
-    pub release_date: Option<chrono::NaiveDateTime>,
-    pub created_at: chrono::NaiveDateTime,
+    pub release_date: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
     #[sqlx(default)]
     pub image: Option<Box<[u8]>>,
     #[sqlx(default)]
@@ -118,7 +119,7 @@ pub struct Track {
     #[sqlx(default)]
     pub disc_number: Option<i32>,
     pub duration: i64,
-    pub created_at: chrono::NaiveDateTime,
+    pub created_at: DateTime<Utc>,
     #[sqlx(skip)]
     pub genres: Option<Vec<String>>,
     #[sqlx(skip)]

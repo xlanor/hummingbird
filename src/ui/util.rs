@@ -7,11 +7,13 @@ pub fn prune_views<T>(
     render_counter: Model<usize>,
     current: usize,
     cx: &mut AppContext,
-) where
+) -> bool
+where
     T: Render,
 {
     let last = *render_counter.read(cx);
     let mut to_remove: Vec<usize> = Vec::new();
+    let mut did_remove = false;
 
     // determine whether or not we are at the start of a new render cycle
     if current < last {
@@ -25,6 +27,7 @@ pub fn prune_views<T>(
     }
 
     for idx in to_remove {
+        did_remove = true;
         views_model.update(cx, |m, _| {
             debug!("Removing view at index: {}", idx);
             m.remove(&idx);
@@ -35,6 +38,8 @@ pub fn prune_views<T>(
     render_counter.update(cx, |m, _| {
         *m = current;
     });
+
+    did_remove
 }
 
 pub fn create_or_retrieve_view<T>(

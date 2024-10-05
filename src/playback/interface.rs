@@ -69,20 +69,16 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn queue(&self, path: &str, data_interface: &GPUIDataInterface) {
+    pub fn queue(&self, path: &str) {
         self.commands_tx
             .send(PlaybackCommand::Queue(path.to_string()))
             .expect("could not send tx");
-
-        data_interface.get_metadata_for_queue(vec![path.to_string()]);
     }
 
-    pub fn queue_list(&self, paths: Vec<String>, data_interface: &GPUIDataInterface) {
+    pub fn queue_list(&self, paths: Vec<String>) {
         self.commands_tx
             .send(PlaybackCommand::QueueList(paths.clone()))
             .expect("could not send tx");
-
-        data_interface.get_metadata_for_queue(paths);
     }
 
     pub fn next(&self) {
@@ -134,9 +130,9 @@ impl GPUIPlaybackInterface {
         let mut events_rx = None;
         std::mem::swap(&mut self.events_rx, &mut events_rx);
 
-        let metadata_model: Model<Metadata> = cx.global::<Models>().metadata.clone();
-        let albumart_model: Model<Option<Arc<RenderImage>>> =
-            cx.global::<Models>().albumart.clone();
+        let metadata_model = cx.global::<Models>().metadata.clone();
+        let albumart_model = cx.global::<Models>().albumart.clone();
+        let queue_model = cx.global::<Models>().queue.clone();
 
         let playback_info = cx.global::<PlaybackInfo>().clone();
 
@@ -211,6 +207,14 @@ impl GPUIPlaybackInterface {
                                     })
                                     .expect("failed to update current track");
                             }
+                            PlaybackEvent::QueueUpdated(v) => {
+                                queue_model
+                                    .update(&mut cx, |m, cx| {
+                                        (*m).0 = v;
+                                        cx.notify()
+                                    })
+                                    .expect("failed to update queue");
+                            }
                             _ => (),
                         }
                     }
@@ -234,13 +238,7 @@ pub fn replace_queue(paths: Vec<String>, cx: &mut AppContext) {
 
     let queue = cx.global::<Models>().queue.clone();
 
-    queue.update(cx, |m, cx| {
-        m.clear();
-        // no reason to notify because it will just be immediately overwritten
-    });
-
     let data_interface = cx.global::<GPUIDataInterface>();
 
     data_interface.evict_cache();
-    data_interface.get_metadata_for_queue(paths);
 }

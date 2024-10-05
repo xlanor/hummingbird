@@ -4,6 +4,7 @@ use std::{
 };
 
 use gpui::AppContext;
+use tracing::info;
 
 use crate::ui::models::{ImageTransfer, Models};
 
@@ -58,15 +59,15 @@ impl GPUIDataInterface {
             .expect("could not send tx");
     }
 
-    pub fn get_metadata_for_queue(&self, queue: Vec<String>) {
-        self.commands_tx
-            .send(DataCommand::ReadQueueMetadata(queue))
-            .expect("could not send tx");
-    }
-
     pub fn evict_cache(&self) {
         self.commands_tx
             .send(DataCommand::EvictQueueCache)
+            .expect("could not send tx");
+    }
+
+    pub fn get_metadata(&self, path: String) {
+        self.commands_tx
+            .send(DataCommand::ReadMetadata(path))
             .expect("could not send tx");
     }
 
@@ -109,11 +110,11 @@ impl GPUIDataInterface {
                                 }
                                 _ => todo!(),
                             },
-                            DataEvent::MetadataRead(mut items) => {
+                            DataEvent::MetadataRead(queue, item) => {
                                 queue_model
                                     .update(&mut cx, |m, cx| {
-                                        m.append(&mut items);
-                                        cx.notify()
+                                        info!("event emitted for {}", item.file_path);
+                                        cx.emit(item);
                                     })
                                     .expect("failed to update queue");
                             }
@@ -121,7 +122,7 @@ impl GPUIDataInterface {
                     }
 
                     cx.background_executor()
-                        .timer(Duration::from_millis(1))
+                        .timer(Duration::from_millis(10))
                         .await;
                 }
             })

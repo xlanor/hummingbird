@@ -25,7 +25,7 @@ impl EventEmitter<ImageEvent> for Option<Arc<RenderImage>> {}
 pub struct Models {
     pub metadata: Model<Metadata>,
     pub albumart: Model<Option<Arc<RenderImage>>>,
-    pub queue: Model<Vec<UIQueueItem>>,
+    pub queue: Model<Queue>,
     pub image_transfer_model: Model<TransferDummy>,
     pub scan_state: Model<ScanEvent>,
 }
@@ -47,11 +47,16 @@ pub struct TransferDummy;
 
 impl EventEmitter<ImageTransfer> for TransferDummy {}
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Queue(pub Vec<String>);
+
+impl EventEmitter<UIQueueItem> for Queue {}
+
 pub fn build_models(cx: &mut AppContext) {
     debug!("Building models");
     let metadata: Model<Metadata> = cx.new_model(|_| Metadata::default());
     let albumart: Model<Option<Arc<RenderImage>>> = cx.new_model(|_| None);
-    let queue: Model<Vec<UIQueueItem>> = cx.new_model(|_| Vec::new());
+    let queue: Model<Queue> = cx.new_model(|_| Queue(Vec::new()));
     let image_transfer_model: Model<TransferDummy> = cx.new_model(|_| TransferDummy);
     let scan_state: Model<ScanEvent> = cx.new_model(|_| ScanEvent::ScanCompleteIdle);
 

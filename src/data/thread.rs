@@ -11,7 +11,7 @@ use ahash::{AHashMap, RandomState};
 use gpui::RenderImage;
 use image::{imageops::thumbnail, Delay, Frame};
 use smallvec::SmallVec;
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     media::{builtin::symphonia::SymphoniaProvider, metadata::Metadata, traits::MediaProvider},
@@ -81,14 +81,14 @@ impl DataThread {
                             .expect("could not send event");
                     }
                 }
-                DataCommand::ReadQueueMetadata(paths) => {
-                    let items = self.read_metadata_for_queue(paths);
+                DataCommand::EvictQueueCache => self.evict_unneeded_data(),
+                DataCommand::ReadMetadata(path) => {
+                    let item = self.read_metadata(path.clone());
 
                     self.events_tx
-                        .send(DataEvent::MetadataRead(items))
+                        .send(DataEvent::MetadataRead(path, item))
                         .expect("could not send event");
                 }
-                DataCommand::EvictQueueCache => self.evict_unneeded_data(),
             }
 
             sleep(std::time::Duration::from_millis(1));
@@ -143,82 +143,84 @@ impl DataThread {
         let mut items = vec![];
 
         for path in queue_items {
-            let file = if let Ok(file) = std::fs::File::open(path.clone()) {
-                file
-            } else {
-                warn!("Failed to open file {}, queue may be desynced", path);
-                warn!("Ensure the file exists before placing it in the queue");
-                continue;
-            };
-
-            if self
-                .media_provider
-                .open(file, path.split(".").last().map(|v| v.to_string()))
-                .is_err()
-            {
-                warn!("Media provider couldn't open file, creating generic queue item");
-                items.push(create_generic_queue_item(path));
-                continue;
-            }
-
-            if self.media_provider.start_playback().is_err() {
-                warn!("Media provider couldn't start playback, creating generic queue item");
-                items.push(create_generic_queue_item(path));
-                continue;
-            }
-
-            let metadata = if let Ok(metadata) = self.media_provider.read_metadata() {
-                metadata.clone()
-            } else {
-                warn!("Media provider couldn't retrieve metadata, creating generic queue item");
-                items.push(create_generic_queue_item(path));
-                continue;
-            };
-
-            let album_art = self
-                .media_provider
-                .read_image()
-                .ok()
-                .flatten()
-                .and_then(|v| {
-                    // we do this because we do not want to be storing entire encoded images
-                    // long-term, collisions don't particuarly matter here so the benefits outweigh
-                    // the tradeoffs
-                    let key = self.hash_state.hash_one(v.clone());
-
-                    if let Some(cached) = self.image_cache.get(&key) {
-                        debug!("Image cache hit for key {}", key);
-                        Some(cached.clone())
-                    } else {
-                        debug!("Image cache miss for key {}, decoding and caching", key);
-                        let mut image = image::io::Reader::new(Cursor::new(v.clone()))
-                            .with_guessed_format()
-                            .map_err(|_| ())
-                            .ok()?
-                            .decode()
-                            .ok()?
-                            .into_rgba8();
-
-                        rgb_to_bgr(&mut image);
-
-                        let value =
-                            Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
-                                thumbnail(&image, 80, 80),
-                            )])));
-                        self.image_cache.insert(key, value.clone());
-
-                        Some(value)
-                    }
-                });
-
-            items.push(UIQueueItem {
-                metadata,
-                file_path: path,
-                album_art,
-            })
+            items.push(self.read_metadata(path));
         }
 
         items
+    }
+
+    fn read_metadata(&mut self, path: String) -> UIQueueItem {
+        let file = if let Ok(file) = std::fs::File::open(path.clone()) {
+            file
+        } else {
+            warn!("Failed to open file {}, queue may be desynced", path);
+            warn!("Ensure the file exists before placing it in the queue");
+            return create_generic_queue_item(path);
+        };
+
+        if self
+            .media_provider
+            .open(file, path.split(".").last().map(|v| v.to_string()))
+            .is_err()
+        {
+            warn!("Media provider couldn't open file, creating generic queue item");
+            return create_generic_queue_item(path);
+        }
+
+        if self.media_provider.start_playback().is_err() {
+            warn!("Media provider couldn't start playback, creating generic queue item");
+            return create_generic_queue_item(path);
+        }
+
+        let metadata = if let Ok(metadata) = self.media_provider.read_metadata() {
+            metadata.clone()
+        } else {
+            warn!("Media provider couldn't retrieve metadata, creating generic queue item");
+            return create_generic_queue_item(path);
+        };
+
+        let album_art = self
+            .media_provider
+            .read_image()
+            .ok()
+            .flatten()
+            .and_then(|v| {
+                // we do this because we do not want to be storing entire encoded images
+                // long-term, collisions don't particuarly matter here so the benefits outweigh
+                // the tradeoffs
+                let key = self.hash_state.hash_one(v.clone());
+
+                if let Some(cached) = self.image_cache.get(&key) {
+                    debug!("Image cache hit for key {}", key);
+                    Some(cached.clone())
+                } else {
+                    debug!("Image cache miss for key {}, decoding and caching", key);
+                    let mut image = image::io::Reader::new(Cursor::new(v.clone()))
+                        .with_guessed_format()
+                        .map_err(|_| ())
+                        .ok()?
+                        .decode()
+                        .ok()?
+                        .into_rgba8();
+
+                    rgb_to_bgr(&mut image);
+
+                    let value = Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
+                        thumbnail(&image, 80, 80),
+                    )])));
+                    self.image_cache.insert(key, value.clone());
+
+                    Some(value)
+                }
+            });
+
+        info!("decoded metadata for {}", path);
+
+        UIQueueItem {
+            metadata,
+            file_path: path,
+            album_art,
+        }
     }
 
     fn evict_unneeded_data(&mut self) {

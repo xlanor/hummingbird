@@ -31,7 +31,6 @@ pub fn parse_args_and_prepare(
                         .expect("Invalid path")
                 })
                 .collect(),
-            data_interface,
         );
     }
 }

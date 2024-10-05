@@ -27,11 +27,9 @@ pub enum DataCommand {
     /// used to keep track of which image is being decoded, and the layout is used to determine
     /// whether or not RGB to BGR conversion is necessary.
     DecodeImage(Box<[u8]>, ImageType, ImageLayout, bool),
-    /// Requests that the data processing thread read the metadata for the specified files. This
-    /// is used to display track information in the user interface.
-    ReadQueueMetadata(Vec<String>),
     /// Requests that the data processing thread perform cache maintenance.
     EvictQueueCache,
+    ReadMetadata(String),
 }
 
 /// An event from the data thread. This is used to communicate information from the data thread to
@@ -44,6 +42,5 @@ pub enum DataEvent {
     /// Indicates that the data processing thread has encountered an error while decoding the
     /// specified image.
     DecodeError(ImageType),
-    /// Indicates that new metadata has been read for the queue and must be added.
-    MetadataRead(Vec<UIQueueItem>),
+    MetadataRead(String, UIQueueItem),
 }

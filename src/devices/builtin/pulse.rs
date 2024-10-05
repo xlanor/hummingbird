@@ -260,7 +260,7 @@ where
     }
 
     fn needs_input(&self) -> bool {
-        !self.stream.drain().is_err()
+        true
     }
 
     fn get_current_format(&self) -> Result<&FormatInfo, InfoError> {

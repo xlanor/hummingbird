@@ -59,7 +59,9 @@ pub trait OutputStream {
     /// Tells the device to start playing audio.
     fn play(&mut self) -> Result<(), StateError>;
     /// Tells the device to stop playing audio. Note that some providers may not actually stop
-    /// playback at all - this function may be a no-op.
+    /// playback at all - this function may be a no-op. Submitting frames after calling this
+    /// without calling play is undefined behavior, and may result in the thread blocking
+    /// indefinitely.
     ///
     /// When implementing this function, the device should never drop submitted audio data. If the
     /// options are between dropping audio data and this function being a no-op, the function

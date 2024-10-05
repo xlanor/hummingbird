@@ -245,7 +245,7 @@ impl Render for ReleaseView {
                         this.child(div().child(release_info))
                     })
                     .when_some(self.album.release_date, |this, date| {
-                        this.child(div().child(format!("Released {}", date.format("%B %e, %Y"))))
+                        this.child(div().child(format!("Released {}", date.format("%B %-e, %Y"))))
                     })
                     .when_some(self.album.isrc.as_ref(), |this, isrc| {
                         this.child(div().child(format!("{}", isrc)))

@@ -136,7 +136,7 @@ impl AlbumView {
                     },
                 )
             }
-            None => ListState::new(0, ListAlignment::Top, px(300.0), move |_, _| {
+            None => ListState::new(0, ListAlignment::Top, px(64.0), move |_, _| {
                 div().into_any_element()
             }),
         }
