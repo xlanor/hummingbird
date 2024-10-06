@@ -16,8 +16,9 @@ use crate::{
 };
 
 use super::{
-    arguments::parse_args_and_prepare, assets::Assets, global_actions::register_actions,
-    header::Header, library::Library, models::build_models, queue::Queue, statusbar::StatusBar,
+    arguments::parse_args_and_prepare, assets::Assets, constants::APP_ROUNDING,
+    global_actions::register_actions, header::Header, library::Library, models::build_models,
+    queue::Queue, statusbar::StatusBar,
 };
 
 struct WindowShadow {
@@ -30,7 +31,7 @@ struct WindowShadow {
 impl Render for WindowShadow {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let decorations = cx.window_decorations();
-        let rounding = px(6.0);
+        let rounding = APP_ROUNDING;
         let shadow_size = px(10.0);
         let border_size = px(1.0);
         cx.set_client_inset(shadow_size);

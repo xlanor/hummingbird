@@ -1,8 +1,9 @@
 use gpui::*;
+use prelude::FluentBuilder;
 
 use crate::library::scan::ScanEvent;
 
-use super::models::Models;
+use super::{constants::APP_ROUNDING, models::Models};
 
 pub struct StatusBar {
     scan_model: Model<ScanEvent>,
@@ -25,6 +26,8 @@ impl StatusBar {
 
 impl Render for StatusBar {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let decorations = cx.window_decorations();
+
         div()
             .flex()
             .w_full()
@@ -35,6 +38,16 @@ impl Render for StatusBar {
             .text_sm()
             .border_t_1()
             .border_color(rgb(0x1e293b))
+            .map(|div| match decorations {
+                Decorations::Server => div,
+                Decorations::Client { tiling } => div
+                    .when(!(tiling.bottom || tiling.left), |div| {
+                        div.rounded_bl(APP_ROUNDING)
+                    })
+                    .when(!(tiling.bottom || tiling.right), |div| {
+                        div.rounded_br(APP_ROUNDING)
+                    }),
+            })
             .child(match self.scan_model.read(cx) {
                 ScanEvent::ScanCompleteIdle => "Not scanning".to_string(),
                 ScanEvent::ScanProgress { current, total } => {

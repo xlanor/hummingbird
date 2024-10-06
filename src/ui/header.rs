@@ -12,6 +12,7 @@ use crate::{
 };
 
 use super::{
+    constants::{APP_ROUNDING, FONT_AWESOME},
     global_actions::{Next, PlayPause, Previous},
     models::{Models, PlaybackInfo},
 };
@@ -32,13 +33,25 @@ impl Header {
 
 #[cfg(not(target_os = "macos"))]
 impl Render for Header {
-    fn render(&mut self, _: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let decorations = cx.window_decorations();
+
         div()
             .w_full()
             .h(px(60.0))
             .bg(rgb(0x111827))
             .border_b_1()
             .border_color(rgb(0x1e293b))
+            .map(|div| match decorations {
+                Decorations::Server => div,
+                Decorations::Client { tiling } => div
+                    .when(!(tiling.top || tiling.left), |div| {
+                        div.rounded_tl(APP_ROUNDING)
+                    })
+                    .when(!(tiling.top || tiling.right), |div| {
+                        div.rounded_tr(APP_ROUNDING)
+                    }),
+            })
             .when(cfg!(target_os = "windows"), |this| {
                 this.on_mouse_down(MouseButton::Left, |_, cx| cx.stop_propagation())
             })
@@ -63,6 +76,9 @@ impl Render for Header {
             .border_b_1()
             .border_color(rgb(0x1e293b))
             .on_mouse_move(|_e, cx| cx.refresh())
+            // macOS doesn't ever actually stop rounding corners so we don't need to check for
+            // tiling
+            .rounded_t(APP_ROUNDING)
             .on_mouse_down(MouseButton::Left, move |e, cx| cx.start_window_move())
             .flex()
             .child(WindowControls {})
@@ -236,7 +252,7 @@ impl Render for PlaybackSection {
                         .h(px(26.0))
                         .rounded_l(px(3.0))
                         .bg(rgb(0x1f2937))
-                        .font_family("Font Awesome 6 Free Solid")
+                        .font_family(FONT_AWESOME)
                         .flex()
                         .items_center()
                         .justify_center()
@@ -260,7 +276,7 @@ impl Render for PlaybackSection {
                         .border_l(px(1.0))
                         .border_r(px(1.0))
                         .border_color(rgb(0x374151))
-                        .font_family("Font Awesome 6 Free Solid")
+                        .font_family(FONT_AWESOME)
                         .flex()
                         .items_center()
                         .justify_center()
@@ -283,7 +299,7 @@ impl Render for PlaybackSection {
                         .h(px(26.0))
                         .rounded_r(px(3.0))
                         .bg(rgb(0x1f2937))
-                        .font_family("Font Awesome 6 Free Solid")
+                        .font_family(FONT_AWESOME)
                         .flex()
                         .items_center()
                         .justify_center()
@@ -315,11 +331,13 @@ impl RenderOnce for WindowControls {
 
 #[cfg(not(target_os = "macos"))]
 impl RenderOnce for WindowControls {
-    fn render(self, _: &mut WindowContext) -> impl IntoElement {
+    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+        let decorations = cx.window_decorations();
+
         div()
             .flex()
             .flex_col()
-            .font_family("Font Awesome 6 Free Solid")
+            .font_family(FONT_AWESOME)
             .border_l(px(1.0))
             .border_color(rgb(0x1e293b))
             .child(
@@ -370,7 +388,13 @@ impl RenderOnce for WindowControls {
                             .w(px(32.0))
                             .h(px(30.0))
                             .flex()
-                            .rounded_tr(px(6.0))
+                            .map(|div| match decorations {
+                                Decorations::Server => div,
+                                Decorations::Client { tiling } => div
+                                    .when(!(tiling.top || tiling.right), |div| {
+                                        div.rounded_tr(APP_ROUNDING)
+                                    }),
+                            })
                             .items_center()
                             .justify_center()
                             .flex_shrink_0()

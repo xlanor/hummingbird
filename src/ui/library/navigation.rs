@@ -4,7 +4,10 @@ use gpui::*;
 use prelude::FluentBuilder;
 use tracing::debug;
 
-use crate::library::db::{AlbumMethod, LibraryAccess};
+use crate::{
+    library::db::{AlbumMethod, LibraryAccess},
+    ui::constants::FONT_AWESOME,
+};
 
 use super::ViewSwitchMessage;
 
@@ -65,7 +68,7 @@ impl Render for NavigationView {
                     div()
                         .flex()
                         .id("back")
-                        .font_family("Font Awesome 6 Free Solid")
+                        .font_family(FONT_AWESOME)
                         .px(px(12.0))
                         .py(px(5.0))
                         .mr(px(12.0))

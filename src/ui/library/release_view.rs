@@ -14,7 +14,10 @@ use crate::{
         types::{Album, Artist, Track},
     },
     playback::interface::{replace_queue, GPUIPlaybackInterface},
-    ui::models::{Models, TransferDummy},
+    ui::{
+        constants::FONT_AWESOME,
+        models::{Models, TransferDummy},
+    },
 };
 
 use super::ViewSwitchMessage;
@@ -218,11 +221,7 @@ impl Render for ReleaseView {
                                             replace_queue(paths, cx)
                                         }))
                                         .gap(px(6.0))
-                                        .child(
-                                            div()
-                                                .font_family("Font Awesome 6 Free Solid")
-                                                .child(""),
-                                        )
+                                        .child(div().font_family(FONT_AWESOME).child(""))
                                         .child(div().child("Play")),
                                 ),
                             ),
