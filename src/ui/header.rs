@@ -39,8 +39,13 @@ impl Render for Header {
             .bg(rgb(0x111827))
             .border_b_1()
             .border_color(rgb(0x1e293b))
-            .on_mouse_move(|_e, cx| cx.refresh())
-            .on_mouse_down(MouseButton::Left, move |_, cx| cx.start_window_move())
+            .when(cfg!(target_os = "windows"), |this| {
+                this.on_mouse_down(MouseButton::Left, |_, cx| cx.stop_propagation())
+            })
+            .when(cfg!(not(target_os = "windows")), |this| {
+                this.on_mouse_move(|_e, cx| cx.refresh())
+                    .on_mouse_down(MouseButton::Left, move |_, cx| cx.start_window_move())
+            })
             .flex()
             .child(self.info_section.clone())
             .child(self.scrubber.clone())
@@ -231,7 +236,7 @@ impl Render for PlaybackSection {
                         .h(px(26.0))
                         .rounded_l(px(3.0))
                         .bg(rgb(0x1f2937))
-                        .font_family("Font Awesome 6 Free")
+                        .font_family("Font Awesome 6 Free Solid")
                         .flex()
                         .items_center()
                         .justify_center()
@@ -240,6 +245,7 @@ impl Render for PlaybackSection {
                         .active(|style| style.bg(rgb(0x111827)))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
                             cx.stop_propagation();
+                            cx.prevent_default();
                         })
                         .on_click(|_, cx| {
                             cx.dispatch_action(Box::new(Previous));
@@ -254,7 +260,7 @@ impl Render for PlaybackSection {
                         .border_l(px(1.0))
                         .border_r(px(1.0))
                         .border_color(rgb(0x374151))
-                        .font_family("Font Awesome 6 Free")
+                        .font_family("Font Awesome 6 Free Solid")
                         .flex()
                         .items_center()
                         .justify_center()
@@ -263,6 +269,7 @@ impl Render for PlaybackSection {
                         .active(|style| style.bg(rgb(0x111827)))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
                             cx.stop_propagation();
+                            cx.prevent_default();
                         })
                         .on_click(|_, cx| {
                             cx.dispatch_action(Box::new(PlayPause));
@@ -276,7 +283,7 @@ impl Render for PlaybackSection {
                         .h(px(26.0))
                         .rounded_r(px(3.0))
                         .bg(rgb(0x1f2937))
-                        .font_family("Font Awesome 6 Free")
+                        .font_family("Font Awesome 6 Free Solid")
                         .flex()
                         .items_center()
                         .justify_center()
@@ -285,6 +292,7 @@ impl Render for PlaybackSection {
                         .active(|style| style.bg(rgb(0x111827)))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
                             cx.stop_propagation();
+                            cx.prevent_default();
                         })
                         .on_click(|_, cx| {
                             cx.dispatch_action(Box::new(Next));
@@ -311,17 +319,21 @@ impl RenderOnce for WindowControls {
         div()
             .flex()
             .flex_col()
-            .font_family("Font Awesome 6 Free")
+            .font_family("Font Awesome 6 Free Solid")
             .border_l(px(1.0))
             .border_color(rgb(0x1e293b))
             .child(
+                // FIXME: These buttons are a weird size because they need to be about the same
+                // size as the buttons in Zed right now
+                // Once GPUI adds support for setting the button size on Windows, set this to
+                // 30x30
                 div()
                     .flex()
                     .border_b(px(1.0))
                     .border_color(rgb(0x1e293b))
                     .child(
                         div()
-                            .w(px(30.0))
+                            .w(px(32.0))
                             .h(px(30.0))
                             .flex()
                             .items_center()
@@ -338,7 +350,7 @@ impl RenderOnce for WindowControls {
                     )
                     .child(
                         div()
-                            .w(px(30.0))
+                            .w(px(32.0))
                             .h(px(30.0))
                             .flex()
                             .items_center()
@@ -355,7 +367,7 @@ impl RenderOnce for WindowControls {
                     )
                     .child(
                         div()
-                            .w(px(30.0))
+                            .w(px(32.0))
                             .h(px(30.0))
                             .flex()
                             .rounded_tr(px(6.0))
@@ -364,7 +376,7 @@ impl RenderOnce for WindowControls {
                             .flex_shrink_0()
                             .hover(|style| style.bg(rgb(0x991b1b)).cursor_pointer())
                             .child("")
-                            .on_mouse_down(MouseButton::Left, |_, cx| {
+                            .on_mouse_down(MouseButton::Left, |ev, cx| {
                                 cx.stop_propagation();
                             })
                             .id("header-close")
@@ -379,7 +391,7 @@ impl RenderOnce for WindowControls {
                     .justify_end()
                     .child(
                         div()
-                            .w(px(30.0))
+                            .w(px(32.0))
                             .h(px(30.0))
                             .flex()
                             .items_center()
@@ -394,7 +406,7 @@ impl RenderOnce for WindowControls {
                     )
                     .child(
                         div()
-                            .w(px(30.0))
+                            .w(px(32.0))
                             .h(px(30.0))
                             .flex()
                             .items_center()
@@ -504,17 +516,22 @@ impl Render for Scrubber {
                     .id("scrubber-back")
                     .on_mouse_down(MouseButton::Left, |_, cx| {
                         cx.stop_propagation();
+                        cx.prevent_default();
                     })
                     .on_drag(Scrubbing, |_, cx| cx.new_view(|_| EmptyView))
                     .on_drag_move(move |ev: &DragMoveEvent<Scrubbing>, cx| {
-                        let interface = cx.global::<GPUIPlaybackInterface>();
-                        let relative = cx.mouse_position() - ev.bounds.origin;
-                        let relative_x = relative.x.0;
-                        let width = ev.bounds.size.width.0;
-                        let position = (relative_x / width).clamp(0.0, 1.0);
-                        let seconds = position as f64 * duration as f64;
+                        let playing = cx.global::<PlaybackInfo>().current_track.read(cx).is_some();
 
-                        interface.seek(seconds);
+                        if playing {
+                            let interface = cx.global::<GPUIPlaybackInterface>();
+                            let relative = cx.mouse_position() - ev.bounds.origin;
+                            let relative_x = relative.x.0;
+                            let width = ev.bounds.size.width.0;
+                            let position = (relative_x / width).clamp(0.0, 1.0);
+                            let seconds = position as f64 * duration as f64;
+
+                            interface.seek(seconds);
+                        }
                     }),
             )
     }

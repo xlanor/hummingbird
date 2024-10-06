@@ -236,7 +236,8 @@ pub async fn run() {
         .expect("couldn't find project dirs");
     let directory = dirs.data_dir();
     if !directory.exists() {
-        fs::create_dir(directory).expect("couldn't create data directory");
+        fs::create_dir_all(directory)
+            .unwrap_or_else(|e| panic!("couldn't create data directory, {:?}, {:?}", directory, e));
     }
     let file = directory.join("library.db");
 
@@ -282,12 +283,14 @@ pub async fn run() {
                 window_min_size: Some(size(px(800.0), px(600.0))),
                 titlebar: Some(TitlebarOptions {
                     title: Some(SharedString::from("Muzak")),
+                    // TODO: fix this
                     appears_transparent: true,
                     traffic_light_position: Some(Point {
                         x: px(12.0),
                         y: px(12.0),
                     }),
                 }),
+                kind: WindowKind::Normal,
                 ..Default::default()
             },
             |cx| {

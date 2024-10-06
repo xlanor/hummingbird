@@ -65,7 +65,7 @@ impl Render for NavigationView {
                     div()
                         .flex()
                         .id("back")
-                        .font_family("Font Awesome 6 Free")
+                        .font_family("Font Awesome 6 Free Solid")
                         .px(px(12.0))
                         .py(px(5.0))
                         .mr(px(12.0))

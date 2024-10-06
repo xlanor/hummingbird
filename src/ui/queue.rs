@@ -234,7 +234,7 @@ impl Render for Queue {
                             div()
                                 .flex()
                                 .id("back")
-                                .font_family("Font Awesome 6 Free")
+                                .font_family("Font Awesome 6 Free Solid")
                                 .pr(px(12.0))
                                 .pl(px(12.0))
                                 .py(px(5.0))

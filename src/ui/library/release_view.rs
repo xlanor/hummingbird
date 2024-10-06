@@ -218,7 +218,11 @@ impl Render for ReleaseView {
                                             replace_queue(paths, cx)
                                         }))
                                         .gap(px(6.0))
-                                        .child(div().font_family("Font Awesome 6 Free").child(""))
+                                        .child(
+                                            div()
+                                                .font_family("Font Awesome 6 Free Solid")
+                                                .child(""),
+                                        )
                                         .child(div().child("Play")),
                                 ),
                             ),
