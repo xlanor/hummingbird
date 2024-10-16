@@ -154,7 +154,7 @@ impl PlaybackThread {
                 PlaybackCommand::QueueList(v) => self.queue_list(v),
                 PlaybackCommand::Next => self.next(true),
                 PlaybackCommand::Previous => self.previous(),
-                PlaybackCommand::ClearQueue => todo!(),
+                PlaybackCommand::ClearQueue => self.clear_queue(),
                 PlaybackCommand::Jump(v) => self.jump(v),
                 PlaybackCommand::Seek(v) => self.seek(v),
                 PlaybackCommand::SetVolume(_) => todo!(),
@@ -367,6 +367,14 @@ impl PlaybackThread {
         self.queue = paths;
         self.queue_next = 0;
         self.jump(0);
+        self.events_tx
+            .send(PlaybackEvent::QueueUpdated(self.queue.clone()))
+            .expect("unable to send event");
+    }
+
+    fn clear_queue(&mut self) {
+        self.queue = Vec::new();
+        self.queue_next = 0;
         self.events_tx
             .send(PlaybackEvent::QueueUpdated(self.queue.clone()))
             .expect("unable to send event");
