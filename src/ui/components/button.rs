@@ -24,6 +24,7 @@ pub enum ButtonIntent {
 pub enum ButtonStyle {
     Regular,
     Minimal,
+    MinimalNoRounding,
 }
 
 impl ButtonStyle {
@@ -34,8 +35,9 @@ impl ButtonStyle {
         let div = dest.cursor_pointer().flex();
 
         match self {
-            ButtonStyle::Regular => div.border_1().shadow_sm(),
-            ButtonStyle::Minimal => div.background_opacity(1.0),
+            ButtonStyle::Regular => div.border_1().shadow_sm().rounded(px(4.0)),
+            ButtonStyle::Minimal => div.background_opacity(0.0).rounded(px(4.0)),
+            ButtonStyle::MinimalNoRounding => div.background_opacity(0.0),
         }
     }
 
@@ -45,7 +47,7 @@ impl ButtonStyle {
     {
         match self {
             ButtonStyle::Regular => dest,
-            ButtonStyle::Minimal => dest.background_opacity(0.5),
+            ButtonStyle::Minimal | ButtonStyle::MinimalNoRounding => dest.background_opacity(0.5),
         }
     }
 
@@ -55,7 +57,7 @@ impl ButtonStyle {
     {
         match self {
             ButtonStyle::Regular => dest,
-            ButtonStyle::Minimal => dest.background_opacity(0.5),
+            ButtonStyle::Minimal | ButtonStyle::MinimalNoRounding => dest.background_opacity(0.5),
         }
     }
 }
@@ -66,19 +68,8 @@ impl ButtonSize {
         T: Styled,
     {
         match self {
-            ButtonSize::Regular => dest
-                .px(px(10.0))
-                .py(px(3.0))
-                .text_sm()
-                .rounded(px(4.0))
-                .gap(px(8.0)),
-            ButtonSize::Large => dest
-                .px(px(14.0))
-                .py(px(5.0))
-                .text_sm()
-                .font_weight(FontWeight::BOLD)
-                .rounded(px(4.0))
-                .gap(px(10.0)),
+            ButtonSize::Regular => dest.px(px(10.0)).py(px(3.0)).text_sm().gap(px(8.0)),
+            ButtonSize::Large => dest.px(px(14.0)).py(px(5.0)).text_sm().gap(px(10.0)),
         }
     }
 
@@ -166,7 +157,7 @@ impl Button {
 
     pub fn id(self, id: impl Into<ElementId>) -> InteractiveButton {
         InteractiveButton {
-            div: div().id(id),
+            div: self.div.id(id),
             size: self.size,
             style: self.style,
             intent: self.intent,

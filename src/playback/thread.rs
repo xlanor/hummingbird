@@ -159,6 +159,7 @@ impl PlaybackThread {
                 PlaybackCommand::Seek(v) => self.seek(v),
                 PlaybackCommand::SetVolume(_) => todo!(),
                 PlaybackCommand::ReplaceQueue(v) => self.replace_queue(v),
+                PlaybackCommand::Stop => self.stop(),
             }
         }
     }
@@ -273,14 +274,7 @@ impl PlaybackThread {
             self.queue_next += 1;
         } else if !user_initiated {
             info!("Playback queue is empty, stopping playback");
-            if let Some(provider) = &mut self.media_provider {
-                provider.stop_playback().expect("unable to stop playback");
-                provider.close().expect("unable to close media");
-            }
-            self.state = PlaybackState::Stopped;
-            self.events_tx
-                .send(PlaybackEvent::StateChanged(PlaybackState::Stopped))
-                .expect("unable to send event");
+            self.stop();
         }
     }
 
@@ -377,6 +371,17 @@ impl PlaybackThread {
         self.queue_next = 0;
         self.events_tx
             .send(PlaybackEvent::QueueUpdated(self.queue.clone()))
+            .expect("unable to send event");
+    }
+
+    fn stop(&mut self) {
+        if let Some(provider) = &mut self.media_provider {
+            provider.stop_playback().expect("unable to stop playback");
+            provider.close().expect("unable to close media");
+        }
+        self.state = PlaybackState::Stopped;
+        self.events_tx
+            .send(PlaybackEvent::StateChanged(PlaybackState::Stopped))
             .expect("unable to send event");
     }
 

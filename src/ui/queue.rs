@@ -11,6 +11,7 @@ use crate::{
 };
 
 use super::{
+    components::button::{button, ButtonSize, ButtonStyle},
     constants::FONT_AWESOME,
     models::{Models, PlaybackInfo},
     util::{create_or_retrieve_view, prune_views},
@@ -81,7 +82,7 @@ impl Render for QueueItem {
                 .gap(px(11.0))
                 .h(px(59.0))
                 .p(px(11.0))
-                .border_t(px(1.0))
+                .border_b(px(1.0))
                 .border_color(rgb(0x1e293b))
                 .when(is_current, |div| div.bg(rgb(0x1f2937)))
                 .on_click(move |_, cx| {
@@ -254,12 +255,46 @@ impl Render for Queue {
                 div()
                     .w_full()
                     .pt(px(24.0))
-                    .pb(px(11.0))
+                    .pb(px(12.0))
                     .px(px(12.0))
-                    .line_height(px(26.0))
-                    .font_weight(FontWeight::BOLD)
-                    .text_size(px(26.0))
-                    .child("Queue"),
+                    .flex()
+                    .child(
+                        div()
+                            .line_height(px(26.0))
+                            .font_weight(FontWeight::BOLD)
+                            .text_size(px(26.0))
+                            .child("Queue"),
+                    ),
+            )
+            .child(
+                div()
+                    .w_full()
+                    .flex()
+                    .border_t_1()
+                    .border_b_1()
+                    .border_color(rgb(0x1e293b))
+                    .child(
+                        button()
+                            .style(ButtonStyle::MinimalNoRounding)
+                            .size(ButtonSize::Large)
+                            .child(div().font_family(FONT_AWESOME).child(""))
+                            .child("Clear")
+                            .w_full()
+                            .id("clear-queue")
+                            .on_click(|_, cx| {
+                                cx.global::<GPUIPlaybackInterface>().clear_queue();
+                                cx.global::<GPUIPlaybackInterface>().stop();
+                            }),
+                    )
+                    .child(
+                        button()
+                            .style(ButtonStyle::MinimalNoRounding)
+                            .size(ButtonSize::Large)
+                            .child(div().font_family(FONT_AWESOME).child(""))
+                            .child("Shuffle")
+                            .w_full()
+                            .id("queue-shuffle"),
+                    ),
             )
             .child(list(self.state.clone()).w_full().h_full().flex().flex_col())
     }

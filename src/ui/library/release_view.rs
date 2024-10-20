@@ -199,6 +199,7 @@ impl Render for ReleaseView {
                                         .id("release-play-button")
                                         .size(ButtonSize::Large)
                                         .mt(px(10.0))
+                                        .font_weight(FontWeight::BOLD)
                                         .on_click(cx.listener(|this: &mut ReleaseView, _, cx| {
                                             let paths = this
                                                 .tracks

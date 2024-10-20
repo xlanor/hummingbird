@@ -36,6 +36,8 @@ pub enum PlaybackCommand {
     /// Requests that the playback thread replace the current queue with the specified queue.
     /// This will set the current playing track to the first item in the queue.
     ReplaceQueue(Vec<String>),
+    /// Requests that the playback thread stop playback.
+    Stop,
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback
