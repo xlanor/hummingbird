@@ -1,6 +1,7 @@
 pub mod app;
 mod arguments;
 mod assets;
+mod components;
 mod constants;
 pub mod global_actions;
 mod header;
