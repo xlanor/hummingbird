@@ -15,7 +15,7 @@ use crate::{
     },
     playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::{
-        components::button::button,
+        components::button::{button, ButtonSize},
         constants::FONT_AWESOME,
         models::{Models, TransferDummy},
     },
@@ -197,6 +197,8 @@ impl Render for ReleaseView {
                                 div().flex().flex_row().child(
                                     button()
                                         .id("release-play-button")
+                                        .size(ButtonSize::Large)
+                                        .mt(px(10.0))
                                         .on_click(cx.listener(|this: &mut ReleaseView, _, cx| {
                                             let paths = this
                                                 .tracks
@@ -208,34 +210,6 @@ impl Render for ReleaseView {
                                         }))
                                         .child(div().font_family(FONT_AWESOME).child(""))
                                         .child(div().child("Play")),
-                                    // div()
-                                    //     .mt(px(10.0))
-                                    //     .id("play-button")
-                                    //     .bg(rgb(0x1f2937))
-                                    //     .border_1()
-                                    //     .border_color(rgb(0x374151))
-                                    //     .rounded(px(4.0))
-                                    //     .pl(px(11.0))
-                                    //     .pr(px(10.0))
-                                    //     .py(px(3.0))
-                                    //     .shadow_sm()
-                                    //     .text_sm()
-                                    //     .flex()
-                                    //     .cursor_pointer()
-                                    //     .hover(|this| this.bg(rgb(0x374151)))
-                                    //     .font_weight(FontWeight::BOLD)
-                                    //     .active(|style| style.bg(rgb(0x111827)))
-                                    //     .on_click(cx.listener(|this: &mut ReleaseView, _, cx| {
-                                    //         let paths = this
-                                    //             .tracks
-                                    //             .iter()
-                                    //             .map(|track| track.location.clone())
-                                    //             .collect();
-
-                                    //         replace_queue(paths, cx)
-                                    //     }))
-                                    //     .child(div().font_family(FONT_AWESOME).child(""))
-                                    //     .child(div().child("Play")),
                                 ),
                             ),
                     ),

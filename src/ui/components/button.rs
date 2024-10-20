@@ -7,13 +7,13 @@ use smallvec::SmallVec;
 use super::styling::AdditionalStyleUtil;
 
 #[derive(Clone, Copy)]
-enum ButtonSize {
+pub enum ButtonSize {
     Regular,
     Large,
 }
 
 #[derive(Clone, Copy)]
-enum ButtonIntent {
+pub enum ButtonIntent {
     Primary,
     Secondary,
     Warning,
@@ -21,7 +21,7 @@ enum ButtonIntent {
 }
 
 #[derive(Clone, Copy)]
-enum ButtonStyle {
+pub enum ButtonStyle {
     Regular,
     Minimal,
 }
@@ -31,9 +31,11 @@ impl ButtonStyle {
     where
         T: Styled,
     {
+        let div = dest.cursor_pointer().flex();
+
         match self {
-            ButtonStyle::Regular => dest.border_1().cursor_pointer(),
-            ButtonStyle::Minimal => dest.background_opacity(1.0).cursor_pointer(),
+            ButtonStyle::Regular => div.border_1().shadow_sm(),
+            ButtonStyle::Minimal => div.background_opacity(1.0),
         }
     }
 
@@ -65,17 +67,30 @@ impl ButtonSize {
     {
         match self {
             ButtonSize::Regular => dest
-                .px(px(12.0))
-                .py(px(8.0))
+                .px(px(10.0))
+                .py(px(3.0))
                 .text_sm()
                 .rounded(px(4.0))
-                .gap(px(6.0)),
+                .gap(px(8.0)),
             ButtonSize::Large => dest
-                .px(px(16.0))
-                .py(px(12.0))
-                .text_base()
+                .px(px(14.0))
+                .py(px(5.0))
+                .text_sm()
+                .font_weight(FontWeight::BOLD)
                 .rounded(px(4.0))
-                .gap(px(6.0)),
+                .gap(px(10.0)),
+        }
+    }
+
+    // i have no idea what this is about but the text size changes when you click on it unless we
+    // have this
+    fn active<T>(&self, dest: T) -> T
+    where
+        T: Styled,
+    {
+        match self {
+            ButtonSize::Regular => dest.text_sm(),
+            ButtonSize::Large => dest.text_sm(),
         }
     }
 }
@@ -86,10 +101,19 @@ impl ButtonIntent {
         T: Styled,
     {
         match self {
-            ButtonIntent::Primary => dest.bg(rgb(0x1f2937)).border_color(rgb(0x374151)),
-            ButtonIntent::Secondary => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
-            ButtonIntent::Warning => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
-            ButtonIntent::Danger => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
+            ButtonIntent::Primary => dest
+                .bg(rgb(0x1e3a8a))
+                .border_color(rgb(0x1e40af))
+                .text_color(rgb(0xbfdbfe)),
+            ButtonIntent::Secondary => dest.bg(rgb(0x1f2937)).border_color(rgb(0x374151)),
+            ButtonIntent::Warning => dest
+                .bg(rgb(0x854d0e))
+                .border_color(rgb(0xa16207))
+                .text_color(rgb(0xfef9c3)),
+            ButtonIntent::Danger => dest
+                .bg(rgb(0x7f1d1d))
+                .border_color(rgb(0x991b1b))
+                .text_color(rgb(0xfecaca)),
         }
     }
     fn hover<T>(&self, dest: T) -> T
@@ -97,10 +121,10 @@ impl ButtonIntent {
         T: Styled,
     {
         match self {
-            ButtonIntent::Primary => dest.bg(rgb(0x1f2937)).border_color(rgb(0x374151)),
-            ButtonIntent::Secondary => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
-            ButtonIntent::Warning => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
-            ButtonIntent::Danger => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
+            ButtonIntent::Primary => dest.bg(rgb(0x1e40af)),
+            ButtonIntent::Secondary => dest.bg(rgb(0x334155)),
+            ButtonIntent::Warning => dest.bg(rgb(0xa16207)),
+            ButtonIntent::Danger => dest.bg(rgb(0x991b1b)),
         }
     }
     fn active<T>(&self, dest: T) -> T
@@ -108,10 +132,10 @@ impl ButtonIntent {
         T: Styled,
     {
         match self {
-            ButtonIntent::Primary => dest.bg(rgb(0x1f2937)).border_color(rgb(0x374151)),
-            ButtonIntent::Secondary => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
-            ButtonIntent::Warning => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
-            ButtonIntent::Danger => dest.bg(rgb(0x1e293b)).text_color(rgb(0xFFFFFF)),
+            ButtonIntent::Primary => dest.bg(rgb(0x172554)),
+            ButtonIntent::Secondary => dest.bg(rgb(0x0f172a)),
+            ButtonIntent::Warning => dest.bg(rgb(0x713f12)),
+            ButtonIntent::Danger => dest.bg(rgb(0x450a0a)),
         }
     }
 }
@@ -147,6 +171,12 @@ impl Button {
             style: self.style,
             intent: self.intent,
         }
+    }
+}
+
+impl Styled for Button {
+    fn style(&mut self) -> &mut StyleRefinement {
+        self.div.style()
     }
 }
 
@@ -196,6 +226,12 @@ impl InteractiveButton {
     }
 }
 
+impl Styled for InteractiveButton {
+    fn style(&mut self) -> &mut StyleRefinement {
+        self.div.style()
+    }
+}
+
 impl ParentElement for InteractiveButton {
     fn extend(&mut self, elements: impl IntoIterator<Item = AnyElement>) {
         self.div.extend(elements);
@@ -213,7 +249,7 @@ impl RenderOnce for InteractiveButton {
                 intent.base(
                     self.div
                         .hover(|v| style.hover(intent.hover(v)))
-                        .active(|v| style.active(intent.active(v))),
+                        .active(|v| style.active(size.active(intent.active(v)))),
                 ),
             ),
         )
