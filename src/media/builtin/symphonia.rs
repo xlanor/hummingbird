@@ -14,6 +14,7 @@ use symphonia::{
     },
     default::get_codecs,
 };
+use tracing::debug;
 
 use crate::media::{
     errors::{
@@ -121,6 +122,10 @@ impl SymphoniaProvider {
                 }
                 Some(StandardTagKey::IdentIsrc) => {
                     self.current_metadata.isrc = Some(tag.value.to_string())
+                }
+                Some(StandardTagKey::SortAlbum) => {
+                    debug!("found sort_album");
+                    self.current_metadata.sort_album = Some(tag.value.to_string())
                 }
                 _ => (),
             }

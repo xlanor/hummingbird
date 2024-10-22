@@ -8,6 +8,7 @@ pub struct Metadata {
     pub original_artist: Option<String>,
     pub composer: Option<String>,
     pub album: Option<String>,
+    pub sort_album: Option<String>,
     pub genre: Option<String>,
     pub grouping: Option<String>,
     pub bpm: Option<u64>,

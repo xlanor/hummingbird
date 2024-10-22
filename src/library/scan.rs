@@ -420,7 +420,7 @@ impl ScanThread {
             let result: Result<(i64,), sqlx::Error> =
                 sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
                     .bind(album)
-                    .bind(album)
+                    .bind(&metadata.sort_album.as_ref().unwrap_or(&album))
                     .bind(artist_id)
                     .bind(image)
                     .bind(thumb)

@@ -38,6 +38,9 @@ pub enum PlaybackCommand {
     ReplaceQueue(Vec<String>),
     /// Requests that the playback thread stop playback.
     Stop,
+    /// Requests that the playback thread shuffle (or stop shuffling) the next tracks in the
+    /// queue. Note that this currently results in duplication of the *entire* queue.
+    ToggleShuffle,
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback
@@ -65,4 +68,6 @@ pub enum PlaybackEvent {
     /// Indicates that the position in the current file has changed. The f64 is the new position,
     /// in seconds.
     PositionChanged(u64),
+    /// Notification for when shuffling is disabled or enabled by the thread.
+    ShuffleToggled(bool),
 }
