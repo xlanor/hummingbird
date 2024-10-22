@@ -394,62 +394,62 @@ impl ScanThread {
         image: &Option<Box<[u8]>>,
     ) -> Option<i64> {
         if let Some(album) = &metadata.album {
-            let thumb = match image {
-                Some(image) => {
-                    let decoded = image::ImageReader::new(Cursor::new(&image))
-                        .with_guessed_format()
-                        .ok()?
-                        .decode()
-                        .ok()?
-                        .into_rgba8();
-
-                    let thumb = thumbnail(&decoded, 70, 70);
-
-                    let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-
-                    thumb
-                        .write_to(&mut buf, image::ImageFormat::Bmp)
-                        .expect("i don't know how Cursor could fail");
-                    buf.flush().expect("could not flush buffer");
-
-                    Some(buf.get_mut().clone())
-                }
-                None => None,
-            };
-
             let result: Result<(i64,), sqlx::Error> =
-                sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
+                sqlx::query_as(include_str!("../../queries/scan/get_album_id.sql"))
                     .bind(album)
-                    .bind(&metadata.sort_album.as_ref().unwrap_or(&album))
-                    .bind(artist_id)
-                    .bind(image)
-                    .bind(thumb)
-                    .bind(metadata.date)
-                    .bind(&metadata.label)
-                    .bind(&metadata.catalog)
-                    .bind(&metadata.isrc)
                     .fetch_one(&self.pool)
                     .await;
 
             match result {
                 Ok(v) => Some(v.0),
                 Err(sqlx::Error::RowNotFound) => {
+                    let thumb = match image {
+                        Some(image) => {
+                            let decoded = image::ImageReader::new(Cursor::new(&image))
+                                .with_guessed_format()
+                                .ok()?
+                                .decode()
+                                .ok()?
+                                .into_rgba8();
+
+                            let thumb = thumbnail(&decoded, 70, 70);
+
+                            let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+
+                            thumb
+                                .write_to(&mut buf, image::ImageFormat::Bmp)
+                                .expect("i don't know how Cursor could fail");
+                            buf.flush().expect("could not flush buffer");
+
+                            Some(buf.get_mut().clone())
+                        }
+                        None => None,
+                    };
+
                     let result: Result<(i64,), sqlx::Error> =
-                        sqlx::query_as(include_str!("../../queries/scan/get_album_id.sql"))
+                        sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
                             .bind(album)
+                            .bind(&metadata.sort_album.as_ref().unwrap_or(&album))
+                            .bind(artist_id)
+                            .bind(image)
+                            .bind(thumb)
+                            .bind(metadata.date)
+                            .bind(&metadata.label)
+                            .bind(&metadata.catalog)
+                            .bind(&metadata.isrc)
                             .fetch_one(&self.pool)
                             .await;
 
                     match result {
                         Ok(v) => Some(v.0),
                         Err(e) => {
-                            error!("Database error while retriving album: {:?}", e);
+                            error!("Database error while creating album: {:?}", e);
                             None
                         }
                     }
                 }
                 Err(e) => {
-                    error!("Database error while creating album: {:?}", e);
+                    error!("Database error while retriving album: {:?}", e);
                     None
                 }
             }

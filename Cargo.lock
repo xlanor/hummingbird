@@ -2984,6 +2984,7 @@ dependencies = [
  "libpulse-simple-binding",
  "moka",
  "pulsectl-rs",
+ "rand",
  "rb",
  "rubato",
  "rust-embed",
