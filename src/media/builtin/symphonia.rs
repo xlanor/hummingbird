@@ -124,8 +124,10 @@ impl SymphoniaProvider {
                     self.current_metadata.isrc = Some(tag.value.to_string())
                 }
                 Some(StandardTagKey::SortAlbum) => {
-                    debug!("found sort_album");
                     self.current_metadata.sort_album = Some(tag.value.to_string())
+                }
+                Some(StandardTagKey::SortAlbumArtist) => {
+                    self.current_metadata.artist_sort = Some(tag.value.to_string())
                 }
                 _ => (),
             }

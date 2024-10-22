@@ -356,7 +356,7 @@ impl ScanThread {
             let result: Result<(i64,), sqlx::Error> =
                 sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
                     .bind(&artist)
-                    .bind(&artist)
+                    .bind(&metadata.artist_sort.as_ref().unwrap_or(&artist))
                     .fetch_one(&self.pool)
                     .await;
 
