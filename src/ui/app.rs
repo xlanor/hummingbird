@@ -98,7 +98,6 @@ impl Render for WindowShadow {
                     .when(!tiling.bottom, |div| div.pb(shadow_size))
                     .when(!tiling.left, |div| div.pl(shadow_size))
                     .when(!tiling.right, |div| div.pr(shadow_size))
-                    .on_mouse_move(|_e, cx| cx.refresh())
                     .on_mouse_down(MouseButton::Left, move |e, cx| {
                         let size = cx.window_bounds().get_bounds().size;
                         let pos = e.position;

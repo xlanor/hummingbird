@@ -54,10 +54,14 @@ impl Render for Header {
             })
             .when(cfg!(target_os = "windows"), |this| {
                 this.on_mouse_down(MouseButton::Left, |_, cx| cx.stop_propagation())
+                    .on_click(|ev, cx| {
+                        if ev.down.click_count == 2 {
+                            cx.zoom_window();
+                        }
+                    })
             })
             .when(cfg!(not(target_os = "windows")), |this| {
-                this.on_mouse_move(|_e, cx| cx.refresh())
-                    .on_mouse_down(MouseButton::Left, move |_, cx| cx.start_window_move())
+                this.on_mouse_down(MouseButton::Left, move |_, cx| cx.start_window_move())
             })
             .flex()
             .child(self.info_section.clone())
@@ -75,11 +79,16 @@ impl Render for Header {
             .bg(rgb(0x111827))
             .border_b_1()
             .border_color(rgb(0x1e293b))
-            .on_mouse_move(|_e, cx| cx.refresh())
             // macOS doesn't ever actually stop rounding corners so we don't need to check for
             // tiling
             .rounded_t(APP_ROUNDING)
+            .id("header")
             .on_mouse_down(MouseButton::Left, move |e, cx| cx.start_window_move())
+            .on_click(|ev, cx| {
+                if ev.down.click_count == 2 {
+                    cx.zoom_window();
+                }
+            })
             .flex()
             .child(WindowControls {})
             .child(self.info_section.clone())
