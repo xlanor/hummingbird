@@ -129,6 +129,12 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
+    pub fn toggle_shuffle(&self) {
+        self.commands_tx
+            .send(PlaybackCommand::ToggleShuffle)
+            .expect("could not send tx");
+    }
+
     /// Starts the broadcast loop that will read events from the playback thread and update data
     /// models accordingly. This function should be called once, and will panic if called more than
     /// once.
@@ -220,6 +226,15 @@ impl GPUIPlaybackInterface {
                                         cx.notify()
                                     })
                                     .expect("failed to update queue");
+                            }
+                            PlaybackEvent::ShuffleToggled(v) => {
+                                playback_info
+                                    .shuffling
+                                    .update(&mut cx, |m, cx| {
+                                        *m = v;
+                                        cx.notify()
+                                    })
+                                    .expect("failed to update shuffle state");
                             }
                             _ => (),
                         }

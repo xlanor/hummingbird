@@ -151,6 +151,7 @@ pub struct Queue {
     views_model: Model<AHashMap<usize, View<QueueItem>>>,
     render_counter: Model<usize>,
     state: ListState,
+    shuffling: Model<bool>,
 }
 
 impl Queue {
@@ -192,12 +193,20 @@ impl Queue {
             })
             .detach();
 
+            let shuffling = cx.global::<PlaybackInfo>().shuffling.clone();
+
+            cx.observe(&shuffling, |this: &mut Queue, _, cx| {
+                cx.notify();
+            })
+            .detach();
+
             Self {
                 views_model,
                 render_counter,
                 state: ListState::new(0, ListAlignment::Top, px(200.0), move |_, _| {
                     div().into_any_element()
                 }),
+                shuffling,
             }
         })
     }
@@ -205,6 +214,8 @@ impl Queue {
 
 impl Render for Queue {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let shuffling = self.shuffling.read(cx);
+
         div()
             // .absolute()
             // .top_0()
@@ -291,9 +302,13 @@ impl Render for Queue {
                             .style(ButtonStyle::MinimalNoRounding)
                             .size(ButtonSize::Large)
                             .child(div().font_family(FONT_AWESOME).child(""))
-                            .child("Shuffle")
+                            .when(*shuffling, |this| this.child("Shuffling"))
+                            .when(!shuffling, |this| this.child("Shuffle"))
                             .w_full()
-                            .id("queue-shuffle"),
+                            .id("queue-shuffle")
+                            .on_click(|_, cx| {
+                                cx.global::<GPUIPlaybackInterface>().toggle_shuffle()
+                            }),
                     ),
             )
             .child(list(self.state.clone()).w_full().h_full().flex().flex_col())

@@ -275,7 +275,11 @@ impl PlaybackThread {
     fn next(&mut self, user_initiated: bool) {
         if self.queue_next < self.queue.len() {
             info!("Opening next file in queue");
-            let next_path = self.queue[self.queue_next].clone();
+            let next_path = if self.shuffle {
+                self.shuffled_queue[self.queue_next].clone()
+            } else {
+                self.queue[self.queue_next].clone()
+            };
             self.open(&next_path);
             self.queue_next += 1;
         } else if !user_initiated {
@@ -286,12 +290,20 @@ impl PlaybackThread {
 
     fn previous(&mut self) {
         if self.state == PlaybackState::Stopped && !self.queue.is_empty() {
-            let track = self.queue.last().unwrap().clone();
+            let track = if self.shuffle {
+                self.shuffled_queue.last().unwrap().clone()
+            } else {
+                self.queue.last().unwrap().clone()
+            };
             self.open(&track);
             self.queue_next = self.queue.len();
         } else if self.queue_next > 1 {
             info!("Opening previous file in queue");
-            let prev_path = self.queue[self.queue_next - 2].clone();
+            let prev_path = if self.shuffle {
+                self.shuffled_queue[self.queue_next - 2].clone()
+            } else {
+                self.queue[self.queue_next - 2].clone()
+            };
             self.queue_next -= 1;
             debug!("queue_next: {}", self.queue_next);
             self.open(&prev_path);
@@ -384,7 +396,11 @@ impl PlaybackThread {
 
     fn jump(&mut self, index: usize) {
         if index < self.queue.len() {
-            self.open(&self.queue[index].clone());
+            if self.shuffle {
+                self.open(&self.shuffled_queue[index].clone());
+            } else {
+                self.open(&self.queue[index].clone());
+            }
             self.queue_next = index + 1;
         }
     }
@@ -435,6 +451,13 @@ impl PlaybackThread {
 
     fn toggle_shuffle(&mut self) {
         if self.shuffle {
+            // find the current track in the unshuffled queue
+            if self.queue_next > 0 {
+                let current = self.shuffled_queue[self.queue_next - 1].clone();
+                let index = self.queue.iter().position(|x| x == &current).unwrap();
+                self.queue_next = index + 1;
+            }
+
             self.shuffled_queue = Vec::new();
             self.shuffle = false;
 

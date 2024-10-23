@@ -38,6 +38,7 @@ pub struct PlaybackInfo {
     pub duration: Model<u64>,
     pub playback_state: Model<PlaybackState>,
     pub current_track: Model<Option<String>>,
+    pub shuffling: Model<bool>,
 }
 
 impl Global for PlaybackInfo {}
@@ -83,11 +84,13 @@ pub fn build_models(cx: &mut AppContext) {
     let duration: Model<u64> = cx.new_model(|_| 0);
     let playback_state: Model<PlaybackState> = cx.new_model(|_| PlaybackState::Stopped);
     let current_track: Model<Option<String>> = cx.new_model(|_| None);
+    let shuffling: Model<bool> = cx.new_model(|_| false);
 
     cx.set_global(PlaybackInfo {
         position,
         duration,
         playback_state,
         current_track,
+        shuffling,
     });
 }
