@@ -209,18 +209,14 @@ impl Render for InfoSection {
                                     div()
                                         .overflow_x_hidden()
                                         .font_weight(FontWeight::EXTRA_BOLD)
+                                        .text_ellipsis()
                                         .child(
-                                            metadata
-                                                .artist
-                                                .clone()
-                                                .unwrap_or("Unknown Artist".into()),
+                                            metadata.name.clone().unwrap_or("Unknown Track".into()),
                                         ),
                                 )
-                                .child(
-                                    div().overflow_x_hidden().pb(px(3.0)).text_ellipsis().child(
-                                        metadata.name.clone().unwrap_or("Unknown Track".into()),
-                                    ),
-                                ),
+                                .child(div().overflow_x_hidden().pb(px(3.0)).child(
+                                    metadata.artist.clone().unwrap_or("Unknown Artist".into()),
+                                )),
                         )
                     }),
             )

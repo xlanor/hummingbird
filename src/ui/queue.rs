@@ -120,19 +120,17 @@ impl Render for QueueItem {
                             div()
                                 .text_ellipsis()
                                 .font_weight(FontWeight::EXTRA_BOLD)
-                                .child(
-                                    item.metadata
-                                        .artist
-                                        .clone()
-                                        .unwrap_or("Unknown Artist".into()),
-                                ),
-                        )
-                        .child(
-                            div()
-                                .text_ellipsis()
                                 .child(item.metadata.name.clone().unwrap_or(
                                     item.file_path.split(MAIN_SEPARATOR).last().unwrap().into(),
                                 )),
+                        )
+                        .child(
+                            div().text_ellipsis().child(
+                                item.metadata
+                                    .artist
+                                    .clone()
+                                    .unwrap_or("Unknown Artist".into()),
+                            ),
                         ),
                 )
         } else {

@@ -303,10 +303,11 @@ impl RenderOnce for TrackItem {
                     .child(
                         div()
                             .w(px(62.0))
+                            .font_family("CommitMono")
                             .child(format!("{}", self.track.track_number.unwrap_or_default())),
                     )
                     .child(div().font_weight(FontWeight::BOLD).child(self.track.title))
-                    .child(div().ml_auto().child(format!(
+                    .child(div().font_family("CommitMono").ml_auto().child(format!(
                         "{}:{:02}",
                         self.track.duration / 60,
                         self.track.duration % 60
