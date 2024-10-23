@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use gpui::*;
 use prelude::FluentBuilder;
+use tracing::debug;
 
 use crate::{
     media::metadata::Metadata,
@@ -52,16 +53,22 @@ impl Render for Header {
                         div.rounded_tr(APP_ROUNDING)
                     }),
             })
+            .id("header")
             .when(cfg!(target_os = "windows"), |this| {
                 this.on_mouse_down(MouseButton::Left, |_, cx| cx.stop_propagation())
-                    .on_click(|ev, cx| {
-                        if ev.down.click_count == 2 {
-                            cx.zoom_window();
-                        }
-                    })
             })
             .when(cfg!(not(target_os = "windows")), |this| {
-                this.on_mouse_down(MouseButton::Left, move |_, cx| cx.start_window_move())
+                this.on_mouse_down(MouseButton::Left, move |ev, cx| {
+                    if ev.click_count != 2 {
+                        cx.start_window_move();
+                    }
+                })
+                .on_click(|ev, cx| {
+                    if ev.down.click_count == 2 {
+                        debug!("double clicked");
+                        cx.zoom_window();
+                    }
+                })
             })
             .flex()
             .child(self.info_section.clone())
