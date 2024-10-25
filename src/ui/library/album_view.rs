@@ -16,6 +16,7 @@ use crate::{
         types::{Album, Artist},
     },
     ui::{
+        app::DropOnNavigateQueue,
         models::{Models, TransferDummy},
         util::{create_or_retrieve_view, prune_views},
     },
@@ -68,6 +69,10 @@ impl AlbumView {
                 }
             })
             .detach();
+
+            let queue = cx.global::<DropOnNavigateQueue>().clone();
+
+            queue.drop_all(cx);
 
             AlbumView {
                 album_ids: match album_ids {

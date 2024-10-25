@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gpui::{AppContext, Context, EventEmitter, Global, Model, RenderImage};
+use gpui::{AppContext, Context, EventEmitter, Global, Model, RenderImage, WindowContext};
 use tracing::debug;
 
 use crate::{

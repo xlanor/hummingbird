@@ -1,5 +1,5 @@
 use core::panic;
-use std::fs;
+use std::{cell::RefCell, fs, rc::Rc, sync::Arc};
 
 use gpui::*;
 use prelude::FluentBuilder;
@@ -231,6 +231,27 @@ pub struct Pool(pub SqlitePool);
 
 impl Global for Pool {}
 
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct DropOnNavigateQueue(Rc<RefCell<Vec<Arc<RenderImage>>>>);
+
+impl DropOnNavigateQueue {
+    pub fn drop_all(&self, cx: &mut WindowContext) {
+        let mut borrow = self.0.borrow_mut();
+
+        while let Some(item) = borrow.pop() {
+            cx.drop_image(item).expect("bruh");
+        }
+    }
+
+    pub fn add(&self, item: Arc<RenderImage>) {
+        let mut borrow = self.0.borrow_mut();
+
+        borrow.push(item);
+    }
+}
+
+impl Global for DropOnNavigateQueue {}
+
 pub async fn run() {
     let dirs = directories::ProjectDirs::from("me", "william341", "muzak")
         .expect("couldn't find project dirs");
@@ -274,6 +295,7 @@ pub async fn run() {
         cx.set_global(playback_interface);
         cx.set_global(data_interface);
         cx.set_global(create_cache());
+        cx.set_global(DropOnNavigateQueue::default());
 
         cx.open_window(
             WindowOptions {

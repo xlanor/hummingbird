@@ -15,6 +15,7 @@ use crate::{
     },
     playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::{
+        app::DropOnNavigateQueue,
         components::button::{button, ButtonSize},
         constants::FONT_AWESOME,
         models::{Models, TransferDummy},
@@ -58,6 +59,8 @@ impl ReleaseView {
                     if image.0 == ImageType::AlbumArt(album_id) {
                         debug!("captured decoded image for album ID: {}", album_id);
                         this.image = Some(image.1.clone());
+
+                        cx.global::<DropOnNavigateQueue>().add(image.1.clone());
                         cx.notify();
                     }
                 },
