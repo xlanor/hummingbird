@@ -1,9 +1,8 @@
 use std::marker::PhantomData;
 
-use bitflags::Flags;
 use intx::I24;
 use libpulse_binding::{
-    channelmap::{Map, Position},
+    channelmap::Map,
     sample::{Format, Spec},
     stream::Direction,
 };
@@ -13,7 +12,7 @@ use pulsectl::controllers::{types::DeviceInfo, DeviceControl, SinkController};
 use crate::{
     devices::{
         errors::{FindError, InfoError, InitializationError, ListError, OpenError},
-        format::{BufferSize, ChannelSpec, Channels, FormatInfo, SampleFormat, SupportedFormat},
+        format::{BufferSize, ChannelSpec, FormatInfo, SampleFormat, SupportedFormat},
         traits::{Device, DeviceProvider, OutputStream},
         util::interleave,
         util::Packed,

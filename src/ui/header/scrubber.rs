@@ -40,7 +40,7 @@ impl Element for Scrubber {
 
     fn request_layout(
         &mut self,
-        id: Option<&GlobalElementId>,
+        _: Option<&GlobalElementId>,
         cx: &mut WindowContext,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut style = Style::default();
@@ -51,20 +51,20 @@ impl Element for Scrubber {
 
     fn prepaint(
         &mut self,
-        id: Option<&GlobalElementId>,
-        bounds: Bounds<Pixels>,
-        request_layout: &mut Self::RequestLayoutState,
-        cx: &mut WindowContext,
+        _: Option<&GlobalElementId>,
+        _: Bounds<Pixels>,
+        _: &mut Self::RequestLayoutState,
+        _: &mut WindowContext,
     ) -> Self::PrepaintState {
         PrepaintState {}
     }
 
     fn paint(
         &mut self,
-        id: Option<&GlobalElementId>,
+        _: Option<&GlobalElementId>,
         bounds: Bounds<Pixels>,
-        request_layout: &mut Self::RequestLayoutState,
-        prepaint: &mut Self::PrepaintState,
+        _: &mut Self::RequestLayoutState,
+        _: &mut Self::PrepaintState,
         cx: &mut WindowContext,
     ) {
         let progress = self.position as f32 / self.duration as f32;
@@ -87,10 +87,9 @@ impl Element for Scrubber {
             rgb(0x000000),
         ));
 
-        let cloned_bounds = bounds;
         let duration = self.duration;
 
-        cx.on_mouse_event(move |ev: &MouseDownEvent, _, cx| {
+        cx.on_mouse_event(move |_: &MouseDownEvent, _, cx| {
             let playing = cx.global::<PlaybackInfo>().current_track.read(cx).is_some();
 
             if playing {

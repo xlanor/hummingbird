@@ -1,16 +1,12 @@
 use std::{
-    sync::{
-        mpsc::{Receiver, Sender},
-        Arc,
-    },
+    sync::mpsc::{Receiver, Sender},
     time::Duration,
 };
 
-use gpui::{AppContext, Model, RenderImage};
+use gpui::AppContext;
 
 use crate::{
     data::interface::GPUIDataInterface,
-    media::metadata::Metadata,
     ui::models::{ImageEvent, Models, PlaybackInfo},
 };
 
@@ -256,8 +252,6 @@ impl GPUIPlaybackInterface {
 pub fn replace_queue(paths: Vec<String>, cx: &mut AppContext) {
     let playback_interface = cx.global::<GPUIPlaybackInterface>();
     playback_interface.replace_queue(paths.clone());
-
-    let queue = cx.global::<Models>().queue.clone();
 
     let data_interface = cx.global::<GPUIDataInterface>();
 

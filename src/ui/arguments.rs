@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use tracing::info;
 
-use crate::{data::interface::GPUIDataInterface, playback::interface::GPUIPlaybackInterface};
+use crate::playback::interface::GPUIPlaybackInterface;
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -12,10 +12,7 @@ struct Args {
     files: Option<Vec<PathBuf>>,
 }
 
-pub fn parse_args_and_prepare(
-    interface: &GPUIPlaybackInterface,
-    data_interface: &GPUIDataInterface,
-) {
+pub fn parse_args_and_prepare(interface: &GPUIPlaybackInterface) {
     let args = Args::parse();
 
     if let Some(files) = args.files {

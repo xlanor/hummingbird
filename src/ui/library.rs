@@ -18,7 +18,6 @@ enum LibraryView {
 
 pub struct Library {
     view: LibraryView,
-    switcher_model: Model<VecDeque<ViewSwitchMessage>>,
     navigation_view: View<NavigationView>,
 }
 
@@ -29,8 +28,6 @@ enum ViewSwitchMessage {
     Back,
 }
 
-pub struct ViewSwitchDummy;
-
 impl EventEmitter<ViewSwitchMessage> for VecDeque<ViewSwitchMessage> {}
 
 fn make_view(
@@ -40,9 +37,7 @@ fn make_view(
 ) -> LibraryView {
     match message {
         ViewSwitchMessage::Albums => LibraryView::Album(AlbumView::new(cx, model.clone())),
-        ViewSwitchMessage::Release(id) => {
-            LibraryView::Release(ReleaseView::new(cx, *id, model.clone()))
-        }
+        ViewSwitchMessage::Release(id) => LibraryView::Release(ReleaseView::new(cx, *id)),
         ViewSwitchMessage::Back => panic!("improper use of make_view (cannot make Back)"),
     }
 }
@@ -102,14 +97,13 @@ impl Library {
             Library {
                 navigation_view: NavigationView::new(cx, switcher_model.clone()),
                 view,
-                switcher_model,
             }
         })
     }
 }
 
 impl Render for Library {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut ViewContext<Self>) -> impl IntoElement {
         div()
             .w_full()
             .h_full()

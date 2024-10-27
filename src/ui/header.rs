@@ -462,7 +462,7 @@ impl RenderOnce for WindowControls {
                             .flex_shrink_0()
                             .hover(|style| style.bg(rgb(0x991b1b)).cursor_pointer())
                             .child("")
-                            .on_mouse_down(MouseButton::Left, |ev, cx| {
+                            .on_mouse_down(MouseButton::Left, |_, cx| {
                                 cx.stop_propagation();
                             })
                             .id("header-close")

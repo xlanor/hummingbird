@@ -1,6 +1,6 @@
 use std::{
     sync::mpsc::{Receiver, Sender},
-    thread::{self, sleep},
+    thread::sleep,
 };
 
 use rand::{seq::SliceRandom, thread_rng};
@@ -9,9 +9,11 @@ use tracing::{debug, info};
 #[cfg(target_os = "linux")]
 use crate::devices::builtin::pulse::PulseProvider;
 
+#[cfg(not(target_os = "linux"))]
+use crate::device::builtin::cpal::CpalProvider;
+
 use crate::{
     devices::{
-        builtin::cpal::CpalProvider,
         format::{ChannelSpec, FormatInfo},
         resample::Resampler,
         traits::{Device, DeviceProvider, OutputStream},
@@ -57,7 +59,7 @@ impl PlaybackThread {
         let (commands_tx, commands_rx) = std::sync::mpsc::channel();
         let (events_tx, events_rx) = std::sync::mpsc::channel();
 
-        let thread = std::thread::Builder::new()
+        std::thread::Builder::new()
             .name("playback".to_string())
             .spawn(move || {
                 let mut thread = PlaybackThread {
@@ -227,7 +229,7 @@ impl PlaybackThread {
             self.stream = Some(self.device.as_mut().unwrap().open_device(format).unwrap());
         }
 
-        if (self.state == PlaybackState::Paused) {
+        if self.state == PlaybackState::Paused {
             self.stream
                 .as_mut()
                 .unwrap()

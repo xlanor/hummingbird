@@ -230,7 +230,7 @@ impl TryFrom<Samples> for Vec<Vec<i32>> {
 impl TryFrom<Samples> for Vec<Vec<bool>> {
     type Error = SampleFromError;
 
-    fn try_from(value: Samples) -> Result<Self, Self::Error> {
+    fn try_from(_: Samples) -> Result<Self, Self::Error> {
         Err(SampleFromError::WrongFormat)
     }
 }

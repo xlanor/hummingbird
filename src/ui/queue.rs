@@ -1,14 +1,12 @@
 use std::path::MAIN_SEPARATOR;
 
-use ahash::AHashMap;
-use gpui::*;
-use prelude::FluentBuilder;
-use tracing::{debug, info};
-
 use crate::{
     data::{interface::GPUIDataInterface, types::UIQueueItem},
     playback::interface::GPUIPlaybackInterface,
 };
+use ahash::AHashMap;
+use gpui::*;
+use prelude::FluentBuilder;
 
 use super::{
     components::button::{button, ButtonSize, ButtonStyle},
@@ -194,7 +192,7 @@ impl Queue {
 
             let shuffling = cx.global::<PlaybackInfo>().shuffling.clone();
 
-            cx.observe(&shuffling, |this: &mut Queue, _, cx| {
+            cx.observe(&shuffling, |_, _, cx| {
                 cx.notify();
             })
             .detach();

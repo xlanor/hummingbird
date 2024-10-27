@@ -1,13 +1,10 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use gpui::RenderImage;
 use image::Frame;
 use smallvec::SmallVec;
-use sqlx::{Database, Decode, Sqlite, ValueRef};
+use sqlx::{Database, Decode, Sqlite};
 
 use crate::util::rgb_to_bgr;
 
@@ -70,7 +67,7 @@ where
 {
     fn encode_by_ref(
         &self,
-        buf: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer,
+        _: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer,
     ) -> sqlx::encode::IsNull {
         panic!("Thumbnail is write-only")
     }

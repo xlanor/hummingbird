@@ -293,7 +293,7 @@ pub async fn run() {
         playback_interface.start_broadcast(cx);
         data_interface.start_broadcast(cx);
 
-        parse_args_and_prepare(&playback_interface, &data_interface);
+        parse_args_and_prepare(&playback_interface);
 
         cx.set_global(playback_interface);
         cx.set_global(data_interface);

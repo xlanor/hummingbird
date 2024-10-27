@@ -1,8 +1,4 @@
-use std::ops::Deref;
-
 use gpui::*;
-use prelude::FluentBuilder;
-use smallvec::SmallVec;
 
 use super::styling::AdditionalStyleUtil;
 
@@ -178,7 +174,7 @@ impl ParentElement for Button {
 }
 
 impl RenderOnce for Button {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut WindowContext) -> impl IntoElement {
         let style = self.style;
         let size = self.size;
         let intent = self.intent;
@@ -230,7 +226,7 @@ impl ParentElement for InteractiveButton {
 }
 
 impl RenderOnce for InteractiveButton {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut WindowContext) -> impl IntoElement {
         let style = self.style;
         let size = self.size;
         let intent = self.intent;

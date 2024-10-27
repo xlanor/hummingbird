@@ -4,7 +4,6 @@ use std::{
 };
 
 use gpui::AppContext;
-use tracing::info;
 
 use crate::ui::models::{ImageTransfer, Models};
 
@@ -110,9 +109,9 @@ impl GPUIDataInterface {
                                 }
                                 _ => todo!(),
                             },
-                            DataEvent::MetadataRead(queue, item) => {
+                            DataEvent::MetadataRead(_, item) => {
                                 queue_model
-                                    .update(&mut cx, |m, cx| {
+                                    .update(&mut cx, |_, cx| {
                                         cx.emit(item);
                                     })
                                     .expect("failed to update queue");

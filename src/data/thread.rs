@@ -9,9 +9,9 @@ use std::{
 
 use ahash::{AHashMap, RandomState};
 use gpui::RenderImage;
-use image::{imageops::thumbnail, Delay, Frame};
+use image::{imageops::thumbnail, Frame};
 use smallvec::SmallVec;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use crate::{
     media::{builtin::symphonia::SymphoniaProvider, metadata::Metadata, traits::MediaProvider},
@@ -105,7 +105,7 @@ impl DataThread {
         image_layout: ImageLayout,
         thumb: bool,
     ) -> Result<(), ()> {
-        let mut image = image::io::Reader::new(Cursor::new(data.clone()))
+        let mut image = image::ImageReader::new(Cursor::new(data.clone()))
             .with_guessed_format()
             .map_err(|_| ())?
             .decode()
@@ -137,16 +137,6 @@ impl DataThread {
         }
 
         Ok(())
-    }
-
-    fn read_metadata_for_queue(&mut self, queue_items: Vec<String>) -> Vec<UIQueueItem> {
-        let mut items = vec![];
-
-        for path in queue_items {
-            items.push(self.read_metadata(path));
-        }
-
-        items
     }
 
     fn read_metadata(&mut self, path: String) -> UIQueueItem {
@@ -195,7 +185,7 @@ impl DataThread {
                     Some(cached.clone())
                 } else {
                     debug!("Image cache miss for key {}, decoding and caching", key);
-                    let mut image = image::io::Reader::new(Cursor::new(v.clone()))
+                    let mut image = image::ImageReader::new(Cursor::new(v.clone()))
                         .with_guessed_format()
                         .map_err(|_| ())
                         .ok()?

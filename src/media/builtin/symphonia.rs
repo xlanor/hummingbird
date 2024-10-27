@@ -14,7 +14,6 @@ use symphonia::{
     },
     default::get_codecs,
 };
-use tracing::debug;
 
 use crate::media::{
     errors::{

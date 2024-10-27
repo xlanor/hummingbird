@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 
 use gpui::*;
 use prelude::FluentBuilder;
@@ -16,30 +16,22 @@ use crate::{
     playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::{
         app::DropOnNavigateQueue,
-        components::button::{button, ButtonSize, ButtonStyle},
+        components::button::{button, ButtonSize},
         constants::FONT_AWESOME,
-        models::{Models, PlaybackInfo, TransferDummy},
+        models::{Models, PlaybackInfo},
     },
 };
 
-use super::ViewSwitchMessage;
-
 pub struct ReleaseView {
     album: Arc<Album>,
-    image_transfer_model: Model<TransferDummy>,
     image: Option<Arc<RenderImage>>,
     artist: Option<Arc<Artist>>,
     tracks: Arc<Vec<Track>>,
-    view_switcher_model: Model<VecDeque<ViewSwitchMessage>>,
     track_list_state: ListState,
 }
 
 impl ReleaseView {
-    pub(super) fn new<V: 'static>(
-        cx: &mut ViewContext<V>,
-        album_id: i64,
-        view_switcher_model: Model<VecDeque<ViewSwitchMessage>>,
-    ) -> View<Self> {
+    pub(super) fn new<V: 'static>(cx: &mut ViewContext<V>, album_id: i64) -> View<Self> {
         cx.new_view(|cx| {
             let image = None;
             // TODO: error handling
@@ -98,11 +90,9 @@ impl ReleaseView {
 
             ReleaseView {
                 album,
-                image_transfer_model,
                 image,
                 artist,
                 tracks,
-                view_switcher_model,
                 track_list_state: state,
             }
         })
@@ -310,7 +300,7 @@ struct TrackItem {
 }
 
 impl RenderOnce for TrackItem {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut WindowContext) -> impl IntoElement {
         let tracks = self.tracks.clone();
         let track_id = self.track.id;
         div()

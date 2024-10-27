@@ -1,7 +1,6 @@
 use std::{
-    borrow::BorrowMut,
     fs::{self, File},
-    io::{BufReader, BufWriter, Cursor, Write},
+    io::{BufReader, Cursor, Write},
     path::{Path, PathBuf},
     sync::mpsc,
     time::{Duration, SystemTime},
@@ -11,7 +10,6 @@ use ahash::AHashMap;
 use async_std::task;
 use gpui::{AppContext, Global};
 use image::imageops::thumbnail;
-use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
 
@@ -174,7 +172,7 @@ impl ScanThread {
         let (commands_tx, commands_rx) = std::sync::mpsc::channel();
         let (events_tx, events_rx) = std::sync::mpsc::channel();
 
-        let thread = std::thread::Builder::new()
+        std::thread::Builder::new()
             .name("scanner".to_string())
             .spawn(move || {
                 let mut thread = ScanThread {

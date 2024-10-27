@@ -6,27 +6,22 @@ use prelude::FluentBuilder;
 use tracing::{debug, error};
 
 use crate::{
-    data::{
-        events::{ImageLayout, ImageType},
-        interface::GPUIDataInterface,
-    },
     library::{
         db::{AlbumMethod, AlbumSortMethod, LibraryAccess},
         scan::ScanEvent,
-        types::{Album, Artist},
+        types::Album,
     },
     ui::{
         app::DropOnNavigateQueue,
-        models::{Models, TransferDummy},
+        models::Models,
         util::{create_or_retrieve_view, prune_views},
     },
 };
 
-use super::{LibraryView, ViewSwitchDummy, ViewSwitchMessage};
+use super::ViewSwitchMessage;
 
 #[derive(Clone)]
 pub struct AlbumView {
-    album_ids: Model<Vec<(u32, String)>>,
     views_model: Model<AHashMap<usize, View<AlbumItem>>>,
     render_counter: Model<usize>,
     list_state: ListState,
@@ -75,10 +70,6 @@ impl AlbumView {
             queue.drop_all(cx);
 
             AlbumView {
-                album_ids: match album_ids {
-                    Ok(album_ids) => cx.new_model(|_| album_ids),
-                    Err(_) => cx.new_model(|_| Vec::new()),
-                },
                 views_model,
                 render_counter,
                 list_state,
@@ -149,7 +140,7 @@ impl AlbumView {
 }
 
 impl Render for AlbumView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut ViewContext<Self>) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
@@ -224,7 +215,7 @@ impl AlbumItem {
             .expect("Failed to retrieve album");
 
         let artist = cx.get_artist_name_by_id(album.artist_id).ok();
-        cx.new_view(|cx| AlbumItem {
+        cx.new_view(|_| AlbumItem {
             id: SharedString::from(format!("album-item-{}", album.id)),
             album,
             artist,

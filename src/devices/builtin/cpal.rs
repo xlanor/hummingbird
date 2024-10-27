@@ -16,7 +16,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     Host, SizedSample,
 };
-use rb::{Consumer, Producer, RbConsumer, RbProducer, SpscRb, RB};
+use rb::{Producer, RbConsumer, RbProducer, SpscRb, RB};
 
 pub struct CpalProvider {
     host: Host,
