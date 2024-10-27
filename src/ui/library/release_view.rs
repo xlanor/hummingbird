@@ -191,13 +191,13 @@ impl Render for ReleaseView {
                                     .text_size(rems(2.5))
                                     .line_height(rems(2.75))
                                     .overflow_x_hidden()
+                                    .pb(px(10.0))
                                     .min_w_0()
                                     .text_ellipsis()
                                     .child(self.album.title.clone()),
                             )
                             .child(
                                 div()
-                                    .mt(px(10.0))
                                     .gap(px(10.0))
                                     .flex()
                                     .flex_row()
@@ -360,14 +360,27 @@ impl RenderOnce for TrackItem {
                         div()
                             .w(px(62.0))
                             .font_family("CommitMono")
+                            .flex_shrink_0()
                             .child(format!("{}", self.track.track_number.unwrap_or_default())),
                     )
-                    .child(div().font_weight(FontWeight::BOLD).child(self.track.title))
-                    .child(div().font_family("CommitMono").ml_auto().child(format!(
-                        "{}:{:02}",
-                        self.track.duration / 60,
-                        self.track.duration % 60
-                    ))),
+                    .child(
+                        div()
+                            .font_weight(FontWeight::BOLD)
+                            .overflow_x_hidden()
+                            .text_ellipsis()
+                            .child(self.track.title),
+                    )
+                    .child(
+                        div()
+                            .font_family("CommitMono")
+                            .ml_auto()
+                            .flex_shrink_0()
+                            .child(format!(
+                                "{}:{:02}",
+                                self.track.duration / 60,
+                                self.track.duration % 60
+                            )),
+                    ),
             )
     }
 }
