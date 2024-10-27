@@ -21,13 +21,15 @@ use super::{
 pub struct Header {
     info_section: View<InfoSection>,
     scrubber: View<Scrubber>,
+    show_queue: Model<bool>,
 }
 
 impl Header {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
+    pub fn new<V: 'static>(cx: &mut ViewContext<V>, show_queue: Model<bool>) -> View<Self> {
         cx.new_view(|cx| Self {
             info_section: InfoSection::new(cx),
             scrubber: Scrubber::new(cx),
+            show_queue,
         })
     }
 }
@@ -73,7 +75,9 @@ impl Render for Header {
             .flex()
             .child(self.info_section.clone())
             .child(self.scrubber.clone())
-            .child(WindowControls {})
+            .child(WindowControls {
+                show_queue: self.show_queue.clone(),
+            })
     }
 }
 
@@ -332,7 +336,9 @@ impl Render for PlaybackSection {
 }
 
 #[derive(IntoElement)]
-pub struct WindowControls {}
+pub struct WindowControls {
+    pub show_queue: Model<bool>,
+}
 
 #[cfg(target_os = "macos")]
 impl RenderOnce for WindowControls {
@@ -438,7 +444,9 @@ impl RenderOnce for WindowControls {
                             .child("")
                             .on_mouse_down(MouseButton::Left, |_, cx| {
                                 cx.stop_propagation();
-                            }),
+                            })
+                            .id("show-queue")
+                            .on_click(move |_, cx| self.show_queue.update(cx, |v, _| *v = !(*v))),
                     )
                     .child(
                         div()

@@ -26,6 +26,7 @@ struct WindowShadow {
     pub queue: View<Queue>,
     pub library: View<Library>,
     pub status_bar: View<StatusBar>,
+    pub show_queue: Model<bool>,
 }
 
 impl Render for WindowShadow {
@@ -35,6 +36,8 @@ impl Render for WindowShadow {
         let shadow_size = px(10.0);
         let border_size = px(1.0);
         cx.set_client_inset(shadow_size);
+
+        let queue = self.queue.clone();
 
         div()
             .id("window-backdrop")
@@ -164,7 +167,7 @@ impl Render for WindowShadow {
                             .max_h_full()
                             .overflow_hidden()
                             .child(self.library.clone())
-                            .child(self.queue.clone()),
+                            .when(*self.show_queue.read(cx), |this| this.child(queue)),
                     )
                     .child(self.status_bar.clone()),
             )
@@ -321,11 +324,15 @@ pub async fn run() {
                         cx.refresh();
                     })
                     .detach();
+
+                    let show_queue = cx.new_model(|_| false);
+
                     WindowShadow {
-                        header: Header::new(cx),
+                        header: Header::new(cx, show_queue.clone()),
                         queue: Queue::new(cx),
                         library: Library::new(cx),
                         status_bar: StatusBar::new(cx),
+                        show_queue,
                     }
                 })
             },
