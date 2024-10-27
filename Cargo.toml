@@ -11,8 +11,8 @@ cpal = "0.15.3"
 bitflags = "2.6.0"
 rubato = "0.15.0"
 rb = "0.4.1"
-# gpui = { git = "https://github.com/143mailliw/zed", branch = "drop-image" }
-gpui = { path = "../gpui-contrib/zed/crates/gpui" }
+gpui = { git = "https://github.com/143mailliw/zed", branch = "drop-image" }
+# gpui = { path = "../gpui-contrib/zed/crates/gpui" }
 smallvec = "1.13.2"
 rust-embed = "8.5.0"
 clap = { version = "4.5.9", features = ["derive"] }

@@ -101,7 +101,9 @@ impl Render for Header {
                 }
             })
             .flex()
-            .child(WindowControls {})
+            .child(WindowControls {
+                show_queue: self.show_queue.clone(),
+            })
             .child(self.info_section.clone())
             .child(self.scrubber.clone())
     }
