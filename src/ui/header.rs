@@ -101,11 +101,12 @@ impl Render for Header {
                 }
             })
             .flex()
+            .child(div().flex_shrink_0().w(px(65.0)).h_full())
+            .child(self.info_section.clone())
+            .child(self.scrubber.clone())
             .child(WindowControls {
                 show_queue: self.show_queue.clone(),
             })
-            .child(self.info_section.clone())
-            .child(self.scrubber.clone())
     }
 }
 
@@ -345,7 +346,48 @@ pub struct WindowControls {
 #[cfg(target_os = "macos")]
 impl RenderOnce for WindowControls {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
-        div().flex_shrink_0().w(px(65.0)).h_full()
+        div()
+            .flex()
+            .flex_col()
+            .font_family(FONT_AWESOME)
+            .border_l(px(1.0))
+            .border_color(rgb(0x1e293b))
+            .child(
+                // FIXME: These buttons are a weird size because they need to be about the same
+                // size as the buttons in Zed right now
+                // Once GPUI adds support for setting the button size on Windows, set this to
+                // 30x30
+                div()
+                    .w(px(32.0))
+                    .h(px(30.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .flex_shrink_0()
+                    .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                    .text_size(px(12.0))
+                    .child("")
+                    .on_mouse_down(MouseButton::Left, |_, cx| {
+                        cx.stop_propagation();
+                    })
+                    .id("show-queue")
+                    .on_click(move |_, cx| self.show_queue.update(cx, |v, _| *v = !(*v))),
+            )
+            .child(
+                div()
+                    .w(px(32.0))
+                    .h(px(30.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .flex_shrink_0()
+                    .text_size(px(12.0))
+                    .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                    .child("")
+                    .on_mouse_down(MouseButton::Left, |_, cx| {
+                        cx.stop_propagation();
+                    }),
+            )
     }
 }
 
