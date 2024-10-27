@@ -101,7 +101,7 @@ impl Render for Header {
                 }
             })
             .flex()
-            .child(div().flex_shrink_0().w(px(65.0)).h_full())
+            .child(div().flex_shrink_0().w(px(67.0)).h_full())
             .child(self.info_section.clone())
             .child(self.scrubber.clone())
             .child(WindowControls {

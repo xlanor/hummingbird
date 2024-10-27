@@ -16,9 +16,9 @@ use crate::{
     playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::{
         app::DropOnNavigateQueue,
-        components::button::{button, ButtonSize},
+        components::button::{button, ButtonSize, ButtonStyle},
         constants::FONT_AWESOME,
-        models::{Models, TransferDummy},
+        models::{Models, PlaybackInfo, TransferDummy},
     },
 };
 
@@ -196,25 +196,78 @@ impl Render for ReleaseView {
                                     .child(self.album.title.clone()),
                             )
                             .child(
-                                // TODO: add shuffle, add to queue buttons
-                                div().flex().flex_row().child(
-                                    button()
-                                        .id("release-play-button")
-                                        .size(ButtonSize::Large)
-                                        .mt(px(10.0))
-                                        .font_weight(FontWeight::BOLD)
-                                        .on_click(cx.listener(|this: &mut ReleaseView, _, cx| {
-                                            let paths = this
-                                                .tracks
-                                                .iter()
-                                                .map(|track| track.location.clone())
-                                                .collect();
+                                div()
+                                    .mt(px(10.0))
+                                    .gap(px(10.0))
+                                    .flex()
+                                    .flex_row()
+                                    .child(
+                                        button()
+                                            .id("release-play-button")
+                                            .size(ButtonSize::Large)
+                                            .font_weight(FontWeight::BOLD)
+                                            .on_click(cx.listener(
+                                                |this: &mut ReleaseView, _, cx| {
+                                                    let paths = this
+                                                        .tracks
+                                                        .iter()
+                                                        .map(|track| track.location.clone())
+                                                        .collect();
 
-                                            replace_queue(paths, cx)
-                                        }))
-                                        .child(div().font_family(FONT_AWESOME).child(""))
-                                        .child(div().child("Play")),
-                                ),
+                                                    replace_queue(paths, cx)
+                                                },
+                                            ))
+                                            .child(div().font_family(FONT_AWESOME).child(""))
+                                            .child(div().child("Play")),
+                                    )
+                                    .child(
+                                        button()
+                                            .id("release-add-button")
+                                            .size(ButtonSize::Large)
+                                            .font_weight(FontWeight::BOLD)
+                                            .flex_none()
+                                            .on_click(cx.listener(
+                                                |this: &mut ReleaseView, _, cx| {
+                                                    let paths = this
+                                                        .tracks
+                                                        .iter()
+                                                        .map(|track| track.location.clone())
+                                                        .collect();
+
+                                                    cx.global::<GPUIPlaybackInterface>()
+                                                        .queue_list(paths);
+                                                },
+                                            ))
+                                            .child(div().font_family(FONT_AWESOME).child("")),
+                                    )
+                                    .child(
+                                        button()
+                                            .id("release-shuffle-button")
+                                            .size(ButtonSize::Large)
+                                            .font_weight(FontWeight::BOLD)
+                                            .flex_none()
+                                            .on_click(cx.listener(
+                                                |this: &mut ReleaseView, _, cx| {
+                                                    let paths = this
+                                                        .tracks
+                                                        .iter()
+                                                        .map(|track| track.location.clone())
+                                                        .collect();
+
+                                                    if !(*cx
+                                                        .global::<PlaybackInfo>()
+                                                        .shuffling
+                                                        .read(cx))
+                                                    {
+                                                        cx.global::<GPUIPlaybackInterface>()
+                                                            .toggle_shuffle();
+                                                    }
+
+                                                    replace_queue(paths, cx)
+                                                },
+                                            ))
+                                            .child(div().font_family(FONT_AWESOME).child("")),
+                                    ),
                             ),
                     ),
             )

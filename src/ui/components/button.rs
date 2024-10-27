@@ -80,8 +80,8 @@ impl ButtonSize {
         T: Styled,
     {
         match self {
-            ButtonSize::Regular => dest.text_sm(),
-            ButtonSize::Large => dest.text_sm(),
+            ButtonSize::Regular => dest,
+            ButtonSize::Large => dest,
         }
     }
 }
