@@ -329,7 +329,7 @@ pub async fn run() {
 
                     WindowShadow {
                         header: Header::new(cx, show_queue.clone()),
-                        queue: Queue::new(cx),
+                        queue: Queue::new(cx, show_queue.clone()),
                         library: Library::new(cx),
                         status_bar: StatusBar::new(cx),
                         show_queue,

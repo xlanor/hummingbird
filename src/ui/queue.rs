@@ -150,10 +150,11 @@ pub struct Queue {
     render_counter: Model<usize>,
     state: ListState,
     shuffling: Model<bool>,
+    show_queue: Model<bool>,
 }
 
 impl Queue {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
+    pub fn new<V: 'static>(cx: &mut ViewContext<V>, show_queue: Model<bool>) -> View<Self> {
         cx.new_view(|cx| {
             let views_model = cx.new_model(|_| AHashMap::new());
             let render_counter = cx.new_model(|_| 0);
@@ -205,6 +206,7 @@ impl Queue {
                     div().into_any_element()
                 }),
                 shuffling,
+                show_queue,
             }
         })
     }
@@ -256,7 +258,10 @@ impl Render for Queue {
                                 .hover(|this| this.bg(rgb(0x1e293b)))
                                 .active(|this| this.bg(rgb(0x111827)))
                                 .cursor_pointer()
-                                .child(""),
+                                .child("")
+                                .on_click(cx.listener(|this: &mut Self, _, cx| {
+                                    this.show_queue.update(cx, |v, _| *v = !(*v))
+                                })),
                         ),
                 ),
             )
