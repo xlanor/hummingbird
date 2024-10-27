@@ -299,7 +299,7 @@ pub async fn run() {
         cx.set_global(data_interface);
         cx.set_global(create_cache());
         cx.set_global(DropOnNavigateQueue::default());
-
+        cx.activate(true);
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
