@@ -12,6 +12,7 @@ use super::{
     components::button::{button, ButtonSize, ButtonStyle},
     constants::FONT_AWESOME,
     models::{Models, PlaybackInfo},
+    theme::Theme,
     util::{create_or_retrieve_view, prune_views},
 };
 
@@ -57,6 +58,8 @@ impl QueueItem {
 
 impl Render for QueueItem {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         if let Some(item) = self.item.as_ref() {
             let is_current = self
                 .current_track
@@ -81,18 +84,18 @@ impl Render for QueueItem {
                 .h(px(59.0))
                 .p(px(11.0))
                 .border_b(px(1.0))
-                .border_color(rgb(0x1e293b))
-                .when(is_current, |div| div.bg(rgb(0x1f2937)))
+                .border_color(theme.border_color)
+                .when(is_current, |div| div.bg(theme.queue_item_current))
                 .on_click(move |_, cx| {
                     cx.global::<GPUIPlaybackInterface>().jump(idx);
                 })
-                .hover(|div| div.bg(rgb(0x1f2937)))
-                .active(|div| div.bg(rgb(0x030712)))
+                .hover(|div| div.bg(theme.queue_item_hover))
+                .active(|div| div.bg(theme.queue_item_active))
                 .child(
                     div()
                         .id("album-art")
                         .rounded(px(4.0))
-                        .bg(rgb(0x4b5563))
+                        .bg(theme.album_art_background)
                         .shadow_sm()
                         .w(px(36.0))
                         .h(px(36.0))
@@ -129,7 +132,7 @@ impl Render for QueueItem {
             div()
                 .h(px(59.0))
                 .border_t(px(1.0))
-                .border_color(rgb(0x1e293b))
+                .border_color(theme.border_color)
                 .w_full()
                 .id(ElementId::View(cx.entity_id()))
         }
@@ -205,6 +208,7 @@ impl Queue {
 
 impl Render for Queue {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
         let shuffling = self.shuffling.read(cx);
 
         div()
@@ -217,44 +221,48 @@ impl Render for Queue {
             .w(px(275.0))
             .border_l(px(1.0))
             .flex_shrink_0()
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             .pb(px(0.0))
             .flex()
             .flex_col()
             .child(
-                div().flex().border_b_1().border_color(rgb(0x1e293b)).child(
-                    div()
-                        .flex()
-                        .w_full()
-                        .child(
-                            div()
-                                .ml(px(12.0))
-                                .pt(px(5.0))
-                                .flex()
-                                .font_weight(FontWeight::BOLD)
-                                .child(div().text_sm().child("Queue")),
-                        )
-                        .child(
-                            div()
-                                .flex()
-                                .id("back")
-                                .font_family(FONT_AWESOME)
-                                .pr(px(12.0))
-                                .pl(px(12.0))
-                                .py(px(5.0))
-                                .ml_auto()
-                                .text_sm()
-                                .border_l_1()
-                                .border_color(rgb(0x1e293b))
-                                .hover(|this| this.bg(rgb(0x1e293b)))
-                                .active(|this| this.bg(rgb(0x111827)))
-                                .cursor_pointer()
-                                .child("")
-                                .on_click(cx.listener(|this: &mut Self, _, cx| {
-                                    this.show_queue.update(cx, |v, _| *v = !(*v))
-                                })),
-                        ),
-                ),
+                div()
+                    .flex()
+                    .border_b_1()
+                    .border_color(theme.border_color)
+                    .child(
+                        div()
+                            .flex()
+                            .w_full()
+                            .child(
+                                div()
+                                    .ml(px(12.0))
+                                    .pt(px(5.0))
+                                    .flex()
+                                    .font_weight(FontWeight::BOLD)
+                                    .child(div().text_sm().child("Queue")),
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .id("back")
+                                    .font_family(FONT_AWESOME)
+                                    .pr(px(12.0))
+                                    .pl(px(12.0))
+                                    .py(px(5.0))
+                                    .ml_auto()
+                                    .text_sm()
+                                    .border_l_1()
+                                    .border_color(theme.border_color)
+                                    .hover(|this| this.bg(theme.nav_button_hover))
+                                    .active(|this| this.bg(theme.nav_button_active))
+                                    .cursor_pointer()
+                                    .child("")
+                                    .on_click(cx.listener(|this: &mut Self, _, cx| {
+                                        this.show_queue.update(cx, |v, _| *v = !(*v))
+                                    })),
+                            ),
+                    ),
             )
             .child(
                 div()
@@ -277,7 +285,7 @@ impl Render for Queue {
                     .flex()
                     .border_t_1()
                     .border_b_1()
-                    .border_color(rgb(0x1e293b))
+                    .border_color(theme.border_color)
                     .child(
                         button()
                             .style(ButtonStyle::MinimalNoRounding)

@@ -6,7 +6,7 @@ use tracing::debug;
 
 use crate::{
     library::db::{AlbumMethod, LibraryAccess},
-    ui::constants::FONT_AWESOME,
+    ui::{constants::FONT_AWESOME, theme::Theme},
 };
 
 use super::ViewSwitchMessage;
@@ -57,55 +57,61 @@ impl NavigationView {
 
 impl Render for NavigationView {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        div().flex().border_b_1().border_color(rgb(0x1e293b)).child(
-            div()
-                .flex()
-                .w_full()
-                .max_w(px(1000.0))
-                .mx_auto()
-                .px(px(8.0))
-                .child(
-                    div()
-                        .flex()
-                        .id("back")
-                        .font_family(FONT_AWESOME)
-                        .px(px(12.0))
-                        .py(px(5.0))
-                        .mr(px(12.0))
-                        .text_sm()
-                        .border_r_1()
-                        .border_color(rgb(0x1e293b))
-                        .hover(|this| this.bg(rgb(0x1e293b)))
-                        .active(|this| this.bg(rgb(0x111827)))
-                        .cursor_pointer()
-                        .on_click(cx.listener(|this, _, cx| {
-                            this.view_switcher_model.update(cx, |_, cx| {
-                                cx.emit(ViewSwitchMessage::Back);
-                            })
-                        }))
-                        .child(""),
-                )
-                .child(
-                    div()
-                        .pt(px(5.0))
-                        .flex()
-                        .child(div().text_sm().child(match self.current_message {
-                            ViewSwitchMessage::Albums => "Albums",
-                            ViewSwitchMessage::Release(_) => "Release",
-                            ViewSwitchMessage::Back => {
-                                panic!("back should not be in VecDeque<ViewSwitchMessage>")
-                            }
-                        }))
-                        .when_some(self.description.clone(), |this, description| {
-                            this.child(
-                                div()
-                                    .ml(px(8.0))
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_sm()
-                                    .child(description),
-                            )
-                        }),
-                ),
-        )
+        let theme = cx.global::<Theme>();
+
+        div()
+            .flex()
+            .border_b_1()
+            .border_color(theme.border_color)
+            .child(
+                div()
+                    .flex()
+                    .w_full()
+                    .max_w(px(1000.0))
+                    .mx_auto()
+                    .px(px(8.0))
+                    .child(
+                        div()
+                            .flex()
+                            .id("back")
+                            .font_family(FONT_AWESOME)
+                            .px(px(12.0))
+                            .py(px(5.0))
+                            .mr(px(12.0))
+                            .text_sm()
+                            .border_r_1()
+                            .border_color(theme.border_color)
+                            .hover(|this| this.bg(theme.nav_button_hover))
+                            .active(|this| this.bg(theme.nav_button_active))
+                            .cursor_pointer()
+                            .on_click(cx.listener(|this, _, cx| {
+                                this.view_switcher_model.update(cx, |_, cx| {
+                                    cx.emit(ViewSwitchMessage::Back);
+                                })
+                            }))
+                            .child(""),
+                    )
+                    .child(
+                        div()
+                            .pt(px(5.0))
+                            .flex()
+                            .child(div().text_sm().child(match self.current_message {
+                                ViewSwitchMessage::Albums => "Albums",
+                                ViewSwitchMessage::Release(_) => "Release",
+                                ViewSwitchMessage::Back => {
+                                    panic!("back should not be in VecDeque<ViewSwitchMessage>")
+                                }
+                            }))
+                            .when_some(self.description.clone(), |this, description| {
+                                this.child(
+                                    div()
+                                        .ml(px(8.0))
+                                        .font_weight(FontWeight::BOLD)
+                                        .text_sm()
+                                        .child(description),
+                                )
+                            }),
+                    ),
+            )
     }
 }

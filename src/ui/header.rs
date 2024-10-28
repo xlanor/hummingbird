@@ -16,6 +16,7 @@ use super::{
     constants::{APP_ROUNDING, FONT_AWESOME},
     global_actions::{Next, PlayPause, Previous},
     models::{Models, PlaybackInfo},
+    theme::Theme,
 };
 
 pub struct Header {
@@ -38,13 +39,14 @@ impl Header {
 impl Render for Header {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let decorations = cx.window_decorations();
+        let theme = cx.global::<Theme>();
 
         div()
             .w_full()
             .h(px(60.0))
-            .bg(rgb(0x111827))
+            .bg(theme.background_secondary)
             .border_b_1()
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             .map(|div| match decorations {
                 Decorations::Server => div,
                 Decorations::Client { tiling } => div
@@ -84,12 +86,14 @@ impl Render for Header {
 #[cfg(target_os = "macos")]
 impl Render for Header {
     fn render(&mut self, _: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         div()
             .w_full()
             .h(px(60.0))
-            .bg(rgb(0x111827))
+            .bg(theme.background_primary)
             .border_b_1()
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             // macOS doesn't ever actually stop rounding corners so we don't need to check for
             // tiling
             .rounded_t(APP_ROUNDING)
@@ -159,6 +163,7 @@ impl InfoSection {
 
 impl Render for InfoSection {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
         let state = self.playback_info.playback_state.read(cx);
 
         div()
@@ -181,7 +186,7 @@ impl Render for InfoSection {
                         div()
                             .id("album-art")
                             .rounded(px(4.0))
-                            .bg(rgb(0x4b5563))
+                            .bg(theme.album_art_background)
                             .shadow_sm()
                             .w(px(36.0))
                             .h(px(36.0))
@@ -259,6 +264,7 @@ impl PlaybackSection {
 impl Render for PlaybackSection {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let state = self.info.playback_state.read(cx);
+        let theme = cx.global::<Theme>();
 
         div().absolute().flex().w_full().child(
             // TODO: position this so that it does not ever overlap with the timestamp and
@@ -269,21 +275,20 @@ impl Render for PlaybackSection {
                 .mt(px(5.0))
                 .rounded(px(4.0))
                 .shadow_md()
-                .border_color(rgb(0x374151))
                 .flex()
                 .child(
                     div()
                         .w(px(30.0))
                         .h(px(28.0))
                         .rounded_l(px(3.0))
-                        .bg(rgb(0x1f2937))
+                        .bg(theme.playback_button)
                         .font_family(FONT_AWESOME)
                         .flex()
                         .items_center()
                         .justify_center()
-                        .hover(|style| style.bg(rgb(0x374151)).cursor_pointer())
+                        .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
                         .id("header-prev-button")
-                        .active(|style| style.bg(rgb(0x111827)))
+                        .active(|style| style.bg(theme.playback_button_active))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
                             cx.stop_propagation();
                             cx.prevent_default();
@@ -297,17 +302,17 @@ impl Render for PlaybackSection {
                     div()
                         .w(px(32.0))
                         .h(px(28.0))
-                        .bg(rgb(0x1f2937))
+                        .bg(theme.playback_button)
                         .border_l(px(1.0))
                         .border_r(px(1.0))
-                        .border_color(rgb(0x374151))
+                        .border_color(theme.playback_button_border)
                         .font_family(FONT_AWESOME)
                         .flex()
                         .items_center()
                         .justify_center()
-                        .hover(|style| style.bg(rgb(0x374151)).cursor_pointer())
+                        .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
                         .id("header-play-button")
-                        .active(|style| style.bg(rgb(0x111827)))
+                        .active(|style| style.bg(theme.playback_button_active))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
                             cx.stop_propagation();
                             cx.prevent_default();
@@ -323,14 +328,14 @@ impl Render for PlaybackSection {
                         .w(px(30.0))
                         .h(px(28.0))
                         .rounded_r(px(3.0))
-                        .bg(rgb(0x1f2937))
+                        .bg(theme.playback_button)
                         .font_family(FONT_AWESOME)
                         .flex()
                         .items_center()
                         .justify_center()
-                        .hover(|style| style.bg(rgb(0x374151)).cursor_pointer())
+                        .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
                         .id("header-next-button")
-                        .active(|style| style.bg(rgb(0x111827)))
+                        .active(|style| style.bg(theme.playback_button_active))
                         .on_mouse_down(MouseButton::Left, |_, cx| {
                             cx.stop_propagation();
                             cx.prevent_default();
@@ -352,12 +357,14 @@ pub struct WindowControls {
 #[cfg(target_os = "macos")]
 impl RenderOnce for WindowControls {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         div()
             .flex()
             .flex_col()
             .font_family(FONT_AWESOME)
             .border_l(px(1.0))
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             .child(
                 // FIXME: These buttons are a weird size because they need to be about the same
                 // size as the buttons in Zed right now
@@ -367,17 +374,19 @@ impl RenderOnce for WindowControls {
                     .w(px(32.0))
                     .h(px(30.0))
                     .flex()
+                    .bg(theme.window_button)
                     .items_center()
                     .justify_center()
                     .flex_shrink_0()
-                    .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                    .hover(|style| style.bg(theme.window_button_hover).cursor_pointer())
                     .text_size(px(12.0))
                     .child("")
                     .on_mouse_down(MouseButton::Left, |_, cx| {
                         cx.stop_propagation();
                     })
                     .id("show-queue")
-                    .on_click(move |_, cx| self.show_queue.update(cx, |v, _| *v = !(*v))),
+                    .on_click(move |_, cx| self.show_queue.update(cx, |v, _| *v = !(*v)))
+                    .active(|style| style.bg(theme.window_button_active)),
             )
             .child(
                 div()
@@ -385,14 +394,17 @@ impl RenderOnce for WindowControls {
                     .h(px(30.0))
                     .flex()
                     .items_center()
+                    .bg(theme.window_button)
                     .justify_center()
                     .flex_shrink_0()
                     .text_size(px(12.0))
-                    .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                    .hover(|style| style.bg(theme.window_button_hover).cursor_pointer())
                     .child("")
                     .on_mouse_down(MouseButton::Left, |_, cx| {
                         cx.stop_propagation();
-                    }),
+                    })
+                    .id("settings")
+                    .active(|style| style.bg(theme.window_button_active)),
             )
     }
 }
@@ -401,13 +413,14 @@ impl RenderOnce for WindowControls {
 impl RenderOnce for WindowControls {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
         let decorations = cx.window_decorations();
+        let theme = cx.global::<Theme>();
 
         div()
             .flex()
             .flex_col()
             .font_family(FONT_AWESOME)
             .border_l(px(1.0))
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             .child(
                 // FIXME: These buttons are a weird size because they need to be about the same
                 // size as the buttons in Zed right now
@@ -416,46 +429,51 @@ impl RenderOnce for WindowControls {
                 div()
                     .flex()
                     .border_b(px(1.0))
-                    .border_color(rgb(0x1e293b))
+                    .border_color(theme.border_color)
                     .child(
                         div()
                             .w(px(32.0))
                             .h(px(30.0))
                             .flex()
+                            .bg(theme.window_button)
                             .items_center()
                             .justify_center()
                             .flex_shrink_0()
                             .text_size(px(12.0))
-                            .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                            .hover(|style| style.bg(theme.window_button_hover).cursor_pointer())
                             .child("")
                             .on_mouse_down(MouseButton::Left, |_, cx| {
                                 cx.stop_propagation();
                             })
                             .id("header-minimize")
-                            .on_click(|_, cx| cx.minimize_window()),
+                            .on_click(|_, cx| cx.minimize_window())
+                            .active(|style| style.bg(theme.window_button_active)),
                     )
                     .child(
                         div()
                             .w(px(32.0))
                             .h(px(30.0))
                             .flex()
+                            .bg(theme.window_button)
                             .items_center()
                             .justify_center()
                             .flex_shrink_0()
-                            .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                            .hover(|style| style.bg(theme.window_button_hover).cursor_pointer())
                             .text_size(px(12.0))
                             .child("")
                             .on_mouse_down(MouseButton::Left, |_, cx| {
                                 cx.stop_propagation();
                             })
                             .id("header-maximize")
-                            .on_click(|_, cx| cx.zoom_window()),
+                            .on_click(|_, cx| cx.zoom_window())
+                            .active(|style| style.bg(theme.window_button_active)),
                     )
                     .child(
                         div()
                             .w(px(32.0))
                             .h(px(30.0))
                             .flex()
+                            .bg(theme.close_button)
                             .map(|div| match decorations {
                                 Decorations::Server => div,
                                 Decorations::Client { tiling } => div
@@ -466,7 +484,7 @@ impl RenderOnce for WindowControls {
                             .items_center()
                             .justify_center()
                             .flex_shrink_0()
-                            .hover(|style| style.bg(rgb(0x991b1b)).cursor_pointer())
+                            .hover(|style| style.bg(theme.close_button_hover).cursor_pointer())
                             .child("")
                             .on_mouse_down(MouseButton::Left, |_, cx| {
                                 cx.stop_propagation();
@@ -474,7 +492,8 @@ impl RenderOnce for WindowControls {
                             .id("header-close")
                             .on_click(|_, cx| {
                                 cx.dispatch_action(Box::new(Quit));
-                            }),
+                            })
+                            .active(|style| style.bg(theme.close_button_active)),
                     ),
             )
             .child(
@@ -486,32 +505,37 @@ impl RenderOnce for WindowControls {
                             .w(px(32.0))
                             .h(px(30.0))
                             .flex()
+                            .bg(theme.window_button)
                             .items_center()
                             .justify_center()
                             .flex_shrink_0()
-                            .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                            .hover(|style| style.bg(theme.window_button_hover).cursor_pointer())
                             .text_size(px(12.0))
                             .child("")
                             .on_mouse_down(MouseButton::Left, |_, cx| {
                                 cx.stop_propagation();
                             })
                             .id("show-queue")
-                            .on_click(move |_, cx| self.show_queue.update(cx, |v, _| *v = !(*v))),
+                            .on_click(move |_, cx| self.show_queue.update(cx, |v, _| *v = !(*v)))
+                            .active(|style| style.bg(theme.window_button_active)),
                     )
                     .child(
                         div()
                             .w(px(32.0))
                             .h(px(30.0))
                             .flex()
+                            .bg(theme.window_button)
                             .items_center()
                             .justify_center()
                             .flex_shrink_0()
                             .text_size(px(12.0))
-                            .hover(|style| style.bg(rgb(0x334155)).cursor_pointer())
+                            .hover(|style| style.bg(theme.window_button_hover).cursor_pointer())
                             .child("")
                             .on_mouse_down(MouseButton::Left, |_, cx| {
                                 cx.stop_propagation();
-                            }),
+                            })
+                            .id("settings")
+                            .active(|style| style.bg(theme.window_button_active)),
                     ),
             )
     }
@@ -552,6 +576,7 @@ impl Scrubber {
 
 impl Render for Scrubber {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
         let position = *self.position.read(cx);
         let duration = *self.duration.read(cx);
         let remaining = duration - position;
@@ -560,7 +585,7 @@ impl Render for Scrubber {
             .pl(px(13.0))
             .pr(px(13.0))
             .border_l(px(1.0))
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             .flex_grow()
             .flex()
             .flex_col()

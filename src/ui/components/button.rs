@@ -1,5 +1,7 @@
 use gpui::*;
 
+use crate::ui::theme::Theme;
+
 use super::styling::AdditionalStyleUtil;
 
 #[derive(Clone, Copy)]
@@ -83,46 +85,51 @@ impl ButtonSize {
 }
 
 impl ButtonIntent {
-    fn base<T>(&self, dest: T) -> T
+    fn base<T>(&self, dest: T, cx: &mut AppContext) -> T
     where
         T: Styled,
     {
+        let theme = cx.global::<Theme>();
+
         match self {
             ButtonIntent::Primary => dest
-                .bg(rgb(0x1e3a8a))
-                .border_color(rgb(0x1e40af))
-                .text_color(rgb(0xeff6ff)),
-            ButtonIntent::Secondary => dest.bg(rgb(0x1f2937)).border_color(rgb(0x374151)),
+                .bg(theme.button_primary)
+                .text_color(theme.button_primary_text),
+            ButtonIntent::Secondary => dest
+                .bg(theme.button_secondary)
+                .text_color(theme.button_secondary_text),
             ButtonIntent::Warning => dest
-                .bg(rgb(0x854d0e))
-                .border_color(rgb(0xa16207))
-                .text_color(rgb(0xfefce8)),
+                .bg(theme.button_warning)
+                .text_color(theme.button_warning_text),
             ButtonIntent::Danger => dest
-                .bg(rgb(0x7f1d1d))
-                .border_color(rgb(0x991b1b))
-                .text_color(rgb(0xfef2f2)),
+                .bg(theme.button_danger)
+                .text_color(theme.button_danger_text),
         }
     }
-    fn hover<T>(&self, dest: T) -> T
+    fn hover<T>(&self, dest: T, cx: &mut AppContext) -> T
     where
         T: Styled,
     {
+        let theme = cx.global::<Theme>();
+
         match self {
-            ButtonIntent::Primary => dest.bg(rgb(0x1e40af)),
-            ButtonIntent::Secondary => dest.bg(rgb(0x334155)),
-            ButtonIntent::Warning => dest.bg(rgb(0xa16207)),
-            ButtonIntent::Danger => dest.bg(rgb(0x991b1b)),
+            ButtonIntent::Primary => dest.bg(theme.button_primary_hover),
+            ButtonIntent::Secondary => dest.bg(theme.button_secondary_hover),
+            ButtonIntent::Warning => dest.bg(theme.button_warning_hover),
+            ButtonIntent::Danger => dest.bg(theme.button_danger_hover),
         }
     }
-    fn active<T>(&self, dest: T) -> T
+    fn active<T>(&self, dest: T, cx: &mut AppContext) -> T
     where
         T: Styled,
     {
+        let theme = cx.global::<Theme>();
+
         match self {
-            ButtonIntent::Primary => dest.bg(rgb(0x172554)),
-            ButtonIntent::Secondary => dest.bg(rgb(0x0f172a)),
-            ButtonIntent::Warning => dest.bg(rgb(0x713f12)),
-            ButtonIntent::Danger => dest.bg(rgb(0x450a0a)),
+            ButtonIntent::Primary => dest.bg(theme.button_primary_active),
+            ButtonIntent::Secondary => dest.bg(theme.button_secondary_active),
+            ButtonIntent::Warning => dest.bg(theme.button_warning_active),
+            ButtonIntent::Danger => dest.bg(theme.button_danger_active),
         }
     }
 }
@@ -174,12 +181,12 @@ impl ParentElement for Button {
 }
 
 impl RenderOnce for Button {
-    fn render(self, _: &mut WindowContext) -> impl IntoElement {
+    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
         let style = self.style;
         let size = self.size;
         let intent = self.intent;
 
-        style.base(size.base(intent.base(self.div.hover(|v| style.hover(intent.hover(v))))))
+        style.base(size.base(intent.base(self.div.hover(|v| style.hover(intent.hover(v, cx))), cx)))
     }
 }
 
@@ -226,7 +233,7 @@ impl ParentElement for InteractiveButton {
 }
 
 impl RenderOnce for InteractiveButton {
-    fn render(self, _: &mut WindowContext) -> impl IntoElement {
+    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
         let style = self.style;
         let size = self.size;
         let intent = self.intent;
@@ -235,8 +242,9 @@ impl RenderOnce for InteractiveButton {
             size.base(
                 intent.base(
                     self.div
-                        .hover(|v| style.hover(intent.hover(v)))
-                        .active(|v| style.active(size.active(intent.active(v)))),
+                        .hover(|v| style.hover(intent.hover(v, cx)))
+                        .active(|v| style.active(size.active(intent.active(v, cx)))),
+                    cx,
                 ),
             ),
         )

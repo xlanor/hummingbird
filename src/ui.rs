@@ -9,4 +9,5 @@ mod library;
 pub mod models;
 pub mod queue;
 mod statusbar;
+mod theme;
 mod util;

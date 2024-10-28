@@ -14,6 +14,7 @@ use crate::{
     ui::{
         app::DropOnNavigateQueue,
         models::Models,
+        theme::Theme,
         util::{create_or_retrieve_view, prune_views},
     },
 };
@@ -140,7 +141,9 @@ impl AlbumView {
 }
 
 impl Render for AlbumView {
-    fn render(&mut self, _: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         div()
             .flex()
             .flex_col()
@@ -164,7 +167,7 @@ impl Render for AlbumView {
                 div()
                     .flex()
                     .w_full()
-                    .border_color(rgb(0x1e293b))
+                    .border_color(theme.border_color)
                     .border_b_1()
                     .child(div().w(px(22.0 + 23.0 + 6.0)).flex_shrink_0())
                     .child(
@@ -226,20 +229,23 @@ impl AlbumItem {
 
 impl Render for AlbumItem {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         div()
             .id(self.id.clone())
             .w_full()
             .flex()
             .cursor_pointer()
             .border_b_1()
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             .px(px(24.0))
-            .hover(|this| this.bg(rgb(0x1e293b)))
+            .hover(|this| this.bg(theme.nav_button_hover))
+            .active(|this| this.bg(theme.nav_button_active))
             .child(
                 div()
                     .id("album-art")
                     .rounded(px(2.0))
-                    .bg(rgb(0x4b5563))
+                    .bg(theme.album_art_background)
                     .shadow_sm()
                     .w(px(22.0))
                     .h(px(22.0))

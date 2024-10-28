@@ -1,10 +1,17 @@
 use core::panic;
-use std::{cell::RefCell, fs, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    fs::{self, File},
+    io::BufReader,
+    path::PathBuf,
+    rc::Rc,
+    sync::Arc,
+};
 
 use gpui::*;
 use prelude::FluentBuilder;
 use sqlx::SqlitePool;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use crate::{
     data::{interface::GPUIDataInterface, thread::DataThread},
@@ -18,7 +25,7 @@ use crate::{
 use super::{
     arguments::parse_args_and_prepare, assets::Assets, constants::APP_ROUNDING,
     global_actions::register_actions, header::Header, library::Library, models::build_models,
-    queue::Queue, statusbar::StatusBar,
+    queue::Queue, statusbar::StatusBar, theme::Theme,
 };
 
 struct WindowShadow {
@@ -31,6 +38,8 @@ struct WindowShadow {
 
 impl Render for WindowShadow {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         let decorations = cx.window_decorations();
         let rounding = APP_ROUNDING;
         let shadow_size = px(10.0);
@@ -114,12 +123,14 @@ impl Render for WindowShadow {
             .child(
                 div()
                     .font_family("Inter")
-                    .text_color(rgb(0xf1f5f9))
+                    .text_color(theme.text)
                     .cursor(CursorStyle::Arrow)
                     .map(|div| match decorations {
                         Decorations::Server => div,
                         Decorations::Client { tiling } => div
-                            .border_color(rgba(0x64748b33))
+                            .when(cfg!(not(target_os = "macos")), |div| {
+                                div.border_color(rgba(0x64748b33))
+                            })
                             .when(!(tiling.top || tiling.right), |div| {
                                 div.rounded_tr(rounding)
                             })
@@ -152,7 +163,7 @@ impl Render for WindowShadow {
                         cx.stop_propagation();
                     })
                     .overflow_hidden()
-                    .bg(gpui::rgb(0x030712))
+                    .bg(theme.background_primary)
                     .size_full()
                     .flex()
                     .flex_col()
@@ -255,6 +266,21 @@ impl DropOnNavigateQueue {
 
 impl Global for DropOnNavigateQueue {}
 
+fn create_theme(path: PathBuf) -> Theme {
+    if let Ok(file) = File::open(path) {
+        let reader = BufReader::new(file);
+
+        if let Ok(theme) = serde_json::from_reader(reader) {
+            theme
+        } else {
+            warn!("Theme file exists but it could not be loaded, using default");
+            Theme::default()
+        }
+    } else {
+        Theme::default()
+    }
+}
+
 pub async fn run() {
     let dirs = directories::ProjectDirs::from("me", "william341", "muzak")
         .expect("couldn't find project dirs");
@@ -266,6 +292,7 @@ pub async fn run() {
     let file = directory.join("library.db");
 
     let pool = create_pool(file).await;
+    let theme = create_theme(directory.join("theme.json"));
 
     App::new().with_assets(Assets).run(|cx: &mut AppContext| {
         let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
@@ -299,7 +326,10 @@ pub async fn run() {
         cx.set_global(data_interface);
         cx.set_global(create_cache());
         cx.set_global(DropOnNavigateQueue::default());
+        cx.set_global(theme);
+
         cx.activate(true);
+
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),

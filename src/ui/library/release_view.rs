@@ -19,6 +19,7 @@ use crate::{
         components::button::{button, ButtonIntent, ButtonSize},
         constants::FONT_AWESOME,
         models::{Models, PlaybackInfo},
+        theme::Theme,
     },
 };
 
@@ -125,6 +126,8 @@ impl ReleaseView {
 
 impl Render for ReleaseView {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         div()
             .mt(px(24.0))
             .w_full()
@@ -145,7 +148,7 @@ impl Render for ReleaseView {
                     .child(
                         div()
                             .rounded(px(4.0))
-                            .bg(rgb(0x4b5563))
+                            .bg(theme.album_art_background)
                             .shadow_sm()
                             .w(px(160.0))
                             .h(px(160.0))
@@ -285,7 +288,7 @@ impl Render for ReleaseView {
                     .pt(px(12.0))
                     .pb(px(24.0))
                     .font_weight(FontWeight::SEMIBOLD)
-                    .text_color(rgb(0xd1d5db))
+                    .text_color(theme.text_secondary)
                     .when_some(self.release_info.clone(), |this, release_info| {
                         this.child(div().child(release_info))
                     })
@@ -307,7 +310,9 @@ struct TrackItem {
 }
 
 impl RenderOnce for TrackItem {
-    fn render(self, _: &mut WindowContext) -> impl IntoElement {
+    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         let tracks = self.tracks.clone();
         let track_id = self.track.id;
         div()
@@ -326,13 +331,13 @@ impl RenderOnce for TrackItem {
             .when(self.is_start, |this| {
                 this.child(
                     div()
-                        .text_color(rgb(0xd1d5db))
+                        .text_color(theme.text_secondary)
                         .text_sm()
                         .font_weight(FontWeight::SEMIBOLD)
                         .px(px(24.0))
                         .border_b_1()
                         .w_full()
-                        .border_color(rgb(0x1e293b))
+                        .border_color(theme.border_color)
                         .mt(px(24.0))
                         .pb(px(6.0))
                         .child(format!(
@@ -346,12 +351,14 @@ impl RenderOnce for TrackItem {
                     .flex()
                     .flex_row()
                     .border_b_1()
+                    .id(("track", self.track.id as u64))
                     .w_full()
-                    .border_color(rgb(0x1e293b))
+                    .border_color(theme.border_color)
                     .cursor_pointer()
                     .px(px(24.0))
                     .py(px(6.0))
-                    .hover(|this| this.bg(rgb(0x1e293b)))
+                    .hover(|this| this.bg(theme.nav_button_hover))
+                    .active(|this| this.bg(theme.nav_button_active))
                     .max_w_full()
                     .child(
                         div()

@@ -3,7 +3,7 @@ use prelude::FluentBuilder;
 
 use crate::library::scan::ScanEvent;
 
-use super::{constants::APP_ROUNDING, models::Models};
+use super::{constants::APP_ROUNDING, models::Models, theme::Theme};
 
 pub struct StatusBar {
     scan_model: Model<ScanEvent>,
@@ -27,17 +27,18 @@ impl StatusBar {
 impl Render for StatusBar {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let decorations = cx.window_decorations();
+        let theme = cx.global::<Theme>();
 
         div()
             .flex()
             .w_full()
-            .bg(rgb(0x111827))
+            .bg(theme.background_secondary)
             .pl(px(12.0))
             .pb(px(6.0))
             .pt(px(4.0))
             .text_sm()
             .border_t_1()
-            .border_color(rgb(0x1e293b))
+            .border_color(theme.border_color)
             .map(|div| match decorations {
                 Decorations::Server => div,
                 Decorations::Client { tiling } => div
