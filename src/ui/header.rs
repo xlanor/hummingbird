@@ -111,8 +111,8 @@ impl Render for Header {
 }
 
 pub struct InfoSection {
-    metadata: Model<Metadata>,
-    albumart: Model<Option<Arc<RenderImage>>>,
+    track_name: Option<SharedString>,
+    artist_name: Option<SharedString>,
     albumart_actual: Option<ImageSource>,
     playback_info: PlaybackInfo,
 }
@@ -129,14 +129,27 @@ impl InfoSection {
             })
             .detach();
 
-            cx.observe(&metadata_model, |_, _, cx| {
+            cx.observe(&metadata_model, |this: &mut Self, m, cx| {
+                let metadata = m.read(cx);
+
+                this.track_name = metadata.name.clone().map(|v| SharedString::from(v));
+                this.artist_name = metadata.artist.clone().map(|v| SharedString::from(v));
+
                 cx.notify();
             })
             .detach();
 
+            cx.observe(&albumart_model, |this: &mut Self, m, cx| {
+                let image = m.read(cx).clone();
+
+                this.albumart_actual = image.map(ImageSource::Render);
+                cx.notify()
+            })
+            .detach();
+
             Self {
-                metadata: metadata_model,
-                albumart: albumart_model,
+                artist_name: None,
+                track_name: None,
                 albumart_actual: None,
                 playback_info,
             }
@@ -146,15 +159,6 @@ impl InfoSection {
 
 impl Render for InfoSection {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        cx.observe(&self.albumart, |this, m, cx| {
-            let image = m.read(cx).clone();
-
-            this.albumart_actual = image.map(ImageSource::Render);
-            cx.notify()
-        })
-        .detach();
-
-        let metadata = self.metadata.read(cx);
         let state = self.playback_info.playback_state.read(cx);
 
         div()
@@ -218,11 +222,13 @@ impl Render for InfoSection {
                                         .font_weight(FontWeight::EXTRA_BOLD)
                                         .text_ellipsis()
                                         .child(
-                                            metadata.name.clone().unwrap_or("Unknown Track".into()),
+                                            self.track_name
+                                                .clone()
+                                                .unwrap_or("Unknown Track".into()),
                                         ),
                                 )
                                 .child(div().overflow_x_hidden().pb(px(3.0)).child(
-                                    metadata.artist.clone().unwrap_or("Unknown Artist".into()),
+                                    self.artist_name.clone().unwrap_or("Unknown Artist".into()),
                                 )),
                         )
                     }),

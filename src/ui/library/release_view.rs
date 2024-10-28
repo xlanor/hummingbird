@@ -28,6 +28,7 @@ pub struct ReleaseView {
     artist: Option<Arc<Artist>>,
     tracks: Arc<Vec<Track>>,
     track_list_state: ListState,
+    release_info: Option<SharedString>,
 }
 
 impl ReleaseView {
@@ -88,12 +89,35 @@ impl ReleaseView {
                     .into_any_element()
                 });
 
+            let release_info = {
+                let mut info = String::default();
+
+                if let Some(label) = &album.label {
+                    info += &label.to_string();
+                }
+
+                if album.label.is_some() && album.catalog_number.is_some() {
+                    info += " • ";
+                }
+
+                if let Some(catalog_number) = &album.catalog_number {
+                    info += &catalog_number.to_string();
+                }
+
+                if !info.is_empty() {
+                    Some(SharedString::from(info))
+                } else {
+                    None
+                }
+            };
+
             ReleaseView {
                 album,
                 image,
                 artist,
                 tracks,
                 track_list_state: state,
+                release_info,
             }
         })
     }
@@ -101,24 +125,6 @@ impl ReleaseView {
 
 impl Render for ReleaseView {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let release_info = {
-            let mut info = String::new();
-
-            if let Some(label) = &self.album.label {
-                info += label;
-            }
-
-            if self.album.label.is_some() && self.album.catalog_number.is_some() {
-                info += " • ";
-            }
-
-            if let Some(catalog_number) = &self.album.catalog_number {
-                info += catalog_number;
-            }
-
-            info
-        };
-
         div()
             .mt(px(24.0))
             .w_full()
@@ -279,14 +285,14 @@ impl Render for ReleaseView {
                     .pb(px(24.0))
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(rgb(0xd1d5db))
-                    .when(!release_info.is_empty(), |this| {
+                    .when_some(self.release_info.clone(), |this, release_info| {
                         this.child(div().child(release_info))
                     })
                     .when_some(self.album.release_date, |this, date| {
                         this.child(div().child(format!("Released {}", date.format("%B %-e, %Y"))))
                     })
                     .when_some(self.album.isrc.as_ref(), |this, isrc| {
-                        this.child(div().child(format!("{}", isrc)))
+                        this.child(div().child(isrc.clone()))
                     }),
             )
     }

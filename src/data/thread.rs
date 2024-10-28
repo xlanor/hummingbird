@@ -8,7 +8,7 @@ use std::{
 };
 
 use ahash::{AHashMap, RandomState};
-use gpui::RenderImage;
+use gpui::{RenderImage, SharedString};
 use image::{imageops::thumbnail, Frame};
 use smallvec::SmallVec;
 use tracing::{debug, warn};
@@ -26,13 +26,12 @@ use super::{
 
 fn create_generic_queue_item(path: String) -> UIQueueItem {
     UIQueueItem {
-        metadata: Metadata {
-            name: path
-                .split(std::path::MAIN_SEPARATOR_STR)
-                .last()
-                .map(|v| v.to_string()),
-            ..Default::default()
-        },
+        track_name: path
+            .split(std::path::MAIN_SEPARATOR_STR)
+            .last()
+            .map(|v| SharedString::from(v.to_string()))
+            .unwrap(),
+        artist_name: SharedString::from("Unknown Artist"),
         file_path: path,
         album_art: None,
     }
@@ -205,8 +204,15 @@ impl DataThread {
             });
 
         UIQueueItem {
-            metadata,
-            file_path: path,
+            file_path: path.clone(),
+            track_name: metadata
+                .name
+                .map(|v| SharedString::from(v))
+                .unwrap_or_else(|| create_generic_queue_item(path).track_name),
+            artist_name: metadata
+                .artist
+                .map(|v| SharedString::from(v))
+                .unwrap_or_else(|| SharedString::from("Unknown Artist")),
             album_art,
         }
     }
