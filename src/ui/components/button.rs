@@ -31,7 +31,7 @@ impl ButtonStyle {
         let div = dest.cursor_pointer().flex();
 
         match self {
-            ButtonStyle::Regular => div.border_1().shadow_sm().rounded(px(4.0)),
+            ButtonStyle::Regular => div.shadow_md().rounded(px(4.0)),
             ButtonStyle::Minimal => div.background_opacity(0.0).rounded(px(4.0)),
             ButtonStyle::MinimalNoRounding => div.background_opacity(0.0),
         }
@@ -65,7 +65,7 @@ impl ButtonSize {
     {
         match self {
             ButtonSize::Regular => dest.px(px(10.0)).py(px(3.0)).text_sm().gap(px(8.0)),
-            ButtonSize::Large => dest.px(px(14.0)).py(px(5.0)).text_sm().gap(px(10.0)),
+            ButtonSize::Large => dest.px(px(14.0)).py(px(5.0)).text_sm().gap(px(8.0)),
         }
     }
 
@@ -91,16 +91,16 @@ impl ButtonIntent {
             ButtonIntent::Primary => dest
                 .bg(rgb(0x1e3a8a))
                 .border_color(rgb(0x1e40af))
-                .text_color(rgb(0xbfdbfe)),
+                .text_color(rgb(0xeff6ff)),
             ButtonIntent::Secondary => dest.bg(rgb(0x1f2937)).border_color(rgb(0x374151)),
             ButtonIntent::Warning => dest
                 .bg(rgb(0x854d0e))
                 .border_color(rgb(0xa16207))
-                .text_color(rgb(0xfef9c3)),
+                .text_color(rgb(0xfefce8)),
             ButtonIntent::Danger => dest
                 .bg(rgb(0x7f1d1d))
                 .border_color(rgb(0x991b1b))
-                .text_color(rgb(0xfecaca)),
+                .text_color(rgb(0xfef2f2)),
         }
     }
     fn hover<T>(&self, dest: T) -> T

@@ -16,7 +16,7 @@ use crate::{
     playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::{
         app::DropOnNavigateQueue,
-        components::button::{button, ButtonSize},
+        components::button::{button, ButtonIntent, ButtonSize},
         constants::FONT_AWESOME,
         models::{Models, PlaybackInfo},
     },
@@ -202,6 +202,7 @@ impl Render for ReleaseView {
                                             .id("release-play-button")
                                             .size(ButtonSize::Large)
                                             .font_weight(FontWeight::BOLD)
+                                            .intent(ButtonIntent::Primary)
                                             .on_click(cx.listener(
                                                 |this: &mut ReleaseView, _, cx| {
                                                     let paths = this
