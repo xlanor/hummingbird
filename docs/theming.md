@@ -8,8 +8,9 @@ Muzak can be themed with a `theme.json` file located in the following places:
 | Windows  | `%appdata%\william341\muzak\theme.json`                        |
 
 When this file is created, deleted, or modified, the theme is reloaded. If your
-theme produces the default theme with no modified properties, it is likely your
-theme failed to parse.
+theme produces the default theme with no modified properties, it is likely that
+your theme failed to parse - running with `RUST_LOG=muzak=info` may give you
+more information.
 
 Colors are specified as CSS-style hex codes (`#ABCDEF`). If a color is not
 specified, the color from the default theme is used.
