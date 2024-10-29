@@ -1,17 +1,10 @@
 use core::panic;
-use std::{
-    cell::RefCell,
-    fs::{self, File},
-    io::BufReader,
-    path::PathBuf,
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, fs, rc::Rc, sync::Arc};
 
 use gpui::*;
 use prelude::FluentBuilder;
 use sqlx::SqlitePool;
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 use crate::{
     data::{interface::GPUIDataInterface, thread::DataThread},
@@ -23,9 +16,16 @@ use crate::{
 };
 
 use super::{
-    arguments::parse_args_and_prepare, assets::Assets, constants::APP_ROUNDING,
-    global_actions::register_actions, header::Header, library::Library, models::build_models,
-    queue::Queue, statusbar::StatusBar, theme::Theme,
+    arguments::parse_args_and_prepare,
+    assets::Assets,
+    constants::APP_ROUNDING,
+    global_actions::register_actions,
+    header::Header,
+    library::Library,
+    models::build_models,
+    queue::Queue,
+    statusbar::StatusBar,
+    theme::{setup_theme, Theme},
 };
 
 struct WindowShadow {
@@ -266,107 +266,94 @@ impl DropOnNavigateQueue {
 
 impl Global for DropOnNavigateQueue {}
 
-fn create_theme(path: PathBuf) -> Theme {
-    if let Ok(file) = File::open(path) {
-        let reader = BufReader::new(file);
-
-        if let Ok(theme) = serde_json::from_reader(reader) {
-            theme
-        } else {
-            warn!("Theme file exists but it could not be loaded, using default");
-            Theme::default()
-        }
-    } else {
-        Theme::default()
-    }
-}
-
 pub async fn run() {
     let dirs = directories::ProjectDirs::from("me", "william341", "muzak")
         .expect("couldn't find project dirs");
-    let directory = dirs.data_dir();
+    let directory = dirs.data_dir().to_path_buf();
     if !directory.exists() {
-        fs::create_dir_all(directory)
+        fs::create_dir_all(&directory)
             .unwrap_or_else(|e| panic!("couldn't create data directory, {:?}, {:?}", directory, e));
     }
     let file = directory.join("library.db");
 
     let pool = create_pool(file).await;
-    let theme = create_theme(directory.join("theme.json"));
 
-    App::new().with_assets(Assets).run(|cx: &mut AppContext| {
-        let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
-        find_fonts(cx).expect("unable to load fonts");
+    App::new()
+        .with_assets(Assets)
+        .run(move |cx: &mut AppContext| {
+            let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
+            find_fonts(cx).expect("unable to load fonts");
 
-        register_actions(cx);
+            register_actions(cx);
 
-        build_models(cx);
+            build_models(cx);
 
-        if let Ok(pool) = pool {
-            let mut scan_interface: ScanInterface = ScanThread::start(pool.clone());
-            scan_interface.scan();
-            scan_interface.start_broadcast(cx);
+            if let Ok(pool) = pool {
+                let mut scan_interface: ScanInterface = ScanThread::start(pool.clone());
+                scan_interface.scan();
+                scan_interface.start_broadcast(cx);
 
-            cx.set_global(scan_interface);
-            cx.set_global(Pool(pool));
-        } else {
-            error!("unable to create database pool: {}", pool.err().unwrap());
-            panic!("fatal: unable to create database pool");
-        }
+                cx.set_global(scan_interface);
+                cx.set_global(Pool(pool));
+            } else {
+                error!("unable to create database pool: {}", pool.err().unwrap());
+                panic!("fatal: unable to create database pool");
+            }
 
-        let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start();
-        let mut data_interface: GPUIDataInterface = DataThread::start();
+            let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start();
+            let mut data_interface: GPUIDataInterface = DataThread::start();
 
-        playback_interface.start_broadcast(cx);
-        data_interface.start_broadcast(cx);
+            playback_interface.start_broadcast(cx);
+            data_interface.start_broadcast(cx);
 
-        parse_args_and_prepare(&playback_interface);
+            parse_args_and_prepare(&playback_interface);
 
-        cx.set_global(playback_interface);
-        cx.set_global(data_interface);
-        cx.set_global(create_cache());
-        cx.set_global(DropOnNavigateQueue::default());
-        cx.set_global(theme);
+            cx.set_global(playback_interface);
+            cx.set_global(data_interface);
+            cx.set_global(create_cache());
+            cx.set_global(DropOnNavigateQueue::default());
 
-        cx.activate(true);
+            setup_theme(cx, directory.join("theme.json"));
 
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                window_background: WindowBackgroundAppearance::Opaque,
-                window_decorations: Some(WindowDecorations::Client),
-                window_min_size: Some(size(px(800.0), px(600.0))),
-                titlebar: Some(TitlebarOptions {
-                    title: Some(SharedString::from("Muzak")),
-                    // TODO: fix this
-                    appears_transparent: true,
-                    traffic_light_position: Some(Point {
-                        x: px(12.0),
-                        y: px(12.0),
+            cx.activate(true);
+
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    window_background: WindowBackgroundAppearance::Opaque,
+                    window_decorations: Some(WindowDecorations::Client),
+                    window_min_size: Some(size(px(800.0), px(600.0))),
+                    titlebar: Some(TitlebarOptions {
+                        title: Some(SharedString::from("Muzak")),
+                        // TODO: fix this
+                        appears_transparent: true,
+                        traffic_light_position: Some(Point {
+                            x: px(12.0),
+                            y: px(12.0),
+                        }),
                     }),
-                }),
-                kind: WindowKind::Normal,
-                ..Default::default()
-            },
-            |cx| {
-                cx.new_view(|cx| {
-                    cx.observe_window_appearance(|_, cx| {
-                        cx.refresh();
+                    kind: WindowKind::Normal,
+                    ..Default::default()
+                },
+                |cx| {
+                    cx.new_view(|cx| {
+                        cx.observe_window_appearance(|_, cx| {
+                            cx.refresh();
+                        })
+                        .detach();
+
+                        let show_queue = cx.new_model(|_| false);
+
+                        WindowShadow {
+                            header: Header::new(cx, show_queue.clone()),
+                            queue: Queue::new(cx, show_queue.clone()),
+                            library: Library::new(cx),
+                            status_bar: StatusBar::new(cx),
+                            show_queue,
+                        }
                     })
-                    .detach();
-
-                    let show_queue = cx.new_model(|_| false);
-
-                    WindowShadow {
-                        header: Header::new(cx, show_queue.clone()),
-                        queue: Queue::new(cx, show_queue.clone()),
-                        library: Library::new(cx),
-                        status_bar: StatusBar::new(cx),
-                        show_queue,
-                    }
-                })
-            },
-        )
-        .unwrap();
-    });
+                },
+            )
+            .unwrap();
+        });
 }

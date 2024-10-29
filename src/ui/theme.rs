@@ -1,7 +1,11 @@
-use gpui::{rgb, rgba, Global, Rgba};
-use serde::Deserialize;
+use std::{fs::File, io::BufReader, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-#[derive(Deserialize)]
+use gpui::{rgb, rgba, AppContext, AsyncAppContext, Context, EventEmitter, Global, Rgba};
+use notify::{Event, RecursiveMode, Watcher};
+use serde::Deserialize;
+use tracing::{error, info, warn};
+
+#[derive(Deserialize, Clone)]
 #[serde(default)]
 pub struct Theme {
     pub background_primary: Rgba,
@@ -115,3 +119,94 @@ impl Default for Theme {
 }
 
 impl Global for Theme {}
+
+pub fn create_theme(path: &PathBuf) -> Theme {
+    if let Ok(file) = File::open(path) {
+        let reader = BufReader::new(file);
+
+        if let Ok(theme) = serde_json::from_reader(reader) {
+            theme
+        } else {
+            warn!("Theme file exists but it could not be loaded, using default");
+            Theme::default()
+        }
+    } else {
+        Theme::default()
+    }
+}
+
+#[derive(PartialEq, Clone)]
+pub struct ThemeEvTransmitter;
+
+impl EventEmitter<Theme> for ThemeEvTransmitter {}
+
+#[allow(dead_code)]
+pub struct ThemeWatcher(pub Box<dyn Watcher>);
+
+impl Global for ThemeWatcher {}
+
+pub fn setup_theme(cx: &mut AppContext, path: PathBuf) {
+    cx.set_global(create_theme(&path));
+    let theme_transmitter = cx.new_model(|_| ThemeEvTransmitter);
+
+    cx.subscribe(&theme_transmitter, |_, theme, cx| {
+        cx.set_global(theme.clone());
+        cx.refresh();
+    })
+    .detach();
+
+    let (tx, rx) = channel::<notify::Result<Event>>();
+
+    let watcher = notify::recommended_watcher(tx);
+
+    if let Ok(mut watcher) = watcher {
+        if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::Recursive) {
+            warn!("failed to watch settings directory: {:?}", e);
+        }
+
+        cx.spawn(|mut cx: AsyncAppContext| async move {
+            loop {
+                while let Ok(event) = rx.try_recv() {
+                    match event {
+                        Ok(v) => {
+                            if v.paths.iter().find(|t| t.ends_with("theme.json")).is_some() {
+                                match v.kind {
+                                    notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
+                                        info!("Theme changed, updating...");
+                                        let theme = create_theme(&path);
+                                        theme_transmitter
+                                            .update(&mut cx, move |_, m| {
+                                                m.emit(theme);
+                                            })
+                                            .expect("could not send theme to main thread");
+                                    }
+                                    notify::EventKind::Remove(_) => {
+                                        info!("Theme file removed, resetting to default...");
+                                        theme_transmitter
+                                            .update(&mut cx, |_, m| {
+                                                m.emit(Theme::default());
+                                            })
+                                            .expect("could not send theme to main thread");
+                                    }
+                                    _ => (),
+                                }
+                            }
+                        }
+                        Err(e) => error!("error occured while watching theme.json: {:?}", e),
+                    }
+                }
+
+                cx.background_executor()
+                    .timer(Duration::from_millis(10))
+                    .await;
+            }
+        })
+        .detach();
+
+        // store the watcher in a global so it doesn't go out of scope
+        let tw = ThemeWatcher(Box::new(watcher));
+        cx.set_global(tw);
+    } else if let Err(e) = watcher {
+        warn!("failed to watch settings directory: {:?}", e);
+    }
+}
