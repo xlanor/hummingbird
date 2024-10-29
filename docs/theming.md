@@ -5,7 +5,7 @@ Muzak can be themed with a `theme.json` file located in the following places:
 |----------|----------------------------------------------------------------|
 | Linux    | `~/.local/share/muzak/theme.json`                              |
 | macOS    | `~/Library/Application Support/me.william341.muzak/theme.json` |
-| Windows  | `%appdata$\william341\muzak\theme.json`                        |
+| Windows  | `%appdata%\william341\muzak\theme.json`                        |
 
 When this file is created, deleted, or modified, the theme is reloaded. If your
 theme produces the default theme with no modified properties, it is likely your
