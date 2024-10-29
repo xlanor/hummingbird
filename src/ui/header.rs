@@ -240,6 +240,7 @@ impl Render for InfoSection {
 
 pub struct PlaybackSection {
     info: PlaybackInfo,
+    show_volume: Model<bool>,
 }
 
 impl PlaybackSection {
@@ -249,6 +250,7 @@ impl PlaybackSection {
             let state = info.playback_state.clone();
             let volume = info.volume.clone();
             let shuffling = info.shuffling.clone();
+            let show_volume: Model<bool> = cx.new_model(|_| false);
 
             cx.observe(&state, |_, _, cx| {
                 cx.notify();
@@ -265,7 +267,12 @@ impl PlaybackSection {
             })
             .detach();
 
-            Self { info }
+            cx.observe(&show_volume, |_, _, cx| {
+                cx.notify();
+            })
+            .detach();
+
+            Self { info, show_volume }
         })
     }
 }
@@ -276,6 +283,8 @@ impl Render for PlaybackSection {
         let volume = self.info.volume.read(cx);
         let shuffling = self.info.shuffling.read(cx);
         let theme = cx.global::<Theme>();
+        let show_volume = self.show_volume.read(cx);
+        let show_volume_model = self.show_volume.clone();
 
         div()
             .mr(auto())
@@ -389,31 +398,49 @@ impl Render for PlaybackSection {
             )
             .child(
                 div()
-                    .w(auto())
-                    .h(px(12.0))
-                    .mt(px(9.0))
-                    .ml(px(14.0))
+                    .rounded(px(3.0))
+                    .w(px(28.0))
+                    .h(px(25.0))
+                    .mt(px(2.0))
+                    .ml(px(6.0))
+                    .border_color(theme.playback_button_border)
                     .font_family(FONT_AWESOME)
                     .text_size(px(12.0))
                     .flex()
                     .items_center()
                     .justify_center()
+                    .when(!(*show_volume), |div| div.mr_auto())
+                    .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
+                    .id("header-shuffle-button")
+                    .active(|style| style.bg(theme.playback_button_active))
+                    .on_mouse_down(MouseButton::Left, |_, cx| {
+                        cx.stop_propagation();
+                        cx.prevent_default();
+                    })
+                    .on_click(move |_, cx| {
+                        show_volume_model.update(cx, |a, cx| {
+                            *a = !(*a);
+                            cx.notify();
+                        })
+                    })
                     .child(""),
             )
-            .child(
-                slider()
-                    .w(px(80.0))
-                    .h(px(6.0))
-                    .mt(px(11.0))
-                    .ml(px(10.0))
-                    .mr_auto()
-                    .rounded(px(3.0))
-                    .id("volume")
-                    .value((*volume) as f32)
-                    .on_change(move |v, cx| {
-                        cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
-                    }),
-            )
+            .when(*show_volume, |div| {
+                div.child(
+                    slider()
+                        .w(px(80.0))
+                        .h(px(6.0))
+                        .mt(px(11.0))
+                        .ml(px(10.0))
+                        .mr_auto()
+                        .rounded(px(3.0))
+                        .id("volume")
+                        .value((*volume) as f32)
+                        .on_change(move |v, cx| {
+                            cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
+                        }),
+                )
+            })
     }
 }
 
