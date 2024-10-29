@@ -82,7 +82,7 @@ impl Render for Header {
 
 #[cfg(target_os = "macos")]
 impl Render for Header {
-    fn render(&mut self, _: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         div()
@@ -133,8 +133,8 @@ impl InfoSection {
             cx.observe(&metadata_model, |this: &mut Self, m, cx| {
                 let metadata = m.read(cx);
 
-                this.track_name = metadata.name.clone().map(|v| SharedString::from(v));
-                this.artist_name = metadata.artist.clone().map(|v| SharedString::from(v));
+                this.track_name = metadata.name.clone().map(SharedString::from);
+                this.artist_name = metadata.artist.clone().map(SharedString::from);
 
                 cx.notify();
             })

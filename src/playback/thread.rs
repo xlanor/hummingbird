@@ -10,7 +10,7 @@ use tracing::{debug, info};
 use crate::devices::builtin::pulse::PulseProvider;
 
 #[cfg(not(target_os = "linux"))]
-use crate::device::builtin::cpal::CpalProvider;
+use crate::devices::builtin::cpal::CpalProvider;
 
 use crate::{
     devices::{
