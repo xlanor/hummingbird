@@ -274,6 +274,8 @@ impl Render for PlaybackSection {
                 .ml(auto())
                 .mt(px(5.0))
                 .rounded(px(4.0))
+                .border_color(theme.playback_button_border)
+                .border_1()
                 .shadow_md()
                 .flex()
                 .child(

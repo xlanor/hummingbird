@@ -84,6 +84,7 @@ impl Render for QueueItem {
                 .h(px(59.0))
                 .p(px(11.0))
                 .border_b(px(1.0))
+                .cursor_pointer()
                 .border_color(theme.border_color)
                 .when(is_current, |div| div.bg(theme.queue_item_current))
                 .on_click(move |_, cx| {
