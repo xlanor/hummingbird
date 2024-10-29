@@ -1,5 +1,7 @@
 # Muzak
 
+![screenshot](docs/screenshot.png)
+
 Muzak is a modern music player written in Rust using GPUI, designed to be
 performant and lightweight while maximizing extensibility and maintaining a high
 design standard.
