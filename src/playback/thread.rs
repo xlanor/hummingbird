@@ -108,6 +108,11 @@ impl PlaybackThread {
                 .unwrap(),
         );
 
+        // TODO: proper error handling
+        // TODO: allow the user to pick a format on supported platforms
+        let format = self.device.as_ref().unwrap().get_default_format().unwrap();
+        self.stream = Some(self.device.as_mut().unwrap().open_device(format).unwrap());
+
         let format = self.device.as_ref().unwrap().get_default_format().unwrap();
 
         info!(
@@ -222,12 +227,6 @@ impl PlaybackThread {
 
     fn open(&mut self, path: &String) {
         info!("Opening: {}", path);
-        if self.stream.is_none() {
-            // TODO: proper error handling
-            // TODO: allow the user to pick a format on supported platforms
-            let format = self.device.as_ref().unwrap().get_default_format().unwrap();
-            self.stream = Some(self.device.as_mut().unwrap().open_device(format).unwrap());
-        }
 
         if self.state == PlaybackState::Paused {
             self.stream
