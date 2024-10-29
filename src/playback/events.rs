@@ -32,7 +32,7 @@ pub enum PlaybackCommand {
     /// Requests that the playback thread seek to the specified position in the current file.
     Seek(f64),
     /// Requests that the playback thread set the volume to the specified level.
-    SetVolume(u8),
+    SetVolume(f64),
     /// Requests that the playback thread replace the current queue with the specified queue.
     /// This will set the current playing track to the first item in the queue.
     ReplaceQueue(Vec<String>),
@@ -70,4 +70,6 @@ pub enum PlaybackEvent {
     PositionChanged(u64),
     /// Notification for when shuffling is disabled or enabled by the thread.
     ShuffleToggled(bool),
+    /// Indicates that the volume has changed. The f64 is the new volume, from 0.0 to 1.0.
+    VolumeChanged(f64),
 }

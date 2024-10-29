@@ -164,7 +164,7 @@ impl PlaybackThread {
                 PlaybackCommand::ClearQueue => self.clear_queue(),
                 PlaybackCommand::Jump(v) => self.jump(v),
                 PlaybackCommand::Seek(v) => self.seek(v),
-                PlaybackCommand::SetVolume(_) => todo!(),
+                PlaybackCommand::SetVolume(v) => self.set_volume(v),
                 PlaybackCommand::ReplaceQueue(v) => self.replace_queue(v),
                 PlaybackCommand::Stop => self.stop(),
                 PlaybackCommand::ToggleShuffle => self.toggle_shuffle(),
@@ -480,6 +480,16 @@ impl PlaybackThread {
                 .expect("unable to send event");
             self.events_tx
                 .send(PlaybackEvent::QueueUpdated(self.shuffled_queue.clone()))
+                .expect("unable to send event");
+        }
+    }
+
+    fn set_volume(&mut self, volume: f64) {
+        if let Some(stream) = self.stream.as_mut() {
+            stream.set_volume(volume).expect("failed to set volume");
+
+            self.events_tx
+                .send(PlaybackEvent::VolumeChanged(volume))
                 .expect("unable to send event");
         }
     }

@@ -75,5 +75,5 @@ pub trait OutputStream {
     /// 0.0 and 1.0. Note that some device providers may not support hardware or OS-level volume
     /// control, and will instead use this value to adjust the volume of the audio data before
     /// submitting it to the device.
-    fn set_volume(&mut self, volume: f32) -> Result<(), StateError>;
+    fn set_volume(&mut self, volume: f64) -> Result<(), StateError>;
 }

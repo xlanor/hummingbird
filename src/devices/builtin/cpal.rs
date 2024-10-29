@@ -8,7 +8,7 @@ use crate::{
         },
         format::{BufferSize, ChannelSpec, FormatInfo, SampleFormat, SupportedFormat},
         traits::{Device, DeviceProvider, OutputStream},
-        util::interleave,
+        util::{interleave, Scale},
     },
     media::playback::{GetInnerSamples, Mute, PlaybackFrame},
 };
@@ -133,10 +133,11 @@ impl<T> CpalSample for T where
 }
 
 impl CpalDevice {
-    fn create_stream<T: CpalSample>(
-        &mut self,
-        format: FormatInfo,
-    ) -> Result<Box<dyn OutputStream>, OpenError> {
+    fn create_stream<T>(&mut self, format: FormatInfo) -> Result<Box<dyn OutputStream>, OpenError>
+    where
+        T: CpalSample,
+        Vec<Vec<T>>: Scale,
+    {
         let config =
             cpal_config_from_info(&format).map_err(|_| OpenError::InvalidConfigProvider)?;
 
@@ -251,15 +252,16 @@ where
     pub device: cpal::Device,
     pub format: FormatInfo,
     pub buffer_size: usize,
-    pub volume: f32,
+    pub volume: f64,
 }
 
 impl<T> OutputStream for CpalStream<T>
 where
     T: CpalSample,
+    Vec<Vec<T>>: Scale,
 {
     fn submit_frame(&mut self, frame: PlaybackFrame) -> Result<(), SubmissionError> {
-        let samples = T::inner(frame.samples);
+        let samples = T::inner(frame.samples).scale(self.volume);
         let interleaved = interleave(samples);
         let mut slice: &[T] = &interleaved;
 
@@ -301,7 +303,8 @@ where
         Ok(())
     }
 
-    fn set_volume(&mut self, volume: f32) -> Result<(), StateError> {
-        todo!()
+    fn set_volume(&mut self, volume: f64) -> Result<(), StateError> {
+        self.volume = volume;
+        Ok(())
     }
 }

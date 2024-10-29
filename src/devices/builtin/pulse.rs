@@ -14,8 +14,7 @@ use crate::{
         errors::{FindError, InfoError, InitializationError, ListError, OpenError},
         format::{BufferSize, ChannelSpec, FormatInfo, SampleFormat, SupportedFormat},
         traits::{Device, DeviceProvider, OutputStream},
-        util::interleave,
-        util::Packed,
+        util::{interleave, Packed, Scale},
     },
     media::playback::GetInnerSamples,
 };
@@ -213,6 +212,7 @@ struct PulseStream<T> {
     phantom: PhantomData<T>,
     stream: Simple,
     format: FormatInfo,
+    volume: f64,
 }
 
 impl<T> PulseStream<T> {
@@ -221,6 +221,7 @@ impl<T> PulseStream<T> {
             stream,
             format,
             phantom: PhantomData,
+            volume: 1.0,
         }
     }
 }
@@ -230,12 +231,13 @@ where
     T: PulseSample,
     [T]: Packed,
     i32: FromWrapper<T>,
+    Vec<Vec<T>>: Scale,
 {
     fn submit_frame(
         &mut self,
         frame: crate::media::playback::PlaybackFrame,
     ) -> Result<(), crate::devices::errors::SubmissionError> {
-        let samples = T::inner(frame.samples);
+        let samples = T::inner(frame.samples).scale(self.volume);
         let interleaved = interleave(samples);
         let packed = if self.format.sample_type == SampleFormat::Signed24 {
             interleaved
@@ -280,8 +282,9 @@ where
             .map_err(|_| crate::devices::errors::ResetError::Unknown)
     }
 
-    fn set_volume(&mut self, volume: f32) -> Result<(), crate::devices::errors::StateError> {
-        todo!()
+    fn set_volume(&mut self, volume: f64) -> Result<(), crate::devices::errors::StateError> {
+        self.volume = volume;
+        Ok(())
     }
 }
 

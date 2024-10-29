@@ -1,5 +1,7 @@
 use intx::{I24, U24};
 
+use super::resample::{SampleFrom, SampleInto};
+
 pub fn interleave<T>(samples: Vec<Vec<T>>) -> Vec<T>
 where
     T: Copy + PartialEq,
@@ -48,5 +50,32 @@ impl_packed!(f64);
 impl Packed for [u8] {
     fn pack(&self) -> Vec<u8> {
         self.to_vec()
+    }
+}
+
+pub trait Scale: Sized {
+    fn scale(self, factor: f64) -> Self;
+}
+
+impl<T> Scale for Vec<Vec<T>>
+where
+    T: SampleInto<f64> + SampleFrom<f64> + Copy,
+{
+    fn scale(self, factor: f64) -> Vec<Vec<T>> {
+        self.iter()
+            .map(|v| {
+                v.iter()
+                    .map(|v| T::sample_from(v.sample_into() * factor))
+                    .collect()
+            })
+            .collect()
+    }
+}
+
+impl Scale for Vec<Vec<f64>> {
+    fn scale(self, factor: f64) -> Vec<Vec<f64>> {
+        self.iter()
+            .map(|v| v.iter().map(|v| v * factor).collect())
+            .collect()
     }
 }

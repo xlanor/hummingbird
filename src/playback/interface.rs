@@ -107,7 +107,7 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn set_volume(&self, volume: u8) {
+    pub fn set_volume(&self, volume: f64) {
         self.commands_tx
             .send(PlaybackCommand::SetVolume(volume))
             .expect("could not send tx");
