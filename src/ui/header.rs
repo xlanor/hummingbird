@@ -1,18 +1,15 @@
-mod scrubber;
-
-use std::sync::Arc;
-
 use gpui::*;
 use prelude::FluentBuilder;
 use tracing::debug;
 
 use crate::{
-    media::metadata::Metadata,
+    data::interface::GPUIDataInterface,
     playback::{interface::GPUIPlaybackInterface, thread::PlaybackState},
     ui::global_actions::Quit,
 };
 
 use super::{
+    components::slider::slider,
     constants::{APP_ROUNDING, FONT_AWESOME},
     global_actions::{Next, PlayPause, Previous},
     models::{Models, PlaybackInfo},
@@ -250,8 +247,20 @@ impl PlaybackSection {
         cx.new_view(|cx| {
             let info = cx.global::<PlaybackInfo>().clone();
             let state = info.playback_state.clone();
+            let volume = info.volume.clone();
+            let shuffling = info.shuffling.clone();
 
             cx.observe(&state, |_, _, cx| {
+                cx.notify();
+            })
+            .detach();
+
+            cx.observe(&volume, |_, _, cx| {
+                cx.notify();
+            })
+            .detach();
+
+            cx.observe(&shuffling, |_, _, cx| {
                 cx.notify();
             })
             .detach();
@@ -264,90 +273,147 @@ impl PlaybackSection {
 impl Render for PlaybackSection {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let state = self.info.playback_state.read(cx);
+        let volume = self.info.volume.read(cx);
+        let shuffling = self.info.shuffling.read(cx);
         let theme = cx.global::<Theme>();
 
-        div().absolute().flex().w_full().child(
-            // TODO: position this so that it does not ever overlap with the timestamp and
-            // current track info
-            div()
-                .mr(auto())
-                .ml(auto())
-                .mt(px(5.0))
-                .rounded(px(4.0))
-                .border_color(theme.playback_button_border)
-                .border_1()
-                .shadow_md()
-                .flex()
-                .child(
-                    div()
-                        .w(px(30.0))
-                        .h(px(28.0))
-                        .rounded_l(px(3.0))
-                        .bg(theme.playback_button)
-                        .font_family(FONT_AWESOME)
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
-                        .id("header-prev-button")
-                        .active(|style| style.bg(theme.playback_button_active))
-                        .on_mouse_down(MouseButton::Left, |_, cx| {
-                            cx.stop_propagation();
-                            cx.prevent_default();
-                        })
-                        .on_click(|_, cx| {
-                            cx.dispatch_action(Box::new(Previous));
-                        })
-                        .child(""),
-                )
-                .child(
-                    div()
-                        .w(px(32.0))
-                        .h(px(28.0))
-                        .bg(theme.playback_button)
-                        .border_l(px(1.0))
-                        .border_r(px(1.0))
-                        .border_color(theme.playback_button_border)
-                        .font_family(FONT_AWESOME)
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
-                        .id("header-play-button")
-                        .active(|style| style.bg(theme.playback_button_active))
-                        .on_mouse_down(MouseButton::Left, |_, cx| {
-                            cx.stop_propagation();
-                            cx.prevent_default();
-                        })
-                        .on_click(|_, cx| {
-                            cx.dispatch_action(Box::new(PlayPause));
-                        })
-                        .when(*state == PlaybackState::Playing, |div| div.child(""))
-                        .when(*state != PlaybackState::Playing, |div| div.child("")),
-                )
-                .child(
-                    div()
-                        .w(px(30.0))
-                        .h(px(28.0))
-                        .rounded_r(px(3.0))
-                        .bg(theme.playback_button)
-                        .font_family(FONT_AWESOME)
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
-                        .id("header-next-button")
-                        .active(|style| style.bg(theme.playback_button_active))
-                        .on_mouse_down(MouseButton::Left, |_, cx| {
-                            cx.stop_propagation();
-                            cx.prevent_default();
-                        })
-                        .on_click(|_, cx| {
-                            cx.dispatch_action(Box::new(Next));
-                        })
-                        .child(""),
-                ),
-        )
+        div()
+            .mr(auto())
+            .ml(auto())
+            .mt(px(5.0))
+            .flex()
+            .w_full()
+            .absolute()
+            .child(
+                div()
+                    .rounded(px(3.0))
+                    .w(px(28.0))
+                    .h(px(25.0))
+                    .mt(px(2.0))
+                    .mr(px(6.0))
+                    .ml_auto()
+                    .border_color(theme.playback_button_border)
+                    .font_family(FONT_AWESOME)
+                    .text_size(px(12.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
+                    .id("header-shuffle-button")
+                    .active(|style| style.bg(theme.playback_button_active))
+                    .on_mouse_down(MouseButton::Left, |_, cx| {
+                        cx.stop_propagation();
+                        cx.prevent_default();
+                    })
+                    .on_click(|_, cx| {
+                        cx.global::<GPUIPlaybackInterface>().toggle_shuffle();
+                    })
+                    .when(*shuffling, |this| this.child(""))
+                    .when(!shuffling, |this| this.child("")),
+            )
+            .child(
+                div()
+                    .rounded(px(4.0))
+                    .border_color(theme.playback_button_border)
+                    .border_1()
+                    .flex()
+                    .child(
+                        div()
+                            .w(px(30.0))
+                            .h(px(28.0))
+                            .rounded_l(px(3.0))
+                            .bg(theme.playback_button)
+                            .font_family(FONT_AWESOME)
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
+                            .id("header-prev-button")
+                            .active(|style| style.bg(theme.playback_button_active))
+                            .on_mouse_down(MouseButton::Left, |_, cx| {
+                                cx.stop_propagation();
+                                cx.prevent_default();
+                            })
+                            .on_click(|_, cx| {
+                                cx.dispatch_action(Box::new(Previous));
+                            })
+                            .child(""),
+                    )
+                    .child(
+                        div()
+                            .w(px(32.0))
+                            .h(px(28.0))
+                            .bg(theme.playback_button)
+                            .border_l(px(1.0))
+                            .border_r(px(1.0))
+                            .border_color(theme.playback_button_border)
+                            .font_family(FONT_AWESOME)
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
+                            .id("header-play-button")
+                            .active(|style| style.bg(theme.playback_button_active))
+                            .on_mouse_down(MouseButton::Left, |_, cx| {
+                                cx.stop_propagation();
+                                cx.prevent_default();
+                            })
+                            .on_click(|_, cx| {
+                                cx.dispatch_action(Box::new(PlayPause));
+                            })
+                            .when(*state == PlaybackState::Playing, |div| div.child(""))
+                            .when(*state != PlaybackState::Playing, |div| div.child("")),
+                    )
+                    .child(
+                        div()
+                            .w(px(30.0))
+                            .h(px(28.0))
+                            .rounded_r(px(3.0))
+                            .bg(theme.playback_button)
+                            .font_family(FONT_AWESOME)
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
+                            .id("header-next-button")
+                            .active(|style| style.bg(theme.playback_button_active))
+                            .on_mouse_down(MouseButton::Left, |_, cx| {
+                                cx.stop_propagation();
+                                cx.prevent_default();
+                            })
+                            .on_click(|_, cx| {
+                                cx.dispatch_action(Box::new(Next));
+                            })
+                            .child(""),
+                    ),
+            )
+            .child(
+                div()
+                    .w(auto())
+                    .h(px(12.0))
+                    .mt(px(9.0))
+                    .ml(px(14.0))
+                    .font_family(FONT_AWESOME)
+                    .text_size(px(12.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(""),
+            )
+            .child(
+                slider()
+                    .w(px(80.0))
+                    .h(px(6.0))
+                    .mt(px(11.0))
+                    .ml(px(10.0))
+                    .mr_auto()
+                    .rounded(px(3.0))
+                    .id("volume")
+                    .value((*volume) as f32)
+                    .on_change(move |v, cx| {
+                        cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
+                    }),
+            )
     }
 }
 
@@ -543,8 +609,6 @@ impl RenderOnce for WindowControls {
     }
 }
 
-pub struct Scrubbing;
-
 pub struct Scrubber {
     position: Model<u64>,
     duration: Model<u64>,
@@ -601,9 +665,8 @@ impl Render for Scrubber {
                     .flex()
                     .relative()
                     .items_end()
-                    .mb(px(6.0))
                     .mt(px(6.0))
-                    .child(deferred(self.playback_section.clone()))
+                    .mb(px(6.0))
                     .child(
                         div()
                             .pr(px(6.0))
@@ -616,6 +679,7 @@ impl Render for Scrubber {
                         duration / 60,
                         duration % 60
                     )))
+                    .child(deferred(self.playback_section.clone()))
                     .child(div().h(px(30.0)))
                     .child(div().ml(auto()).child(format!(
                         "-{:02}:{:02}",
@@ -624,34 +688,16 @@ impl Render for Scrubber {
                     ))),
             )
             .child(
-                div()
+                slider()
                     .w_full()
                     .h(px(6.0))
-                    .bg(rgb(0x374151))
                     .rounded(px(3.0))
-                    .child(div().w_full().h(px(6.0)).child(scrubber::Scrubber::new(
-                        Some(ElementId::from("scrubber")),
-                        duration,
-                        position,
-                    )))
                     .id("scrubber-back")
-                    .on_mouse_down(MouseButton::Left, |_, cx| {
-                        cx.stop_propagation();
-                        cx.prevent_default();
-                    })
-                    .on_drag(Scrubbing, |_, cx| cx.new_view(|_| EmptyView))
-                    .on_drag_move(move |ev: &DragMoveEvent<Scrubbing>, cx| {
-                        let playing = cx.global::<PlaybackInfo>().current_track.read(cx).is_some();
-
-                        if playing {
-                            let interface = cx.global::<GPUIPlaybackInterface>();
-                            let relative = cx.mouse_position() - ev.bounds.origin;
-                            let relative_x = relative.x.0;
-                            let width = ev.bounds.size.width.0;
-                            let position = (relative_x / width).clamp(0.0, 1.0);
-                            let seconds = position as f64 * duration as f64;
-
-                            interface.seek(seconds);
+                    .value(position as f32 / duration as f32)
+                    .on_change(move |v, cx| {
+                        if duration > 0 {
+                            cx.global::<GPUIPlaybackInterface>()
+                                .seek(v as f64 * duration as f64);
                         }
                     }),
             )

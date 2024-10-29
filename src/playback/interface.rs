@@ -232,6 +232,13 @@ impl GPUIPlaybackInterface {
                                     })
                                     .expect("failed to update shuffle state");
                             }
+                            PlaybackEvent::VolumeChanged(v) => playback_info
+                                .volume
+                                .update(&mut cx, |m, cx| {
+                                    *m = v;
+                                    cx.notify()
+                                })
+                                .expect("failed to update volume model"),
                             _ => (),
                         }
                     }

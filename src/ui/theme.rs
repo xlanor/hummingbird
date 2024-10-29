@@ -58,6 +58,9 @@ pub struct Theme {
     pub button_danger_hover: Rgba,
     pub button_danger_active: Rgba,
     pub button_danger_text: Rgba,
+
+    pub slider_foreground: Rgba,
+    pub slider_background: Rgba,
 }
 
 impl Default for Theme {
@@ -77,10 +80,10 @@ impl Default for Theme {
             nav_button_hover: rgb(0x161A22),
             nav_button_active: rgb(0x0A0E12),
 
-            playback_button: rgb(0x282F3D),
-            playback_button_hover: rgb(0x3A4459),
-            playback_button_active: rgb(0x161A22),
-            playback_button_border: rgb(0x37404E),
+            playback_button: rgba(0x282F3D00),
+            playback_button_hover: rgb(0x282F3D),
+            playback_button_active: rgb(0x0D1014),
+            playback_button_border: rgba(0x37404E00),
 
             window_button: rgba(0x33415500),
             window_button_hover: rgb(0x282F3D),
@@ -114,6 +117,9 @@ impl Default for Theme {
             button_danger_hover: rgb(0xE80C0C),
             button_danger_active: rgb(0xB70A0A),
             button_danger_text: rgb(0xFEE3E3),
+
+            slider_foreground: rgb(0x0673C6),
+            slider_background: rgb(0x37404E),
         }
     }
 }
