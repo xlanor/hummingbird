@@ -411,7 +411,7 @@ impl Render for PlaybackSection {
                     .justify_center()
                     .when(!(*show_volume), |div| div.mr_auto())
                     .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
-                    .id("header-shuffle-button")
+                    .id("header-volume-button")
                     .active(|style| style.bg(theme.playback_button_active))
                     .on_mouse_down(MouseButton::Left, |_, cx| {
                         cx.stop_propagation();
