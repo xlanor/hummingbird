@@ -88,7 +88,7 @@ impl Render for Header {
         div()
             .w_full()
             .h(px(60.0))
-            .bg(theme.background_primary)
+            .bg(theme.background_secondary)
             .border_b_1()
             .border_color(theme.border_color)
             // macOS doesn't ever actually stop rounding corners so we don't need to check for
