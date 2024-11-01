@@ -19,20 +19,20 @@ use super::{
     arguments::parse_args_and_prepare,
     assets::Assets,
     constants::APP_ROUNDING,
+    controls::Controls,
     global_actions::register_actions,
     header::Header,
     library::Library,
     models::build_models,
     queue::Queue,
-    statusbar::StatusBar,
     theme::{setup_theme, Theme},
 };
 
 struct WindowShadow {
-    pub header: View<Header>,
+    pub controls: View<Controls>,
     pub queue: View<Queue>,
     pub library: View<Library>,
-    pub status_bar: View<StatusBar>,
+    pub header: View<Header>,
     pub show_queue: Model<bool>,
 }
 
@@ -180,7 +180,7 @@ impl Render for WindowShadow {
                             .child(self.library.clone())
                             .when(*self.show_queue.read(cx), |this| this.child(queue)),
                     )
-                    .child(self.status_bar.clone()),
+                    .child(self.controls.clone()),
             )
     }
 }
@@ -345,10 +345,10 @@ pub async fn run() {
                         let show_queue = cx.new_model(|_| false);
 
                         WindowShadow {
-                            header: Header::new(cx, show_queue.clone()),
+                            controls: Controls::new(cx, show_queue.clone()),
                             queue: Queue::new(cx, show_queue.clone()),
                             library: Library::new(cx),
-                            status_bar: StatusBar::new(cx),
+                            header: Header::new(cx),
                             show_queue,
                         }
                     })
