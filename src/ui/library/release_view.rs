@@ -3,6 +3,7 @@ use std::sync::Arc;
 use gpui::*;
 use prelude::FluentBuilder;
 use tracing::debug;
+use uuid::Uuid;
 
 use crate::{
     data::{
@@ -16,7 +17,10 @@ use crate::{
     playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::{
         app::DropOnNavigateQueue,
-        components::button::{button, ButtonIntent, ButtonSize},
+        components::{
+            button::{button, ButtonIntent, ButtonSize},
+            context::context,
+        },
         constants::FONT_AWESOME,
         models::{Models, PlaybackInfo},
         theme::Theme,
@@ -315,76 +319,78 @@ impl RenderOnce for TrackItem {
 
         let tracks = self.tracks.clone();
         let track_id = self.track.id;
-        div()
-            .flex()
-            .flex_col()
-            .w_full()
-            .id(self.track.id as usize)
-            .on_click(move |_, cx| {
-                let paths = tracks.iter().map(|track| track.location.clone()).collect();
+        context(("context", self.track.id as usize)).with(
+            div()
+                .flex()
+                .flex_col()
+                .w_full()
+                .id(self.track.id as usize)
+                .on_click(move |_, cx| {
+                    let paths = tracks.iter().map(|track| track.location.clone()).collect();
 
-                replace_queue(paths, cx);
+                    replace_queue(paths, cx);
 
-                let playback_interface = cx.global::<GPUIPlaybackInterface>();
-                playback_interface.jump(tracks.iter().position(|t| t.id == track_id).unwrap())
-            })
-            .when(self.is_start, |this| {
-                this.child(
+                    let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                    playback_interface.jump(tracks.iter().position(|t| t.id == track_id).unwrap())
+                })
+                .when(self.is_start, |this| {
+                    this.child(
+                        div()
+                            .text_color(theme.text_secondary)
+                            .text_sm()
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .px(px(24.0))
+                            .border_b_1()
+                            .w_full()
+                            .border_color(theme.border_color)
+                            .mt(px(24.0))
+                            .pb(px(6.0))
+                            .child(format!(
+                                "DISC {}",
+                                self.track.disc_number.unwrap_or_default()
+                            )),
+                    )
+                })
+                .child(
                     div()
-                        .text_color(theme.text_secondary)
-                        .text_sm()
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .px(px(24.0))
+                        .flex()
+                        .flex_row()
                         .border_b_1()
+                        .id(("track", self.track.id as u64))
                         .w_full()
                         .border_color(theme.border_color)
-                        .mt(px(24.0))
-                        .pb(px(6.0))
-                        .child(format!(
-                            "DISC {}",
-                            self.track.disc_number.unwrap_or_default()
-                        )),
-                )
-            })
-            .child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .border_b_1()
-                    .id(("track", self.track.id as u64))
-                    .w_full()
-                    .border_color(theme.border_color)
-                    .cursor_pointer()
-                    .px(px(24.0))
-                    .py(px(6.0))
-                    .hover(|this| this.bg(theme.nav_button_hover))
-                    .active(|this| this.bg(theme.nav_button_active))
-                    .max_w_full()
-                    .child(
-                        div()
-                            .w(px(62.0))
-                            .font_family("CommitMono")
-                            .flex_shrink_0()
-                            .child(format!("{}", self.track.track_number.unwrap_or_default())),
-                    )
-                    .child(
-                        div()
-                            .font_weight(FontWeight::BOLD)
-                            .overflow_x_hidden()
-                            .text_ellipsis()
-                            .child(self.track.title),
-                    )
-                    .child(
-                        div()
-                            .font_family("CommitMono")
-                            .ml_auto()
-                            .flex_shrink_0()
-                            .child(format!(
-                                "{}:{:02}",
-                                self.track.duration / 60,
-                                self.track.duration % 60
-                            )),
-                    ),
-            )
+                        .cursor_pointer()
+                        .px(px(24.0))
+                        .py(px(6.0))
+                        .hover(|this| this.bg(theme.nav_button_hover))
+                        .active(|this| this.bg(theme.nav_button_active))
+                        .max_w_full()
+                        .child(
+                            div()
+                                .w(px(62.0))
+                                .font_family("CommitMono")
+                                .flex_shrink_0()
+                                .child(format!("{}", self.track.track_number.unwrap_or_default())),
+                        )
+                        .child(
+                            div()
+                                .font_weight(FontWeight::BOLD)
+                                .overflow_x_hidden()
+                                .text_ellipsis()
+                                .child(self.track.title),
+                        )
+                        .child(
+                            div()
+                                .font_family("CommitMono")
+                                .ml_auto()
+                                .flex_shrink_0()
+                                .child(format!(
+                                    "{}:{:02}",
+                                    self.track.duration / 60,
+                                    self.track.duration % 60
+                                )),
+                        ),
+                ),
+        )
     }
 }
