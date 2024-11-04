@@ -1047,7 +1047,7 @@ dependencies = [
 [[package]]
 name = "collections"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "rustc-hash",
 ]
@@ -1420,7 +1420,7 @@ dependencies = [
 [[package]]
 name = "derive_refineable"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2159,7 +2159,7 @@ dependencies = [
 [[package]]
 name = "gpui"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "anyhow",
  "as-raw-xcb-connection",
@@ -2244,7 +2244,7 @@ dependencies = [
 [[package]]
 name = "gpui_macros"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2383,7 +2383,7 @@ dependencies = [
 [[package]]
 name = "http_client"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2920,7 +2920,7 @@ dependencies = [
 [[package]]
 name = "media"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -3983,7 +3983,7 @@ dependencies = [
 [[package]]
 name = "refineable"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "derive_refineable",
 ]
@@ -4265,7 +4265,7 @@ checksum = "d369a96f978623eb3dc28807c4852d6cc617fed53da5d3c400feff1ef34a714a"
 [[package]]
 name = "semantic_version"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "anyhow",
  "serde",
@@ -4808,7 +4808,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "sum_tree"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "arrayvec",
  "log",
@@ -5591,7 +5591,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 [[package]]
 name = "util"
 version = "0.1.0"
-source = "git+https://github.com/143mailliw/zed?branch=drop-image#23722a3778aceadfab48a3fc3ef87ede039a9bc2"
+source = "git+https://github.com/143mailliw/zed?branch=drop-image#04398619f76007c4ad699ee5dda89703b2978bf0"
 dependencies = [
  "anyhow",
  "async-fs 1.6.0",

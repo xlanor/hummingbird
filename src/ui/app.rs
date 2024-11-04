@@ -342,7 +342,7 @@ pub async fn run() {
                         })
                         .detach();
 
-                        let show_queue = cx.new_model(|_| false);
+                        let show_queue = cx.new_model(|_| true);
 
                         WindowShadow {
                             controls: Controls::new(cx, show_queue.clone()),
