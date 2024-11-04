@@ -151,6 +151,7 @@ impl Render for InfoSection {
                     .gap(px(10.0))
                     .flex()
                     .overflow_x_hidden()
+                    .when(*state == PlaybackState::Stopped, |e| e.mb(px(12.0)))
                     .child(
                         div()
                             .id("album-art")
