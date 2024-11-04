@@ -30,6 +30,7 @@ impl Render for Header {
         div()
             .flex()
             .w_full()
+            .text_sm()
             .min_h(px(33.0))
             .max_h(px(33.0))
             .bg(theme.background_secondary)
@@ -105,20 +106,40 @@ impl ScanStatus {
 
 impl Render for ScanStatus {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        div().child(match self.scan_model.read(cx) {
-            ScanEvent::ScanCompleteIdle => "Not scanning".to_string(),
-            ScanEvent::ScanProgress { current, total } => {
-                format!(
-                    "Scanning... ({}%)",
-                    (*current as f64 / *total as f64 * 100.0).round()
-                )
-            }
-            ScanEvent::DiscoverProgress(progress) => {
-                format!("Discovered {} files", progress)
-            }
-            ScanEvent::Cleaning => "Checking for changes".to_string(),
-            ScanEvent::ScanCompleteWatching => "Watching for new files".to_string(),
-        })
+        let theme = cx.global::<Theme>();
+        let status = self.scan_model.read(cx);
+
+        div()
+            .flex()
+            .text_sm()
+            .ml(px(16.0))
+            .child(
+                div()
+                    .mr(px(8.0))
+                    .pt(px(5.0))
+                    .text_size(px(9.0))
+                    .h_full()
+                    .font_family(FONT_AWESOME)
+                    .child(match status {
+                        ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => "",
+                        _ => "",
+                    }),
+            )
+            .text_color(theme.text_secondary)
+            .child(match status {
+                ScanEvent::ScanCompleteIdle => "".to_string(),
+                ScanEvent::ScanProgress { current, total } => {
+                    format!(
+                        "Scanning ({}%)",
+                        (*current as f64 / *total as f64 * 100.0).round()
+                    )
+                }
+                ScanEvent::DiscoverProgress(progress) => {
+                    format!("Discovering files ({})", progress)
+                }
+                ScanEvent::Cleaning => "".to_string(),
+                ScanEvent::ScanCompleteWatching => "Watching for updates".to_string(),
+            })
     }
 }
 
