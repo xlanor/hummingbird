@@ -63,13 +63,18 @@ impl Render for Header {
                         div.rounded_tr(APP_ROUNDING)
                     }),
             })
+            .when(cfg!(target_os = "macos"), |this| {
+                this.child(div().w(px(64.0)))
+            })
             .child(
                 div()
                     .pl(px(12.0))
                     .pb(px(6.0))
-                    .pt(px(4.0))
+                    .pt(px(6.0))
                     .flex()
-                    .child("Muzak")
+                    .when(cfg!(not(target_os = "macos")), |this| {
+                        this.child("Muzak").mr(px(16.0))
+                    })
                     .child(self.scan_status.clone()),
             )
             .when(cfg!(not(target_os = "macos")), |this| {
@@ -112,11 +117,10 @@ impl Render for ScanStatus {
         div()
             .flex()
             .text_sm()
-            .ml(px(16.0))
             .child(
                 div()
                     .mr(px(8.0))
-                    .pt(px(5.0))
+                    .pt(px(4.0))
                     .text_size(px(9.0))
                     .h_full()
                     .font_family(FONT_AWESOME)

@@ -328,8 +328,8 @@ pub async fn run() {
                         // TODO: fix this
                         appears_transparent: true,
                         traffic_light_position: Some(Point {
-                            x: px(12.0),
-                            y: px(12.0),
+                            x: px(9.0),
+                            y: px(9.0),
                         }),
                     }),
                     kind: WindowKind::Normal,
