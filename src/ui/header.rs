@@ -70,10 +70,10 @@ impl Render for Header {
                 div()
                     .pl(px(12.0))
                     .pb(px(6.0))
-                    .pt(px(6.0))
+                    .pt(px(5.0))
                     .flex()
                     .when(cfg!(not(target_os = "macos")), |this| {
-                        this.child("Muzak").mr(px(16.0))
+                        this.child(div().child("Muzak").mr(px(16.0)))
                     })
                     .child(self.scan_status.clone()),
             )
@@ -120,7 +120,7 @@ impl Render for ScanStatus {
             .child(
                 div()
                     .mr(px(8.0))
-                    .pt(px(4.0))
+                    .pt(px(5.0))
                     .text_size(px(9.0))
                     .h_full()
                     .font_family(FONT_AWESOME)
