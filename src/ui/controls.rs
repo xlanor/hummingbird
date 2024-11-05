@@ -39,7 +39,6 @@ impl Render for Controls {
 
         div()
             .w_full()
-            .h(px(60.0))
             .bg(theme.background_secondary)
             .border_t_1()
             .border_color(theme.border_color)
@@ -124,11 +123,10 @@ impl Render for InfoSection {
                 div()
                     .mx(px(12.0))
                     .mt(px(12.0))
-                    .mb(px(10.0))
+                    .mb(px(6.0))
                     .gap(px(10.0))
                     .flex()
                     .overflow_x_hidden()
-                    .when(*state == PlaybackState::Stopped, |e| e.mb(px(12.0)))
                     .child(
                         div()
                             .id("album-art")
@@ -137,6 +135,7 @@ impl Render for InfoSection {
                             .shadow_sm()
                             .w(px(36.0))
                             .h(px(36.0))
+                            .mb(px(6.0))
                             .when(self.albumart_actual.is_some(), |div| {
                                 div.child(
                                     img(self.albumart_actual.clone().unwrap())
@@ -155,7 +154,7 @@ impl Render for InfoSection {
                                 .flex()
                                 .h_full()
                                 .items_center()
-                                .pb(px(3.0))
+                                .pb(px(6.0))
                                 .child("Muzak"),
                         )
                     })
@@ -179,7 +178,7 @@ impl Render for InfoSection {
                                                 .unwrap_or("Unknown Track".into()),
                                         ),
                                 )
-                                .child(div().overflow_x_hidden().pb(px(3.0)).child(
+                                .child(div().overflow_x_hidden().pb(px(6.0)).child(
                                     self.artist_name.clone().unwrap_or("Unknown Artist".into()),
                                 )),
                         )
