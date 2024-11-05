@@ -19,7 +19,7 @@ use super::{
 pub struct Controls {
     info_section: View<InfoSection>,
     scrubber: View<Scrubber>,
-    show_queue: Model<bool>,
+    secondary_controls: View<SecondaryControls>,
 }
 
 impl Controls {
@@ -27,12 +27,11 @@ impl Controls {
         cx.new_view(|cx| Self {
             info_section: InfoSection::new(cx),
             scrubber: Scrubber::new(cx),
-            show_queue,
+            secondary_controls: SecondaryControls::new(cx, show_queue),
         })
     }
 }
 
-#[cfg(not(target_os = "macos"))]
 impl Render for Controls {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let decorations = cx.window_decorations();
@@ -57,29 +56,7 @@ impl Render for Controls {
             .flex()
             .child(self.info_section.clone())
             .child(self.scrubber.clone())
-    }
-}
-
-#[cfg(target_os = "macos")]
-impl Render for Controls {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let theme = cx.global::<Theme>();
-
-        div()
-            .w_full()
-            .h(px(60.0))
-            .bg(theme.background_secondary)
-            .border_b_1()
-            .border_color(theme.border_color)
-            // macOS doesn't ever actually stop rounding corners so we don't need to check for
-            // tiling
-            .rounded_b(APP_ROUNDING)
-            .flex()
-            .child(self.info_section.clone())
-            .child(self.scrubber.clone())
-            .child(WindowControls {
-                show_queue: self.show_queue.clone(),
-            })
+            .child(self.secondary_controls.clone())
     }
 }
 
@@ -213,7 +190,6 @@ impl Render for InfoSection {
 
 pub struct PlaybackSection {
     info: PlaybackInfo,
-    show_volume: Model<bool>,
 }
 
 impl PlaybackSection {
@@ -221,16 +197,9 @@ impl PlaybackSection {
         cx.new_view(|cx| {
             let info = cx.global::<PlaybackInfo>().clone();
             let state = info.playback_state.clone();
-            let volume = info.volume.clone();
             let shuffling = info.shuffling.clone();
-            let show_volume: Model<bool> = cx.new_model(|_| false);
 
             cx.observe(&state, |_, _, cx| {
-                cx.notify();
-            })
-            .detach();
-
-            cx.observe(&volume, |_, _, cx| {
                 cx.notify();
             })
             .detach();
@@ -240,12 +209,7 @@ impl PlaybackSection {
             })
             .detach();
 
-            cx.observe(&show_volume, |_, _, cx| {
-                cx.notify();
-            })
-            .detach();
-
-            Self { info, show_volume }
+            Self { info }
         })
     }
 }
@@ -253,11 +217,8 @@ impl PlaybackSection {
 impl Render for PlaybackSection {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let state = self.info.playback_state.read(cx);
-        let volume = self.info.volume.read(cx);
         let shuffling = self.info.shuffling.read(cx);
         let theme = cx.global::<Theme>();
-        let show_volume = self.show_volume.read(cx);
-        let show_volume_model = self.show_volume.clone();
 
         div()
             .mr(auto())
@@ -299,6 +260,7 @@ impl Render for PlaybackSection {
                     .border_color(theme.playback_button_border)
                     .border_1()
                     .flex()
+                    .mr_auto()
                     .child(
                         div()
                             .w(px(30.0))
@@ -369,51 +331,6 @@ impl Render for PlaybackSection {
                             .child(""),
                     ),
             )
-            .child(
-                div()
-                    .rounded(px(3.0))
-                    .w(px(28.0))
-                    .h(px(25.0))
-                    .mt(px(2.0))
-                    .ml(px(6.0))
-                    .border_color(theme.playback_button_border)
-                    .font_family(FONT_AWESOME)
-                    .text_size(px(12.0))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .when(!(*show_volume), |div| div.mr_auto())
-                    .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
-                    .id("header-volume-button")
-                    .active(|style| style.bg(theme.playback_button_active))
-                    .on_mouse_down(MouseButton::Left, |_, cx| {
-                        cx.stop_propagation();
-                        cx.prevent_default();
-                    })
-                    .on_click(move |_, cx| {
-                        show_volume_model.update(cx, |a, cx| {
-                            *a = !(*a);
-                            cx.notify();
-                        })
-                    })
-                    .child(""),
-            )
-            .when(*show_volume, |div| {
-                div.child(
-                    slider()
-                        .w(px(80.0))
-                        .h(px(6.0))
-                        .mt(px(11.0))
-                        .ml(px(10.0))
-                        .mr_auto()
-                        .rounded(px(3.0))
-                        .id("volume")
-                        .value((*volume) as f32)
-                        .on_change(move |v, cx| {
-                            cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
-                        }),
-                )
-            })
     }
 }
 
@@ -458,7 +375,7 @@ impl Render for Scrubber {
         div()
             .pl(px(13.0))
             .pr(px(13.0))
-            .border_l(px(1.0))
+            .border_x(px(1.0))
             .border_color(theme.border_color)
             .flex_grow()
             .flex()
@@ -509,6 +426,97 @@ impl Render for Scrubber {
                         }
                     }),
             )
+    }
+}
+
+pub struct SecondaryControls {
+    info: PlaybackInfo,
+    show_queue: Model<bool>,
+}
+
+impl SecondaryControls {
+    pub fn new<V: 'static>(cx: &mut ViewContext<V>, show_queue: Model<bool>) -> View<Self> {
+        cx.new_view(|cx| {
+            let info = cx.global::<PlaybackInfo>().clone();
+            let volume = info.volume.clone();
+
+            cx.observe(&volume, |_, _, cx| {
+                cx.notify();
+            })
+            .detach();
+
+            Self { info, show_queue }
+        })
+    }
+}
+
+impl Render for SecondaryControls {
+    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+        let volume = self.info.volume.read(cx);
+        let show_queue = self.show_queue.clone();
+
+        div().px(px(18.0)).flex().child(
+            div()
+                .flex()
+                .my_auto()
+                .pb(px(2.0))
+                .gap(px(8.0))
+                .child(
+                    div()
+                        .rounded(px(3.0))
+                        .w(px(28.0))
+                        .h(px(25.0))
+                        .mt(px(2.0))
+                        .font_family(FONT_AWESOME)
+                        .text_size(px(12.0))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .border_color(theme.playback_button_border)
+                        .id("volume-button")
+                        .bg(theme.playback_button)
+                        .hover(|this| this.bg(theme.playback_button_hover))
+                        .active(|this| this.bg(theme.playback_button_active))
+                        .child(""),
+                )
+                .child(
+                    slider()
+                        .w(px(80.0))
+                        .h(px(6.0))
+                        .mt(px(11.0))
+                        .rounded(px(3.0))
+                        .id("volume")
+                        .value((*volume) as f32)
+                        .on_change(move |v, cx| {
+                            cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
+                        }),
+                )
+                .child(
+                    div()
+                        .rounded(px(3.0))
+                        .w(px(28.0))
+                        .h(px(25.0))
+                        .mt(px(2.0))
+                        .font_family(FONT_AWESOME)
+                        .text_size(px(12.0))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .border_color(theme.playback_button_border)
+                        .id("queue-button")
+                        .bg(theme.playback_button)
+                        .hover(|this| this.bg(theme.playback_button_hover))
+                        .active(|this| this.bg(theme.playback_button_active))
+                        .child("")
+                        .on_click(move |_, cx| {
+                            show_queue.update(cx, |m, cx| {
+                                *m = !*m;
+                                cx.notify();
+                            })
+                        }),
+                ),
+        )
     }
 }
 
