@@ -124,7 +124,7 @@ impl Render for InfoSection {
                 div()
                     .mx(px(12.0))
                     .mt(px(12.0))
-                    .mb(px(9.0))
+                    .mb(px(10.0))
                     .gap(px(10.0))
                     .flex()
                     .overflow_x_hidden()
