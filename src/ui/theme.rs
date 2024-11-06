@@ -61,6 +61,9 @@ pub struct Theme {
 
     pub slider_foreground: Rgba,
     pub slider_background: Rgba,
+
+    pub elevated_background: Rgba,
+    pub elevated_border_color: Rgba,
 }
 
 impl Default for Theme {
@@ -120,6 +123,9 @@ impl Default for Theme {
 
             slider_foreground: rgb(0x0673C6),
             slider_background: rgb(0x37404E),
+
+            elevated_background: rgb(0x161A22),
+            elevated_border_color: rgb(0x272D37),
         }
     }
 }
