@@ -319,6 +319,9 @@ impl RenderOnce for TrackItem {
         let theme = cx.global::<Theme>();
 
         let tracks = self.tracks.clone();
+        let tracks_2 = self.tracks.clone();
+        let track_location = self.track.location.clone();
+        let track_location_2 = self.track.location;
         let track_id = self.track.id;
         context(("context", self.track.id as usize))
             .with(
@@ -327,15 +330,7 @@ impl RenderOnce for TrackItem {
                     .flex_col()
                     .w_full()
                     .id(self.track.id as usize)
-                    .on_click(move |_, cx| {
-                        let paths = tracks.iter().map(|track| track.location.clone()).collect();
-
-                        replace_queue(paths, cx);
-
-                        let playback_interface = cx.global::<GPUIPlaybackInterface>();
-                        playback_interface
-                            .jump(tracks.iter().position(|t| t.id == track_id).unwrap())
-                    })
+                    .on_click(move |_, cx| play_from_track(cx, &tracks, track_id))
                     .when(self.is_start, |this| {
                         this.child(
                             div()
@@ -401,20 +396,42 @@ impl RenderOnce for TrackItem {
             .child(
                 div().bg(theme.elevated_background).child(
                     menu()
-                        .item(menu_item("track_play", Some(""), "Play", |_, _| ()))
+                        .item(menu_item(
+                            "track_play",
+                            Some(""),
+                            "Play",
+                            move |_, cx| {
+                                let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                                let queue_length = cx.global::<Models>().queue.read(cx).0.len();
+                                playback_interface.queue(&track_location);
+                                playback_interface.jump(queue_length);
+                            },
+                        ))
                         .item(menu_item(
                             "track_play_from_here",
                             Some(""),
                             "Play from here",
-                            |_, _| (),
+                            move |_, cx| play_from_track(cx, &tracks_2, track_id),
                         ))
                         .item(menu_item(
                             "track_add_to_queue",
                             Some("+"),
                             "Add to queue",
-                            |_, _| (),
+                            move |_, cx| {
+                                let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                                playback_interface.queue(&track_location_2);
+                            },
                         )),
                 ),
             )
     }
+}
+
+fn play_from_track(cx: &mut WindowContext, tracks: &Arc<Vec<Track>>, id: i64) {
+    let paths = tracks.iter().map(|track| track.location.clone()).collect();
+
+    replace_queue(paths, cx);
+
+    let playback_interface = cx.global::<GPUIPlaybackInterface>();
+    playback_interface.jump(tracks.iter().position(|t| t.id == id).unwrap())
 }

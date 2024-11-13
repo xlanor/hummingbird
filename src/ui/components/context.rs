@@ -91,6 +91,7 @@ impl Element for ContextMenu {
 
                 if let (Some(position), Some(menu)) = (point, menu) {
                     let state_clone = state.clone();
+                    let state_clone_2 = state.clone();
 
                     let new = anchored().position(position).child(deferred(
                         menu.occlude()
@@ -99,8 +100,13 @@ impl Element for ContextMenu {
                             .rounded(px(4.0))
                             .border_color(theme.elevated_border_color)
                             .bg(theme.elevated_background)
-                            .on_mouse_down_out(move |_, cx| {
+                            .id("menu")
+                            .on_click(move |_, cx| {
                                 (*state_clone.position.borrow_mut()) = None;
+                                cx.refresh()
+                            })
+                            .on_mouse_down_out(move |_, cx| {
+                                (*state_clone_2.position.borrow_mut()) = None;
                                 cx.refresh()
                             }),
                     ));
