@@ -6,6 +6,8 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use crate::ui::theme::Theme;
+
 pub struct ContextMenu {
     pub(self) id: ElementId,
     pub(self) style: StyleRefinement,
@@ -78,25 +80,36 @@ impl Element for ContextMenu {
 
         let menu = self.menu.take();
 
-        let anchored =
-            cx.with_element_state(id.unwrap(), move |prev: Option<Rc<ContextMenuState>>, _| {
+        let anchored = cx.with_element_state(
+            id.unwrap(),
+            move |prev: Option<Rc<ContextMenuState>>, cx| {
+                let theme = cx.global::<Theme>();
+
                 let state = prev.unwrap_or_else(|| Rc::new(ContextMenuState::new()));
 
-                let point = state.position.borrow().clone();
+                let point = *state.position.borrow();
 
                 if let (Some(position), Some(menu)) = (point, menu) {
                     let state_clone = state.clone();
 
                     let new = anchored().position(position).child(deferred(
-                        menu.occlude().on_mouse_down_out(move |_, _| {
-                            (*state_clone.position.borrow_mut()) = None;
-                        }),
+                        menu.occlude()
+                            .border_1()
+                            .shadow_sm()
+                            .rounded(px(4.0))
+                            .border_color(theme.elevated_border_color)
+                            .bg(theme.elevated_background)
+                            .p(px(5.0))
+                            .on_mouse_down_out(move |_, _| {
+                                (*state_clone.position.borrow_mut()) = None;
+                            }),
                     ));
                     (Some(new), state)
                 } else {
                     (None, state)
                 }
-            });
+            },
+        );
 
         let state = if let Some(mut anchored) = anchored {
             let layout = anchored.request_layout(None, cx);

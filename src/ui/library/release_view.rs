@@ -20,6 +20,7 @@ use crate::{
         components::{
             button::{button, ButtonIntent, ButtonSize},
             context::context,
+            menu::{menu, menu_item, CMenuItem},
         },
         constants::FONT_AWESOME,
         models::{Models, PlaybackInfo},
@@ -397,6 +398,23 @@ impl RenderOnce for TrackItem {
                             ),
                     ),
             )
-            .child(div().bg(theme.elevated_background).child("Test"))
+            .child(
+                div().bg(theme.elevated_background).child(
+                    menu()
+                        .item(menu_item("track_play", Some(""), "Play", |_, _| ()))
+                        .item(menu_item(
+                            "track_play_from_here",
+                            Some(""),
+                            "Play from here",
+                            |_, _| (),
+                        ))
+                        .item(menu_item(
+                            "track_add_to_queue",
+                            Some("+"),
+                            "Add to queue",
+                            |_, _| (),
+                        )),
+                ),
+            )
     }
 }
