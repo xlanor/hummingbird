@@ -99,9 +99,9 @@ impl Element for ContextMenu {
                             .rounded(px(4.0))
                             .border_color(theme.elevated_border_color)
                             .bg(theme.elevated_background)
-                            .p(px(5.0))
-                            .on_mouse_down_out(move |_, _| {
+                            .on_mouse_down_out(move |_, cx| {
                                 (*state_clone.position.borrow_mut()) = None;
+                                cx.refresh()
                             }),
                     ));
                     (Some(new), state)

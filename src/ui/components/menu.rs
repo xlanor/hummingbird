@@ -1,6 +1,6 @@
 use gpui::{prelude::FluentBuilder, *};
 
-use crate::ui::theme::Theme;
+use crate::ui::{constants::FONT_AWESOME, theme::Theme};
 
 type ClickEvHandler = dyn Fn(&ClickEvent, &mut WindowContext);
 
@@ -25,21 +25,32 @@ impl RenderOnce for CMenuItem {
             CMenuItem::Item(id, icon, name, func) => div()
                 .id(id)
                 .on_click(func)
-                .rounded(px(4.0))
+                .rounded(px(3.0))
                 .flex()
-                .gap(px(5.0))
-                .p(px(5.0))
-                .w_full()
+                .px(px(8.0))
+                .pt(px(2.0))
+                .pb(px(3.0))
+                .min_w_full()
+                .bg(theme.menu_item)
+                .hover(|this| this.bg(theme.menu_item_hover))
+                .active(|this| this.bg(theme.menu_item_active))
+                .text_sm()
+                .font_weight(FontWeight::SEMIBOLD)
+                .child(div().child(name))
                 .child(
                     div()
                         .w(px(12.0))
                         .h(px(12.0))
+                        .my_auto()
+                        .ml_auto()
                         .flex()
                         .items_center()
                         .justify_center()
+                        .text_size(px(12.0))
+                        .font_family(FONT_AWESOME)
+                        .text_color(theme.text_secondary)
                         .when_some(icon, |this, icon| this.child(icon)),
                 )
-                .child(div().child(name))
                 .into_any_element(),
             CMenuItem::Seperator => div()
                 .w_full()
@@ -88,6 +99,6 @@ impl RenderOnce for Menu {
 pub fn menu() -> Menu {
     Menu {
         items: vec![],
-        div: div().w(px(150.0)),
+        div: div().min_w(px(200.0)).p(px(4.0)),
     }
 }

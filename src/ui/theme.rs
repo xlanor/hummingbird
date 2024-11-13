@@ -64,6 +64,10 @@ pub struct Theme {
 
     pub elevated_background: Rgba,
     pub elevated_border_color: Rgba,
+
+    pub menu_item: Rgba,
+    pub menu_item_hover: Rgba,
+    pub menu_item_active: Rgba,
 }
 
 impl Default for Theme {
@@ -126,6 +130,10 @@ impl Default for Theme {
 
             elevated_background: rgb(0x161A22),
             elevated_border_color: rgb(0x272D37),
+
+            menu_item: rgba(0x282F3D00),
+            menu_item_hover: rgb(0x282F3D),
+            menu_item_active: rgb(0x0D1014),
         }
     }
 }
