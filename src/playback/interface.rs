@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{
     sync::mpsc::{Receiver, Sender},
     time::Duration,
@@ -218,7 +220,7 @@ impl GPUIPlaybackInterface {
                             PlaybackEvent::QueueUpdated(v) => {
                                 queue_model
                                     .update(&mut cx, |m, cx| {
-                                        (*m).0 = v;
+                                        m.0 = v;
                                         cx.notify()
                                     })
                                     .expect("failed to update queue");

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::ops::Range;
 
 use bitflags::bitflags;
@@ -16,7 +18,7 @@ pub enum SampleFormat {
     Unsigned16,
     Signed8,
     Unsigned8,
-    DSD,
+    Dsd,
     Unsupported,
 }
 

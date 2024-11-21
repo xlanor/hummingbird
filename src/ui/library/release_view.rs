@@ -3,7 +3,6 @@ use std::sync::Arc;
 use gpui::*;
 use prelude::FluentBuilder;
 use tracing::debug;
-use uuid::Uuid;
 
 use crate::{
     data::{
@@ -20,7 +19,7 @@ use crate::{
         components::{
             button::{button, ButtonIntent, ButtonSize},
             context::context,
-            menu::{menu, menu_item, CMenuItem},
+            menu::{menu, menu_item},
         },
         constants::FONT_AWESOME,
         models::{Models, PlaybackInfo},

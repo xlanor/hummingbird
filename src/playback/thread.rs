@@ -507,7 +507,7 @@ impl PlaybackThread {
                             PlaybackReadError::NeverStarted => {
                                 panic!("thread state is invalid: playback never started")
                             }
-                            PlaybackReadError::EOF => {
+                            PlaybackReadError::Eof => {
                                 info!("EOF, moving to next song");
                                 self.next(false);
                                 return;
@@ -552,7 +552,7 @@ impl PlaybackThread {
                             PlaybackReadError::NeverStarted => {
                                 panic!("thread state is invalid: playback never started")
                             }
-                            PlaybackReadError::EOF => {
+                            PlaybackReadError::Eof => {
                                 info!("EOF, moving to next song");
                                 self.next(false);
                                 return;

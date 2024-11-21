@@ -20,6 +20,8 @@ where
     result
 }
 
+// Code is dead on non-Linux platforms only
+#[allow(dead_code)]
 pub trait Packed {
     fn pack(&self) -> Vec<u8>;
 }

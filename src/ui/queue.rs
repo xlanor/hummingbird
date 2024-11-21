@@ -1,5 +1,3 @@
-use std::path::MAIN_SEPARATOR;
-
 use crate::{
     data::{interface::GPUIDataInterface, types::UIQueueItem},
     playback::interface::GPUIPlaybackInterface,

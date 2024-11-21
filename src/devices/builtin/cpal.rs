@@ -52,7 +52,7 @@ impl DeviceProvider for CpalProvider {
             .map(|dev| Box::new(CpalDevice::from(dev)) as Box<dyn Device>)
     }
 
-    fn get_device_by_uid(&mut self, id: &String) -> Result<Box<dyn Device>, FindError> {
+    fn get_device_by_uid(&mut self, id: &str) -> Result<Box<dyn Device>, FindError> {
         self.host
             .devices()
             .map_err(|_| FindError::Unknown)?

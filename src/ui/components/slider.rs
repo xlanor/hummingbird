@@ -4,11 +4,13 @@ use gpui::*;
 
 use crate::ui::theme::Theme;
 
+type ClickHandler = dyn FnMut(f32, &mut WindowContext);
+
 pub struct Slider {
     pub(self) id: Option<ElementId>,
     pub(self) style: StyleRefinement,
     pub(self) value: f32,
-    pub(self) on_change: Option<Rc<RefCell<dyn FnMut(f32, &mut WindowContext)>>>,
+    pub(self) on_change: Option<Rc<RefCell<ClickHandler>>>,
     pub(self) hitbox: Option<Hitbox>,
 }
 
@@ -85,7 +87,7 @@ impl Element for Slider {
         let default_foreground = theme.slider_foreground;
 
         let mut inner_bounds = bounds;
-        inner_bounds.size.width = bounds.size.width * (self.value as f32);
+        inner_bounds.size.width = bounds.size.width * self.value;
 
         let mut corners = Corners::default();
         corners.refine(&self.style.corner_radii);
@@ -98,8 +100,7 @@ impl Element for Slider {
             self.style
                 .background
                 .clone()
-                .map(|v| v.color())
-                .flatten()
+                .and_then(|v| v.color())
                 .unwrap_or(default_background.into()),
             Edges::all(px(0.0)),
             rgb(0x000000),
@@ -114,8 +115,7 @@ impl Element for Slider {
             self.style
                 .text
                 .clone()
-                .map(|v| v.color)
-                .flatten()
+                .and_then(|v| v.color)
                 .unwrap_or(default_foreground.into()),
             borders.to_pixels(cx.rem_size()),
             self.style.border_color.unwrap_or_default(),

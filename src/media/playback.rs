@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use intx::{I24, U24};
 
 use crate::devices::format::SampleFormat;
@@ -13,7 +15,7 @@ pub enum Samples {
     Unsigned16(Vec<Vec<u16>>),
     Signed8(Vec<Vec<i8>>),
     Unsigned8(Vec<Vec<u8>>),
-    DSD(Vec<Vec<bool>>),
+    Dsd(Vec<Vec<bool>>),
 }
 
 impl Samples {
@@ -29,7 +31,7 @@ impl Samples {
             Samples::Unsigned16(_) => format == SampleFormat::Unsigned16,
             Samples::Signed8(_) => format == SampleFormat::Signed8,
             Samples::Unsigned8(_) => format == SampleFormat::Unsigned8,
-            Samples::DSD(_) => format == SampleFormat::DSD,
+            Samples::Dsd(_) => format == SampleFormat::Dsd,
         }
     }
 }
@@ -55,7 +57,7 @@ mute_impl!(U24, U24::try_from(8388607).unwrap());
 mute_impl!(u16, 32767);
 mute_impl!(u8, 127);
 mute_impl!(i32, 0);
-mute_impl!(I24, I24::from(0 as u8));
+mute_impl!(I24, I24::from(0_u8));
 mute_impl!(i16, 0);
 mute_impl!(i8, 0);
 
@@ -86,7 +88,7 @@ unwrap_impl!(i32, Samples::Signed32);
 unwrap_impl!(I24, Samples::Signed24);
 unwrap_impl!(i16, Samples::Signed16);
 unwrap_impl!(i8, Samples::Signed8);
-unwrap_impl!(bool, Samples::DSD);
+unwrap_impl!(bool, Samples::Dsd);
 
 pub trait GetInnerSamples: Sized {
     fn inner(samples: Samples) -> Vec<Vec<Self>>;

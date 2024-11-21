@@ -59,7 +59,7 @@ impl DeviceProvider for PulseProvider {
         )) as Box<dyn Device>)
     }
 
-    fn get_device_by_uid(&mut self, id: &String) -> Result<Box<dyn Device>, FindError> {
+    fn get_device_by_uid(&mut self, id: &str) -> Result<Box<dyn Device>, FindError> {
         Ok(Box::new(PulseDevice::from(
             self.controller
                 .get_device_by_name(id)

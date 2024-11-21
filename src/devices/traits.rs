@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::media::playback::PlaybackFrame;
 
 use super::{
@@ -21,7 +23,7 @@ pub trait DeviceProvider {
     /// Returns the default device of the device provider.
     fn get_default_device(&mut self) -> Result<Box<dyn Device>, FindError>;
     /// Requests the device provider find and return a device by its UID.
-    fn get_device_by_uid(&mut self, id: &String) -> Result<Box<dyn Device>, FindError>;
+    fn get_device_by_uid(&mut self, id: &str) -> Result<Box<dyn Device>, FindError>;
 }
 
 pub trait Device {

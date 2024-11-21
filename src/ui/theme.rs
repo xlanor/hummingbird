@@ -189,7 +189,7 @@ pub fn setup_theme(cx: &mut AppContext, path: PathBuf) {
                 while let Ok(event) = rx.try_recv() {
                     match event {
                         Ok(v) => {
-                            if v.paths.iter().find(|t| t.ends_with("theme.json")).is_some() {
+                            if v.paths.iter().any(|t| t.ends_with("theme.json")) {
                                 match v.kind {
                                     notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
                                         info!("Theme changed, updating...");

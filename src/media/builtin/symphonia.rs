@@ -235,10 +235,10 @@ impl MediaProvider for SymphoniaProvider {
             loop {
                 let packet = match format.next_packet() {
                     Ok(packet) => packet,
-                    Err(Error::ResetRequired) => return Err(PlaybackReadError::EOF),
+                    Err(Error::ResetRequired) => return Err(PlaybackReadError::Eof),
                     Err(_) => {
                         // TODO: Handle better
-                        return Err(PlaybackReadError::EOF);
+                        return Err(PlaybackReadError::Eof);
                     }
                 };
 

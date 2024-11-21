@@ -1,12 +1,7 @@
 use gpui::*;
 use prelude::FluentBuilder;
-use tracing::debug;
 
-use crate::{
-    data::interface::GPUIDataInterface,
-    playback::{interface::GPUIPlaybackInterface, thread::PlaybackState},
-    ui::global_actions::Quit,
-};
+use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 
 use super::{
     components::slider::slider,

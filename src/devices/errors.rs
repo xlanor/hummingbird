@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum InitializationError {
     Unknown,

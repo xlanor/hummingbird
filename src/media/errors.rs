@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum OpenError {
     FileCorrupt,
@@ -30,7 +32,7 @@ pub enum PlaybackStopError {
 pub enum PlaybackReadError {
     NothingOpen,
     NeverStarted,
-    EOF,
+    Eof,
     Unknown,
     DecodeFatal,
 }

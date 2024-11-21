@@ -14,7 +14,7 @@ use smallvec::SmallVec;
 use tracing::{debug, warn};
 
 use crate::{
-    media::{builtin::symphonia::SymphoniaProvider, metadata::Metadata, traits::MediaProvider},
+    media::{builtin::symphonia::SymphoniaProvider, traits::MediaProvider},
     util::rgb_to_bgr,
 };
 
@@ -207,11 +207,11 @@ impl DataThread {
             file_path: path.clone(),
             track_name: metadata
                 .name
-                .map(|v| SharedString::from(v))
+                .map(SharedString::from)
                 .unwrap_or_else(|| create_generic_queue_item(path).track_name),
             artist_name: metadata
                 .artist
-                .map(|v| SharedString::from(v))
+                .map(SharedString::from)
                 .unwrap_or_else(|| SharedString::from("Unknown Artist")),
             album_art,
         }

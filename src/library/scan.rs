@@ -139,7 +139,7 @@ fn retrieve_base_paths() -> Vec<PathBuf> {
     vec![system_music]
 }
 
-fn file_is_scannable_with_provider(path: &PathBuf, exts: &&[&str]) -> bool {
+fn file_is_scannable_with_provider(path: &Path, exts: &&[&str]) -> bool {
     for extension in exts.iter() {
         if let Some(ext) = path.extension() {
             if ext == *extension {
@@ -151,12 +151,14 @@ fn file_is_scannable_with_provider(path: &PathBuf, exts: &&[&str]) -> bool {
     false
 }
 
+type FileInformation = (Metadata, u64, Option<Box<[u8]>>);
+
 // We don't care about the error message. If the file can't be scanned, we just ignore it.
 // TODO: it might be worth logging why the file couldn't be scanned (for plugin development)
 fn scan_file_with_provider(
     path: &PathBuf,
     provider: &mut Box<dyn MediaProvider>,
-) -> Result<(Metadata, u64, Option<Box<[u8]>>), ()> {
+) -> Result<FileInformation, ()> {
     let src = std::fs::File::open(path).map_err(|_| ())?;
     provider.open(src, None).map_err(|_| ())?;
     provider.start_playback().map_err(|_| ())?;
@@ -354,7 +356,7 @@ impl ScanThread {
             let result: Result<(i64,), sqlx::Error> =
                 sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
                     .bind(&artist)
-                    .bind(&metadata.artist_sort.as_ref().unwrap_or(&artist))
+                    .bind(metadata.artist_sort.as_ref().unwrap_or(&artist))
                     .fetch_one(&self.pool)
                     .await;
 
@@ -427,7 +429,7 @@ impl ScanThread {
                     let result: Result<(i64,), sqlx::Error> =
                         sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
                             .bind(album)
-                            .bind(&metadata.sort_album.as_ref().unwrap_or(&album))
+                            .bind(metadata.sort_album.as_ref().unwrap_or(album))
                             .bind(artist_id)
                             .bind(image)
                             .bind(thumb)
@@ -514,10 +516,7 @@ impl ScanThread {
         Ok(())
     }
 
-    fn read_metadata_for_path(
-        &mut self,
-        path: &PathBuf,
-    ) -> Option<(Metadata, u64, Option<Box<[u8]>>)> {
+    fn read_metadata_for_path(&mut self, path: &PathBuf) -> Option<FileInformation> {
         for (exts, provider) in &mut self.provider_table {
             if file_is_scannable_with_provider(path, exts) {
                 if let Ok(metadata) = scan_file_with_provider(path, provider) {
