@@ -365,7 +365,7 @@ impl RenderOnce for TrackItem {
                             .child(
                                 div()
                                     .w(px(62.0))
-                                    .font_family("CommitMono")
+                                    .font_family("Roboto Mono")
                                     .flex_shrink_0()
                                     .child(format!(
                                         "{}",
@@ -381,7 +381,7 @@ impl RenderOnce for TrackItem {
                             )
                             .child(
                                 div()
-                                    .font_family("CommitMono")
+                                    .font_family("Roboto Mono")
                                     .ml_auto()
                                     .flex_shrink_0()
                                     .child(format!(

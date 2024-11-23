@@ -376,7 +376,7 @@ impl Render for Scrubber {
             .flex_col()
             .line_height(rems(1.0))
             .text_size(px(15.0))
-            .font_family("CommitMono")
+            .font_family("Roboto Mono")
             .font_weight(FontWeight::BOLD)
             .child(
                 div()
