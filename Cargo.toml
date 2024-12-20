@@ -43,3 +43,7 @@ inherits = "release"
 lto = true
 strip = true
 panic = "abort"
+
+[package.metadata.bundle]
+name = "Muzak"
+identifier = "me.william341.muzak"

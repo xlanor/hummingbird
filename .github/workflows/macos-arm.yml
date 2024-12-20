@@ -1,0 +1,25 @@
+name: macOS (ARM binary)
+
+on:
+    push:
+        branches: ["master"]
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    build:
+        runs-on: macos-latest
+
+        steps:
+            - uses: actions/checkout@v4
+            - name: Install dependencies
+              run: cargo install cargo-bundle
+            - name: Build
+              run: cargo build --verbose --release
+            - name: Bundle
+              run: cargo bundle --release
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: muzak
+                  path: target/release/muzak/bundle/osx/Muzak.app
