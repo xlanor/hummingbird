@@ -26,9 +26,12 @@ jobs:
               with:
                   name: muzak
                   path: target/release/bundle/osx/
+            - name: Zip files
+              run: zip -r macos.zip Muzak.app/
+              working-directory: /target/release/bundle/osx
             - uses: softprops/action-gh-release@v2
               with:
-                  files: target/release/bundle/osx/*
+                  files: target/release/bundle/osx/macos.zip
                   prerelease: true
                   name: latest
                   tag_name: latest
