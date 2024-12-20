@@ -1,22 +1,30 @@
 name: Windows (binary)
 
 on:
-  push:
-    branches: [ "master" ]
+    push:
+        branches: ["master"]
 
 env:
-  CARGO_TERM_COLOR: always
+    CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+    build:
+        runs-on: windows-latest
 
-    runs-on: windows-latest
+        permissions:
+            contents: write
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose --release
-    - uses: actions/upload-artifact@v4
-      with:
-        name: muzak
-        path: target/release/muzak.exe
+        steps:
+            - uses: actions/checkout@v4
+            - name: Build
+              run: cargo build --verbose --release
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: muzak
+                  path: target/release/muzak.exe
+            - uses: softprops/action-gh-release@v2
+              with:
+                  files: target/release/muzak.exe
+                  prerelease: true
+                  name: latest
+                  tag_name: latest
