@@ -13,6 +13,7 @@ use crate::{
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::GPUIPlaybackInterface, thread::PlaybackThread},
+    settings::setup_settings,
 };
 
 use super::{
@@ -288,6 +289,9 @@ pub async fn run() {
 
             build_models(cx);
 
+            setup_theme(cx, directory.join("theme.json"));
+            setup_settings(cx, directory.join("settings.json"));
+
             if let Ok(pool) = pool {
                 let mut scan_interface: ScanInterface = ScanThread::start(pool.clone());
                 scan_interface.scan();
@@ -312,8 +316,6 @@ pub async fn run() {
             cx.set_global(data_interface);
             cx.set_global(create_cache());
             cx.set_global(DropOnNavigateQueue::default());
-
-            setup_theme(cx, directory.join("theme.json"));
 
             cx.activate(true);
 

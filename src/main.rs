@@ -1,9 +1,9 @@
-
 mod data;
 mod devices;
 mod library;
 mod media;
 mod playback;
+mod settings;
 mod ui;
 mod util;
 

@@ -180,7 +180,7 @@ pub fn setup_theme(cx: &mut AppContext, path: PathBuf) {
     let watcher = notify::recommended_watcher(tx);
 
     if let Ok(mut watcher) = watcher {
-        if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::Recursive) {
+        if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::NonRecursive) {
             warn!("failed to watch settings directory: {:?}", e);
         }
 
