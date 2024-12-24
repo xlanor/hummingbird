@@ -13,7 +13,7 @@ use crate::{
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::GPUIPlaybackInterface, thread::PlaybackThread},
-    settings::setup_settings,
+    settings::{setup_settings, Settings, SettingsGlobal},
 };
 
 use super::{
@@ -293,7 +293,9 @@ pub async fn run() {
             setup_settings(cx, directory.join("settings.json"));
 
             if let Ok(pool) = pool {
-                let mut scan_interface: ScanInterface = ScanThread::start(pool.clone());
+                let settings = cx.global::<SettingsGlobal>().model.read(cx);
+                let mut scan_interface: ScanInterface =
+                    ScanThread::start(pool.clone(), settings.scanning.clone());
                 scan_interface.scan();
                 scan_interface.start_broadcast(cx);
 

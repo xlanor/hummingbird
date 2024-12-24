@@ -8,7 +8,7 @@ use tracing::{info, warn};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanSettings {
     #[serde(default = "retrieve_default_paths")]
-    paths: Vec<PathBuf>,
+    pub paths: Vec<PathBuf>,
 }
 
 impl Default for ScanSettings {
@@ -52,7 +52,7 @@ pub fn create_settings(path: &PathBuf) -> Settings {
 }
 
 pub struct SettingsGlobal {
-    model: Model<Settings>,
+    pub model: Model<Settings>,
 }
 
 impl Global for SettingsGlobal {}

@@ -19,6 +19,7 @@ use crate::{
         metadata::Metadata,
         traits::{MediaPlugin, MediaProvider},
     },
+    settings::ScanSettings,
     ui::models::Models,
 };
 
@@ -107,7 +108,7 @@ pub struct ScanThread {
     event_tx: mpsc::Sender<ScanEvent>,
     command_rx: mpsc::Receiver<ScanCommand>,
     pool: SqlitePool,
-    base_paths: Vec<PathBuf>,
+    scan_settings: ScanSettings,
     visited: Vec<PathBuf>,
     discovered: Vec<PathBuf>,
     to_process: Vec<PathBuf>,
@@ -170,7 +171,7 @@ fn scan_file_with_provider(
 }
 
 impl ScanThread {
-    pub fn start(pool: SqlitePool) -> ScanInterface {
+    pub fn start(pool: SqlitePool, settings: ScanSettings) -> ScanInterface {
         let (commands_tx, commands_rx) = std::sync::mpsc::channel();
         let (events_tx, events_rx) = std::sync::mpsc::channel();
 
@@ -186,7 +187,7 @@ impl ScanThread {
                     to_process: Vec::new(),
                     scan_state: ScanState::Idle,
                     provider_table: build_provider_table(),
-                    base_paths: retrieve_base_paths(),
+                    scan_settings: settings,
                     scan_record: AHashMap::new(),
                     scan_record_path: None,
                     scanned: 0,
@@ -257,7 +258,7 @@ impl ScanThread {
             match command {
                 ScanCommand::Scan => {
                     if self.scan_state == ScanState::Idle {
-                        self.discovered = self.base_paths.clone();
+                        self.discovered = self.scan_settings.paths.clone();
                         self.scan_state = ScanState::Cleanup;
                         self.scanned = 0;
                         self.discovered_total = 0;
