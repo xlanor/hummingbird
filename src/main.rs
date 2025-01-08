@@ -3,6 +3,7 @@ mod devices;
 mod library;
 mod media;
 mod playback;
+mod services;
 mod settings;
 mod ui;
 mod util;

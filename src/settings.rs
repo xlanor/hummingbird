@@ -1,7 +1,7 @@
 use std::{fs::File, path::PathBuf, sync::mpsc::channel, time::Duration};
 
 use gpui::{AppContext, AsyncAppContext, Context, Global, Model};
-use notify::{Event, RecursiveMode, Watcher};
+use notify::{event::ModifyKind, Event, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
@@ -53,6 +53,7 @@ pub fn create_settings(path: &PathBuf) -> Settings {
 
 pub struct SettingsGlobal {
     pub model: Model<Settings>,
+    pub watcher: Option<Box<dyn Watcher>>,
 }
 
 impl Global for SettingsGlobal {}
@@ -60,9 +61,6 @@ impl Global for SettingsGlobal {}
 pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
     let settings = cx.new_model(|_| create_settings(&path));
     let settings_model = settings.clone(); // for the closure
-    let global = SettingsGlobal { model: settings };
-
-    cx.set_global(global);
 
     // create and setup file watcher
     let (tx, rx) = channel::<notify::Result<Event>>();
@@ -70,7 +68,7 @@ pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
     let watcher = notify::recommended_watcher(tx);
 
     if let Ok(mut watcher) = watcher {
-        if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::NonRecursive) {
+        if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::Recursive) {
             warn!("failed to watch settings file: {:?}", e);
         }
 
@@ -112,5 +110,21 @@ pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
             }
         })
         .detach();
+
+        let global = SettingsGlobal {
+            model: settings,
+            watcher: Some(Box::new(watcher)),
+        };
+
+        cx.set_global(global);
+    } else {
+        warn!("failed to create settings watcher");
+
+        let global = SettingsGlobal {
+            model: settings,
+            watcher: None,
+        };
+
+        cx.set_global(global);
     }
 }
