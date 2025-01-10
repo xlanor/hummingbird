@@ -33,7 +33,7 @@ impl LFMRequestBuilder {
         self
     }
 
-    pub fn sign(mut self, secret: &'static str) -> Self {
+    pub fn sign(mut self, secret: &str) -> Self {
         self.params.insert(0, ("api_key", self.api_key.clone()));
         self.params.push(("format", "json".to_string()));
 
@@ -48,7 +48,7 @@ impl LFMRequestBuilder {
         self
     }
 
-    pub fn send_read_request(self) {
+    pub async fn send_read_request(self) {
         let mut url = self.endpoint.clone();
         url.push_str("?");
 
@@ -62,12 +62,12 @@ impl LFMRequestBuilder {
         url.push_str("api_sig=");
         url.push_str(self.signature.as_ref().unwrap());
 
-        let mut response = isahc::get(url).unwrap();
-        let body = response.text().unwrap();
+        let mut response = isahc::get_async(url).await.unwrap();
+        let body = response.text().await.unwrap();
         println!("{}", body);
     }
 
-    pub fn send_write_request(self) {
+    pub async fn send_write_request(self) {
         // URL encode the parameters for the POST body
         let mut body = String::new();
 
@@ -81,8 +81,8 @@ impl LFMRequestBuilder {
         body.push_str("api_sig=");
         body.push_str(self.signature.as_ref().unwrap());
 
-        let mut response = isahc::post(self.endpoint, body).unwrap();
-        let body = response.text().unwrap();
+        let mut response = isahc::post_async(self.endpoint, body).await.unwrap();
+        let body = response.text().await.unwrap();
         println!("{}", body);
     }
 }

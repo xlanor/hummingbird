@@ -1,4 +1,4 @@
-mod lastfm;
+pub mod lastfm;
 
 use crate::media::metadata::Metadata;
 use async_trait::async_trait;

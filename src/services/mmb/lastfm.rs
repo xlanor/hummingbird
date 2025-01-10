@@ -3,8 +3,8 @@ mod requests;
 mod types;
 mod util;
 
-const API_KEY: Option<&'static str> = option_env!("LASTFM_API_KEY");
-const API_SECRET: Option<&'static str> = option_env!("LASTFM_API_SECRET");
+pub const LASTFM_API_KEY: Option<&'static str> = option_env!("LASTFM_API_KEY");
+pub const LASTFM_API_SECRET: Option<&'static str> = option_env!("LASTFM_API_SECRET");
 
 pub struct LastFM {
     api_secret: String,

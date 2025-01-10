@@ -1,7 +1,9 @@
 use isahc::prelude::*;
 
+use super::requests::LFMRequestBuilder;
+
 pub struct LastFMClient {
-    api_key: &'static str,
+    api_key: String,
     api_secret: &'static str,
     auth_token: Option<String>,
     auth_session: Option<String>,
@@ -10,7 +12,7 @@ pub struct LastFMClient {
 }
 
 impl LastFMClient {
-    pub fn new(key: &'static str, secret: &'static str) -> Self {
+    pub fn new(key: String, secret: &'static str) -> Self {
         LastFMClient {
             api_key: key,
             api_secret: secret,
