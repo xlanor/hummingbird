@@ -1,5 +1,7 @@
 pub mod lastfm;
 
+use std::sync::Arc;
+
 use crate::media::metadata::Metadata;
 use async_trait::async_trait;
 
@@ -13,13 +15,13 @@ use async_trait::async_trait;
 /// that provides scrobbling functionality might want to wait some time before recording the
 /// scrobble.
 ///
-/// Note that MMBS operations are performed on the UI thread, and thus services should not perform
-/// substantial blocking operations in their MMBS implementations. If, for example, a network
-/// request is needed, use an async function to perform the request.
+/// Note that MMBS operations can be performed on the UI thread, and thus services should not
+/// perform substantial blocking operations in their MMBS implementations. If, for example, a
+/// network request is needed, use an async function to perform the request.
 #[async_trait]
 pub trait MediaMetadataBroadcastService {
     /// Called when a new track is played.
-    async fn new_track(&self, info: Metadata, file_path: String);
+    async fn new_track(&self, info: Arc<Metadata>, file_path: String);
     /// Called when the currently playing track is paused.
     async fn track_paused(&self);
     /// Called when the currently playing track is resumed.

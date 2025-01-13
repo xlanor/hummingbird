@@ -1,7 +1,12 @@
+mod lastfm;
+
 use gpui::*;
 use prelude::FluentBuilder;
 
-use crate::library::scan::ScanEvent;
+use crate::{
+    library::scan::ScanEvent,
+    services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET},
+};
 
 use super::{
     constants::{APP_ROUNDING, FONT_AWESOME},
@@ -12,12 +17,20 @@ use super::{
 
 pub struct Header {
     scan_status: View<ScanStatus>,
+    lastfm: Option<View<lastfm::LastFM>>,
 }
 
 impl Header {
     pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
+        let lastfm = if LASTFM_API_SECRET.is_some() && LASTFM_API_KEY.is_some() {
+            Some(lastfm::LastFM::new(cx))
+        } else {
+            None
+        };
+
         cx.new_view(|cx| Self {
             scan_status: ScanStatus::new(cx),
+            lastfm,
         })
     }
 }
@@ -77,11 +90,12 @@ impl Render for Header {
                     })
                     .child(self.scan_status.clone()),
             )
+            .child(div().ml_auto())
+            .when_some(self.lastfm.clone(), |this, lastfm| this.child(lastfm))
             .when(cfg!(not(target_os = "macos")), |this| {
                 this.child(
                     div()
                         .flex()
-                        .ml_auto()
                         .child(WindowButton::Minimize)
                         .child(WindowButton::Maximize)
                         .child(WindowButton::Close),
