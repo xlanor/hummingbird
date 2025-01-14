@@ -19,7 +19,7 @@ use crate::{
         metadata::Metadata,
         traits::{MediaPlugin, MediaProvider},
     },
-    settings::ScanSettings,
+    settings::scan::ScanSettings,
     ui::models::Models,
 };
 

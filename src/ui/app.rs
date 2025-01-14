@@ -1,6 +1,7 @@
 use core::panic;
 use std::{cell::RefCell, fs, rc::Rc, sync::Arc};
 
+use directories::ProjectDirs;
 use gpui::*;
 use prelude::FluentBuilder;
 use sqlx::SqlitePool;
@@ -267,9 +268,12 @@ impl DropOnNavigateQueue {
 
 impl Global for DropOnNavigateQueue {}
 
+pub fn get_dirs() -> ProjectDirs {
+    directories::ProjectDirs::from("me", "william341", "muzak").expect("couldn't find project dirs")
+}
+
 pub async fn run() {
-    let dirs = directories::ProjectDirs::from("me", "william341", "muzak")
-        .expect("couldn't find project dirs");
+    let dirs = get_dirs();
     let directory = dirs.data_dir().to_path_buf();
     if !directory.exists() {
         fs::create_dir_all(&directory)

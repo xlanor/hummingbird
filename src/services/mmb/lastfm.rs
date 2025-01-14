@@ -1,6 +1,6 @@
-mod client;
+pub mod client;
 mod requests;
-mod types;
+pub mod types;
 mod util;
 
 pub const LASTFM_API_KEY: Option<&'static str> = option_env!("LASTFM_API_KEY");

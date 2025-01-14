@@ -1,39 +1,16 @@
+pub mod scan;
+
 use std::{fs::File, path::PathBuf, sync::mpsc::channel, time::Duration};
 
 use gpui::{AppContext, AsyncAppContext, Context, Global, Model};
-use notify::{event::ModifyKind, Event, RecursiveMode, Watcher};
+use notify::{Event, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScanSettings {
-    #[serde(default = "retrieve_default_paths")]
-    pub paths: Vec<PathBuf>,
-}
-
-impl Default for ScanSettings {
-    fn default() -> Self {
-        Self {
-            paths: retrieve_default_paths(),
-        }
-    }
-}
-
-fn retrieve_default_paths() -> Vec<PathBuf> {
-    // TODO: we should also probably check if these directories exist
-    let system_music = directories::UserDirs::new()
-        .unwrap()
-        .audio_dir()
-        .unwrap()
-        .to_path_buf();
-
-    vec![system_music]
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Settings {
     #[serde(default)]
-    pub scanning: ScanSettings,
+    pub scanning: scan::ScanSettings,
 }
 
 pub fn create_settings(path: &PathBuf) -> Settings {

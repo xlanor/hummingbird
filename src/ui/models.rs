@@ -1,9 +1,13 @@
-use std::sync::Arc;
+use std::{
+    fs::{File, OpenOptions},
+    io::Write,
+    sync::Arc,
+};
 
 use ahash::AHashMap;
 use async_std::sync::Mutex;
 use gpui::{AppContext, Context, EventEmitter, Global, Model, RenderImage};
-use tracing::debug;
+use tracing::{debug, error, warn};
 
 use crate::{
     data::{
@@ -14,7 +18,8 @@ use crate::{
     library::scan::ScanEvent,
     media::metadata::Metadata,
     playback::thread::PlaybackState,
-    services::mmb::MediaMetadataBroadcastService,
+    services::mmb::{lastfm::types::Session, MediaMetadataBroadcastService},
+    ui::app::get_dirs,
 };
 
 // yes this looks a little silly
@@ -25,6 +30,15 @@ pub struct ImageEvent(pub Box<[u8]>);
 
 impl EventEmitter<ImageEvent> for Option<Arc<RenderImage>> {}
 
+#[derive(Clone)]
+pub enum LastFMState {
+    Disconnected,
+    AwaitingFinalization(String),
+    Connected(Session),
+}
+
+impl EventEmitter<Session> for LastFMState {}
+
 pub struct Models {
     pub metadata: Model<Metadata>,
     pub albumart: Model<Option<Arc<RenderImage>>>,
@@ -32,6 +46,7 @@ pub struct Models {
     pub image_transfer_model: Model<TransferDummy>,
     pub scan_state: Model<ScanEvent>,
     pub mmbs: Model<MMBSList>,
+    pub lastfm: Model<LastFMState>,
 }
 
 impl Global for Models {}
@@ -80,6 +95,25 @@ pub fn build_models(cx: &mut AppContext) {
     let image_transfer_model: Model<TransferDummy> = cx.new_model(|_| TransferDummy);
     let scan_state: Model<ScanEvent> = cx.new_model(|_| ScanEvent::ScanCompleteIdle);
     let mmbs: Model<MMBSList> = cx.new_model(|_| MMBSList(AHashMap::new()));
+    let lastfm: Model<LastFMState> = cx.new_model(|_| {
+        let dirs = get_dirs();
+        let directory = dirs.data_dir().to_path_buf();
+        let path = directory.join("lastfm.json");
+
+        if let Ok(file) = File::open(path) {
+            let reader = std::io::BufReader::new(file);
+
+            if let Ok(session) = serde_json::from_reader(reader) {
+                LastFMState::Connected(session)
+            } else {
+                error!("The last.fm session information is stored on disk but the file could not be opened.");
+                warn!("You will not be logged in to last.fm.");
+                LastFMState::Disconnected
+            }
+        } else {
+            LastFMState::Disconnected
+        }
+    });
 
     cx.subscribe(&albumart, |_, ev, cx| {
         let img = ev.0.clone();
@@ -89,6 +123,34 @@ pub fn build_models(cx: &mut AppContext) {
             ImageLayout::BGR,
             true,
         );
+    })
+    .detach();
+
+    cx.subscribe(&lastfm, |m, ev, cx| {
+        let session_clone = ev.clone();
+        m.update(cx, |m, _| {
+            *m = LastFMState::Connected(session_clone);
+        });
+
+        let dirs = get_dirs();
+        let directory = dirs.data_dir().to_path_buf();
+        let path = directory.join("lastfm.json");
+        let file = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(path);
+
+        if let Ok(file) = file {
+            let writer = std::io::BufWriter::new(file);
+            if serde_json::to_writer_pretty(writer, ev).is_err() {
+                error!("Tried to write lastfm settings but could not write to file!");
+                error!("You will have to sign in again when the application is next started.");
+            }
+        } else {
+            error!("Tried to write lastfm settings but could not open file!");
+            error!("You will have to sign in again when the application is next started.");
+        }
     })
     .detach();
 
@@ -124,6 +186,7 @@ pub fn build_models(cx: &mut AppContext) {
         image_transfer_model,
         scan_state,
         mmbs,
+        lastfm,
     });
 
     let position: Model<u64> = cx.new_model(|_| 0);

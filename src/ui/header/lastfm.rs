@@ -1,20 +1,19 @@
 use gpui::*;
+use tracing::error;
 
-use crate::ui::{
-    constants::FONT_AWESOME_BRANDS,
-    models::{MMBSList, Models},
-    theme::Theme,
+use crate::{
+    services::mmb::lastfm::{client::LastFMClient, LASTFM_API_KEY, LASTFM_API_SECRET},
+    ui::{
+        constants::FONT_AWESOME_BRANDS,
+        models::{LastFMState, MMBSList, Models},
+        theme::Theme,
+    },
 };
-
-enum LastFMInternalState {
-    Disconnected,
-    AwaitingFinalization(String),
-    Connected,
-}
 
 pub struct LastFM {
     mmbs: Model<MMBSList>,
-    state: Model<LastFMInternalState>,
+    state: Model<LastFMState>,
+    name: Option<SharedString>,
 }
 
 impl LastFM {
@@ -22,9 +21,24 @@ impl LastFM {
         cx.new_view(|cx| {
             let models = cx.global::<Models>();
             let mmbs = models.mmbs.clone();
-            let state = cx.new_model(|cx| LastFMInternalState::Disconnected);
+            let state = models.lastfm.clone();
 
-            LastFM { mmbs, state }
+            cx.observe(&state, |this: &mut LastFM, m, cx| {
+                this.name = match m.read(cx) {
+                    LastFMState::Connected(session) => Some(session.name.clone().into()),
+                    _ => None,
+                }
+            })
+            .detach();
+
+            LastFM {
+                mmbs,
+                name: match state.read(cx) {
+                    LastFMState::Connected(session) => Some(session.name.clone().into()),
+                    _ => None,
+                },
+                state,
+            }
         })
     }
 }
@@ -32,6 +46,7 @@ impl LastFM {
 impl Render for LastFM {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let state = self.state.clone();
 
         div()
             .flex()
@@ -57,6 +72,74 @@ impl Render for LastFM {
                     .h_full()
                     .child(""),
             )
-            .child(div().child("Sign in"))
+            .child(div().child(match self.state.read(cx) {
+                LastFMState::Disconnected => "Sign in".into_any_element(),
+                LastFMState::AwaitingFinalization(_) => {
+                    "Click to confirm sign in".into_any_element()
+                }
+                LastFMState::Connected(_) => self.name.clone().unwrap().into_any_element(),
+            }))
+            .on_click(move |_, cx| {
+                let state = state.clone();
+                let read = state.read(cx).clone();
+
+                match read {
+                    LastFMState::Disconnected => get_token(cx, state),
+                    LastFMState::AwaitingFinalization(token) => confirm(cx, state, token),
+                    LastFMState::Connected(_) => (),
+                }
+            })
     }
+}
+
+fn get_token(cx: &mut WindowContext<'_>, state: Model<LastFMState>) {
+    cx.spawn(|mut cx| async move {
+        let mut client = LastFMClient::new(
+            LASTFM_API_KEY.unwrap().to_string(),
+            LASTFM_API_SECRET.unwrap(),
+        );
+
+        if let Ok(token) = client.get_token().await {
+            let path = format!(
+                "http://last.fm/api/auth/?api_key={}&token={}",
+                LASTFM_API_KEY.unwrap(),
+                token
+            );
+            if open::that(&path).is_err() {
+                error!(
+                    "Failed to open web browser to {}; you'll need to navigate to it manually.",
+                    path
+                );
+            }
+            state
+                .update(&mut cx, move |m, cx| {
+                    *m = LastFMState::AwaitingFinalization(token);
+                    cx.notify();
+                })
+                .expect("failed to update lastfm state");
+        } else {
+            error!("error getting token");
+        }
+    })
+    .detach();
+}
+
+fn confirm(cx: &mut WindowContext<'_>, state: Model<LastFMState>, token: String) {
+    cx.spawn(|mut cx| async move {
+        let mut client = LastFMClient::new(
+            LASTFM_API_KEY.unwrap().to_string(),
+            LASTFM_API_SECRET.unwrap(),
+        );
+
+        if let Ok(session) = client.get_session(token).await {
+            state
+                .update(&mut cx, move |_, cx| {
+                    cx.emit(session);
+                })
+                .expect("failed to emit session event");
+        } else {
+            error!("error getting session")
+        }
+    })
+    .detach();
 }
