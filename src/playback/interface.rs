@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
 use std::{
-    sync::mpsc::{Receiver, Sender},
+    sync::{
+        mpsc::{Receiver, Sender},
+        Arc,
+    },
     time::Duration,
 };
 
@@ -9,7 +12,7 @@ use gpui::AppContext;
 
 use crate::{
     data::interface::GPUIDataInterface,
-    ui::models::{ImageEvent, Models, PlaybackInfo},
+    ui::models::{ImageEvent, MMBSEvent, Models, PlaybackInfo},
 };
 
 use super::{
@@ -143,6 +146,7 @@ impl GPUIPlaybackInterface {
         let metadata_model = cx.global::<Models>().metadata.clone();
         let albumart_model = cx.global::<Models>().albumart.clone();
         let queue_model = cx.global::<Models>().queue.clone();
+        let mmbs_model = cx.global::<Models>().mmbs.clone();
 
         let playback_info = cx.global::<PlaybackInfo>().clone();
 
@@ -152,12 +156,20 @@ impl GPUIPlaybackInterface {
                     while let Ok(event) = events_rx.try_recv() {
                         match event {
                             PlaybackEvent::MetadataUpdate(v) => {
+                                let metadata = Arc::new(*v.clone());
+
                                 metadata_model
                                     .update(&mut cx, |m, cx| {
                                         *m = *v;
                                         cx.notify()
                                     })
                                     .expect("failed to update metadata");
+
+                                mmbs_model
+                                    .update(&mut cx, |_, cx| {
+                                        cx.emit(MMBSEvent::MetadataRecieved(metadata));
+                                    })
+                                    .expect("failed to broadcast MMBS event MetadataRecieved");
                             }
                             PlaybackEvent::AlbumArtUpdate(v) => {
                                 albumart_model
@@ -189,6 +201,12 @@ impl GPUIPlaybackInterface {
                                         })
                                         .expect("failed to update current track");
                                 }
+
+                                mmbs_model
+                                    .update(&mut cx, |_, cx| {
+                                        cx.emit(MMBSEvent::StateChanged(v));
+                                    })
+                                    .expect("failed to broadcast MMBS event StateChanged");
                             }
                             PlaybackEvent::PositionChanged(v) => {
                                 playback_info
@@ -198,6 +216,11 @@ impl GPUIPlaybackInterface {
                                         cx.notify()
                                     })
                                     .expect("failed to update position");
+                                mmbs_model
+                                    .update(&mut cx, |_, cx| {
+                                        cx.emit(MMBSEvent::PositionChanged(v));
+                                    })
+                                    .expect("failed to broadcast MMBS event PositionChanged");
                             }
                             PlaybackEvent::DurationChanged(v) => {
                                 playback_info
@@ -207,15 +230,26 @@ impl GPUIPlaybackInterface {
                                         cx.notify()
                                     })
                                     .expect("failed to update duration");
+                                mmbs_model
+                                    .update(&mut cx, |_, cx| {
+                                        cx.emit(MMBSEvent::DurationChanged(v));
+                                    })
+                                    .expect("failed to broadcast MMBS event DurationChanged");
                             }
                             PlaybackEvent::SongChanged(v) => {
+                                let clone = v.clone();
                                 playback_info
                                     .current_track
                                     .update(&mut cx, |m, cx| {
-                                        *m = Some(v);
+                                        *m = Some(clone);
                                         cx.notify()
                                     })
                                     .expect("failed to update current track");
+                                mmbs_model
+                                    .update(&mut cx, |_, cx| {
+                                        cx.emit(MMBSEvent::NewTrack(v));
+                                    })
+                                    .expect("failed to broadcast MMBS event NewTrack");
                             }
                             PlaybackEvent::QueueUpdated(v) => {
                                 queue_model

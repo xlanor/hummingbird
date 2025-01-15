@@ -72,13 +72,19 @@ impl Render for LastFM {
                     .h_full()
                     .child(""),
             )
-            .child(div().child(match self.state.read(cx) {
-                LastFMState::Disconnected => "Sign in".into_any_element(),
-                LastFMState::AwaitingFinalization(_) => {
-                    "Click to confirm sign in".into_any_element()
-                }
-                LastFMState::Connected(_) => self.name.clone().unwrap().into_any_element(),
-            }))
+            .child(
+                div().child(match self.state.read(cx) {
+                    LastFMState::Disconnected => "Sign in".into_any_element(),
+                    LastFMState::AwaitingFinalization(_) => {
+                        "Click to confirm sign in".into_any_element()
+                    }
+                    LastFMState::Connected(_) => self
+                        .name
+                        .clone()
+                        .unwrap_or(SharedString::new_static("Connected"))
+                        .into_any_element(),
+                }),
+            )
             .on_click(move |_, cx| {
                 let state = state.clone();
                 let read = state.read(cx).clone();

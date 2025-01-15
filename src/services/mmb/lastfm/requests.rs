@@ -16,7 +16,7 @@ impl LFMRequestBuilder {
         LFMRequestBuilder {
             api_key,
             params: SmallVec::new(),
-            endpoint: "https://ws.audioscrobbler.com/2.0/".to_string(),
+            endpoint: "https://ws.audioscrobbler.com/2.0/?format=json".to_string(),
             signature: None,
             read: true,
         }
@@ -37,12 +37,22 @@ impl LFMRequestBuilder {
         self
     }
 
+    pub fn add_optional_param(mut self, key: &'static str, value: Option<String>) -> Self {
+        if self.signature.is_none() {
+            if let Some(value) = value {
+                self.params.push((key, value));
+            }
+        } else {
+            panic!("cannot add params after signing");
+        }
+
+        self
+    }
+
     pub fn sign(mut self, secret: &str) -> Self {
         self.params.insert(0, ("api_key", self.api_key.clone()));
 
-        if (self.read) {
-            self.params.push(("format", "json".to_string()));
-        }
+        self.params.sort_by(|a, b| a.0.cmp(b.0));
 
         let params = self.params.clone();
         let mut sig = String::new();
@@ -52,10 +62,6 @@ impl LFMRequestBuilder {
         }
         sig.push_str(secret);
         self.signature = Some(format!("{:x}", md5::compute(sig)));
-
-        if (!self.read) {
-            self.params.push(("format", "json".to_string()));
-        }
 
         self
     }
@@ -80,7 +86,7 @@ impl LFMRequestBuilder {
 
     async fn send_read_request<T: for<'de> Deserialize<'de>>(self) -> anyhow::Result<T> {
         let mut url = self.endpoint.clone();
-        url.push('?');
+        url.push('&');
 
         for (k, v) in self.params.iter() {
             url.push_str(k);
@@ -98,11 +104,10 @@ impl LFMRequestBuilder {
 
         let mut response = isahc::get_async(url).await?;
         let body = response.text().await?;
-        debug!("{}", body);
         serde_json::from_str(&body).map_err(anyhow::Error::from)
     }
 
-    async fn send_write_request<T: for<'de> Deserialize<'de>>(self) -> anyhow::Result<T> {
+    pub async fn send_write_request_ns(self) -> anyhow::Result<String> {
         // URL encode the parameters for the POST body
         let mut body = String::new();
 
@@ -122,7 +127,12 @@ impl LFMRequestBuilder {
 
         let mut response = isahc::post_async(self.endpoint, body).await?;
         let body = response.text().await?;
-        debug!("{}", body);
+
+        Ok(body)
+    }
+
+    async fn send_write_request<T: for<'de> Deserialize<'de>>(self) -> anyhow::Result<T> {
+        let body = self.send_write_request_ns().await?;
         serde_json::from_str(&body).map_err(anyhow::Error::from)
     }
 }

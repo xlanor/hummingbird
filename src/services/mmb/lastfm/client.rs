@@ -1,4 +1,6 @@
+use chrono::{DateTime, Utc};
 use isahc::prelude::*;
+use serde_json::Map;
 
 use super::{
     requests::LFMRequestBuilder,
@@ -47,5 +49,59 @@ impl LastFMClient {
             .await?;
 
         Ok(session.session)
+    }
+
+    pub async fn scrobble(
+        &mut self,
+        artist: String,
+        track: String,
+        timestamp: DateTime<Utc>,
+        album: Option<String>,
+        duration: Option<u64>,
+    ) -> anyhow::Result<()> {
+        if let Some(session) = self.auth_session.clone() {
+            LFMRequestBuilder::new(self.api_key.clone())
+                .add_param("method", "track.scrobble".to_string())
+                .add_param("artist[0]", artist)
+                .add_param("track[0]", track)
+                .add_param("timestamp[0]", timestamp.timestamp().to_string())
+                .add_optional_param("album[0]", album)
+                .add_optional_param("duration[0]", duration.map(|a| u64::to_string(&a)))
+                .add_param("sk", session)
+                .write()
+                .sign(self.api_secret)
+                .send_write_request_ns()
+                .await?;
+
+            Ok(())
+        } else {
+            Err(anyhow::Error::msg("not logged in"))
+        }
+    }
+
+    pub async fn now_playing(
+        &mut self,
+        artist: String,
+        track: String,
+        album: Option<String>,
+        duration: Option<u64>,
+    ) -> anyhow::Result<()> {
+        if let Some(session) = self.auth_session.clone() {
+            LFMRequestBuilder::new(self.api_key.clone())
+                .add_param("method", "track.updateNowPlaying".to_string())
+                .add_param("artist", artist)
+                .add_param("track", track)
+                .add_optional_param("album", album)
+                .add_optional_param("duration", duration.map(|a| u64::to_string(&a)))
+                .add_param("sk", session)
+                .write()
+                .sign(self.api_secret)
+                .send_write_request_ns()
+                .await?;
+
+            Ok(())
+        } else {
+            Err(anyhow::Error::msg("not logged in"))
+        }
     }
 }

@@ -18,7 +18,10 @@ use crate::{
     library::scan::ScanEvent,
     media::metadata::Metadata,
     playback::thread::PlaybackState,
-    services::mmb::{lastfm::types::Session, MediaMetadataBroadcastService},
+    services::mmb::{
+        lastfm::{client::LastFMClient, types::Session, LastFM, LASTFM_API_KEY, LASTFM_API_SECRET},
+        MediaMetadataBroadcastService,
+    },
     ui::app::get_dirs,
 };
 
@@ -78,11 +81,11 @@ pub struct MMBSList(pub AHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastSer
 
 #[derive(Clone)]
 pub enum MMBSEvent {
-    NewTrack(Arc<Metadata>, String),
-    TrackPaused,
-    TrackResumed,
-    TrackStopped,
-    PositionChanged { position: u64, duration: u64 },
+    NewTrack(String),
+    MetadataRecieved(Arc<Metadata>),
+    StateChanged(PlaybackState),
+    PositionChanged(u64),
+    DurationChanged(u64),
 }
 
 impl EventEmitter<MMBSEvent> for MMBSList {}
@@ -95,7 +98,7 @@ pub fn build_models(cx: &mut AppContext) {
     let image_transfer_model: Model<TransferDummy> = cx.new_model(|_| TransferDummy);
     let scan_state: Model<ScanEvent> = cx.new_model(|_| ScanEvent::ScanCompleteIdle);
     let mmbs: Model<MMBSList> = cx.new_model(|_| MMBSList(AHashMap::new()));
-    let lastfm: Model<LastFMState> = cx.new_model(|_| {
+    let lastfm: Model<LastFMState> = cx.new_model(|cx| {
         let dirs = get_dirs();
         let directory = dirs.data_dir().to_path_buf();
         let path = directory.join("lastfm.json");
@@ -103,7 +106,8 @@ pub fn build_models(cx: &mut AppContext) {
         if let Ok(file) = File::open(path) {
             let reader = std::io::BufReader::new(file);
 
-            if let Ok(session) = serde_json::from_reader(reader) {
+            if let Ok(session) = serde_json::from_reader::<std::io::BufReader<File>, Session>(reader) {
+                create_last_fm_mmbs(cx, &mmbs, session.key.clone());
                 LastFMState::Connected(session)
             } else {
                 error!("The last.fm session information is stored on disk but the file could not be opened.");
@@ -126,10 +130,14 @@ pub fn build_models(cx: &mut AppContext) {
     })
     .detach();
 
-    cx.subscribe(&lastfm, |m, ev, cx| {
+    let mmbs_clone = mmbs.clone();
+
+    cx.subscribe(&lastfm, move |m, ev, cx| {
         let session_clone = ev.clone();
-        m.update(cx, |m, _| {
+        create_last_fm_mmbs(cx, &mmbs_clone, session_clone.key.clone());
+        m.update(cx, |m, cx| {
             *m = LastFMState::Connected(session_clone);
+            cx.notify();
         });
 
         let dirs = get_dirs();
@@ -162,15 +170,13 @@ pub fn build_models(cx: &mut AppContext) {
         for mmbs in list.0.values().cloned() {
             let ev = ev.clone();
             cx.spawn(|_| async move {
-                let borrow = mmbs.lock().await;
+                let mut borrow = mmbs.lock().await;
                 match ev {
-                    MMBSEvent::NewTrack(metadata, path) => borrow.new_track(metadata, path),
-                    MMBSEvent::TrackPaused => borrow.track_paused(),
-                    MMBSEvent::TrackResumed => borrow.track_resumed(),
-                    MMBSEvent::TrackStopped => borrow.track_stopped(),
-                    MMBSEvent::PositionChanged { position, duration } => {
-                        borrow.position_changed(position, duration)
-                    }
+                    MMBSEvent::NewTrack(path) => borrow.new_track(path),
+                    MMBSEvent::MetadataRecieved(metadata) => borrow.metadata_recieved(metadata),
+                    MMBSEvent::StateChanged(state) => borrow.state_changed(state),
+                    MMBSEvent::PositionChanged(position) => borrow.position_changed(position),
+                    MMBSEvent::DurationChanged(duration) => borrow.duration_changed(duration),
                 }
                 .await;
             })
@@ -204,4 +210,15 @@ pub fn build_models(cx: &mut AppContext) {
         shuffling,
         volume,
     });
+}
+
+pub fn create_last_fm_mmbs(cx: &mut AppContext, mmbs_list: &Model<MMBSList>, session: String) {
+    if let (Some(key), Some(secret)) = (LASTFM_API_KEY, LASTFM_API_SECRET) {
+        let mut client = LastFMClient::new(key.to_string(), secret);
+        client.set_session(session);
+        let mmbs = LastFM::new(client);
+        mmbs_list.update(cx, |m, cx| {
+            m.0.insert("lastfm".to_string(), Arc::new(Mutex::new(mmbs)));
+        })
+    }
 }
