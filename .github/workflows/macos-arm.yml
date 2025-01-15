@@ -19,6 +19,9 @@ jobs:
             - name: Install dependencies
               run: cargo install cargo-bundle
             - name: Build
+              env:
+                  LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+                  LASTFM_API_SECRET: ${{ secrets.LASTFM_API_SECRET }}
               run: cargo build --verbose --release
             - name: Bundle
               run: cargo bundle --release
