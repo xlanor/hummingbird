@@ -199,7 +199,7 @@ impl Render for AlbumView {
 }
 
 pub struct AlbumItem {
-    album: Arc<Album>,
+    album: Option<Arc<Album>>,
     artist: Option<Arc<String>>,
     view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
     id: SharedString,
@@ -215,11 +215,16 @@ impl AlbumItem {
 
         let album = cx
             .get_album_by_id(album_id, AlbumMethod::UncachedThumb)
-            .expect("Failed to retrieve album");
+            .ok();
 
-        let artist = cx.get_artist_name_by_id(album.artist_id).ok();
+        let artist = album
+            .as_ref()
+            .and_then(|album| cx.get_artist_name_by_id(album.artist_id).ok());
         cx.new_view(|_| AlbumItem {
-            id: SharedString::from(format!("album-item-{}", album.id)),
+            id: SharedString::from(format!(
+                "album-item-{}",
+                album.as_ref().map(|album| album.id).unwrap_or_default()
+            )),
             album,
             artist,
             view_switch_model,
@@ -231,66 +236,71 @@ impl Render for AlbumItem {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
-        div()
-            .id(self.id.clone())
-            .w_full()
-            .flex()
-            .cursor_pointer()
-            .border_b_1()
-            .border_color(theme.border_color)
-            .px(px(24.0))
-            .hover(|this| this.bg(theme.nav_button_hover))
-            .active(|this| this.bg(theme.nav_button_active))
-            .child(
-                div()
-                    .id("album-art")
-                    .rounded(px(2.0))
-                    .bg(theme.album_art_background)
-                    .shadow_sm()
-                    .w(px(22.0))
-                    .h(px(22.0))
-                    .my(px(8.0))
-                    .flex_shrink_0()
-                    .when(self.album.thumb.is_some(), |div| {
-                        div.child(
-                            img(self.album.thumb.clone().unwrap().0)
-                                .w(px(22.0))
-                                .h(px(22.0))
-                                .rounded(px(2.0)),
-                        )
-                    }),
-            )
-            .child(
-                div()
-                    .my_auto()
-                    .px(px(12.0))
-                    .pb(px(1.0))
-                    .w(px(300.0))
-                    .min_w(px(300.0))
-                    .max_w(px(300.0))
-                    .flex_shrink()
-                    .text_sm()
-                    .font_weight(FontWeight::BOLD)
-                    .whitespace_nowrap()
-                    .overflow_hidden()
-                    .text_ellipsis()
-                    .child(self.album.title.clone()),
-            )
-            .child(
-                div()
-                    .my_auto()
-                    .pb(px(1.0))
-                    .px(px(12.0))
-                    .text_sm()
-                    .flex_shrink()
-                    .whitespace_nowrap()
-                    .overflow_x_hidden()
-                    .when_some(self.artist.clone(), |this, v| this.child((*v).clone())),
-            )
-            .on_click(cx.listener(|this, _, cx| {
-                this.view_switch_model.update(cx, |_, cx| {
-                    cx.emit(ViewSwitchMessage::Release(this.album.id))
-                })
-            }))
+        if let Some(album) = &self.album {
+            div()
+                .id(self.id.clone())
+                .w_full()
+                .flex()
+                .cursor_pointer()
+                .border_b_1()
+                .border_color(theme.border_color)
+                .px(px(24.0))
+                .hover(|this| this.bg(theme.nav_button_hover))
+                .active(|this| this.bg(theme.nav_button_active))
+                .child(
+                    div()
+                        .id("album-art")
+                        .rounded(px(2.0))
+                        .bg(theme.album_art_background)
+                        .shadow_sm()
+                        .w(px(22.0))
+                        .h(px(22.0))
+                        .my(px(8.0))
+                        .flex_shrink_0()
+                        .when(album.thumb.is_some(), |div| {
+                            div.child(
+                                img(album.thumb.clone().unwrap().0)
+                                    .w(px(22.0))
+                                    .h(px(22.0))
+                                    .rounded(px(2.0)),
+                            )
+                        }),
+                )
+                .child(
+                    div()
+                        .my_auto()
+                        .px(px(12.0))
+                        .pb(px(1.0))
+                        .w(px(300.0))
+                        .min_w(px(300.0))
+                        .max_w(px(300.0))
+                        .flex_shrink()
+                        .text_sm()
+                        .font_weight(FontWeight::BOLD)
+                        .whitespace_nowrap()
+                        .overflow_hidden()
+                        .text_ellipsis()
+                        .child(album.title.clone()),
+                )
+                .child(
+                    div()
+                        .my_auto()
+                        .pb(px(1.0))
+                        .px(px(12.0))
+                        .text_sm()
+                        .flex_shrink()
+                        .whitespace_nowrap()
+                        .overflow_x_hidden()
+                        .when_some(self.artist.clone(), |this, v| this.child((*v).clone())),
+                )
+                .on_click(cx.listener(|this, _, cx| {
+                    this.view_switch_model.update(cx, |_, cx| {
+                        cx.emit(ViewSwitchMessage::Release(this.album.as_ref().unwrap().id))
+                    })
+                }))
+                .into_any_element()
+        } else {
+            div().into_any_element()
+        }
     }
 }
