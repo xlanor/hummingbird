@@ -21,5 +21,4 @@ async fn main() {
     }
 
     crate::ui::app::run().await;
-    tracing::info!("hi");
 }

@@ -173,9 +173,18 @@ impl Render for InfoSection {
                                                 .unwrap_or("Unknown Track".into()),
                                         ),
                                 )
-                                .child(div().overflow_x_hidden().pb(px(6.0)).child(
-                                    self.artist_name.clone().unwrap_or("Unknown Artist".into()),
-                                )),
+                                .child(
+                                    div()
+                                        .overflow_x_hidden()
+                                        .pb(px(6.0))
+                                        .text_ellipsis()
+                                        .overflow_x_hidden()
+                                        .child(
+                                            self.artist_name
+                                                .clone()
+                                                .unwrap_or("Unknown Artist".into()),
+                                        ),
+                                ),
                         )
                     }),
             )
