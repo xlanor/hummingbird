@@ -1,39 +1,36 @@
 name: Linux (binary)
 
 on:
-    push:
-        branches: ["master"]
+  push:
+    branches: ["master"]
 
 env:
-    CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR: always
+  LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+  LASTFM_API_SECRET: ${{ secrets.LASTFM_API_SECRET }}
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-        permissions:
-            contents: write
+    permissions:
+      contents: write
 
-        steps:
-            - uses: actions/checkout@v4
-            - name: Install dependencies
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libasound2-dev pkg-config libxkbcommon-dev libxkbcommon-x11-dev libx11-xcb-dev libpulse-dev
-            - name: Create .env
-              env:
-                  DOTENV: ${{ secrets.DOTENV }}
-              run:
-                  echo $DOTENV > .env
-            - name:
-              run: cargo build --verbose --release
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: muzak
-                  path: target/release/muzak
-            - uses: softprops/action-gh-release@v2
-              with:
-                  files: target/release/muzak
-                  prerelease: true
-                  name: latest
-                  tag_name: latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev pkg-config libxkbcommon-dev libxkbcommon-x11-dev libx11-xcb-dev libpulse-dev
+      - name: Build
+        run: cargo build --verbose --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: muzak
+          path: target/release/muzak
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: target/release/muzak
+          prerelease: true
+          name: latest
+          tag_name: latest
