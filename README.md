@@ -9,12 +9,12 @@ design standard.
 # Features
 - Fully native application with no web component
 - FLAC, MP3, OGG and WAV playback
-- Linux, macOS and (sort of) Windows support
+- Linux, macOS and Windows support
 - SQLite-backed library
 - Theming with hot reload
+- Scrobbling (last.fm) support
 
 ## Planned Features
-- Scrobbling (last.fm) support
 - WASM Extension support:
   - Codecs
   - Scrobble services
@@ -23,15 +23,30 @@ design standard.
 - Advanced search
 - AAC and Opus support
 
-# Building
-Muzak isn't ready for general use yet, but if you want to try it early:
+# Usage
+Muzak hasn't yet seen a full release, but it's already usable.
 
+The latest commit is built using Github Actions and uploaded to the
+[latest](https://github.com/143mailliw/muzak/releases/tag/latest) tag
+automatically. The macOS binary is signed and notarized, and should work on
+most macOS versions out of the box.
+
+## Building
 ```sh
-# install relevant devel packages for xcb-common, x11, wayland, and pulseaudio if on Linux
+# install relevant devel packages for xcb-common, x11, wayland, openssl, and pulseaudio if on Linux
 git clone https://github.com/143mailliw/muzak
 cd muzak
-# debug mode will result in noticable slowdown
-cargo run --release
+
+# last.fm api keys must be set in the environment for scrobbling to work
+# these can be obtained from https://www.last.fm/api/account/create
+# you can also set these in a .env file in the root of the project
+#
+# Muzak will still build without these keys, but scrobbling will not work
+export LASTFM_API_KEY="your key"
+export LASTFM_API_SECRET="your secret"
+
+# debug mode will result in noticable slowdown in some cases
+cargo build --release
 ```
 
 # Contributing
@@ -40,6 +55,7 @@ enums/fields, which is fine if you're working on an API that could be used by
 future extention support), and ensure your code was formatted with `rustfmt`
 before submitting.
 
-Please ensure any commits build on Linux, at the very least, and preferably macOS
-too. The application is developed with running on Windows in mind, but it's
-unsupported due to GPUI limitations.
+Avoid breaking platforms if possible. Pull requests will be tested on Linux and
+macOS - if your commit breaks these platforms, it will not be merged. Your
+commit should not break the build on Windows, but due to time constraints it
+may not be tested.
