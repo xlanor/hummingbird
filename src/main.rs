@@ -16,7 +16,7 @@ async fn main() {
 
     tracing::info!("Starting application");
 
-    if (LASTFM_API_KEY.is_none() || LASTFM_API_SECRET.is_none()) {
+    if LASTFM_API_KEY.is_none() || LASTFM_API_SECRET.is_none() {
         tracing::warn!("Binary not compiled with LastFM support, set LASTFM_API_KEY and LASTFM_API_SECRET at compile time to enable");
     }
 

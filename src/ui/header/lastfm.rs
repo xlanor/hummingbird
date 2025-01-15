@@ -5,13 +5,12 @@ use crate::{
     services::mmb::lastfm::{client::LastFMClient, LASTFM_API_KEY, LASTFM_API_SECRET},
     ui::{
         constants::FONT_AWESOME_BRANDS,
-        models::{LastFMState, MMBSList, Models},
+        models::{LastFMState, Models},
         theme::Theme,
     },
 };
 
 pub struct LastFM {
-    mmbs: Model<MMBSList>,
     state: Model<LastFMState>,
     name: Option<SharedString>,
 }
@@ -20,7 +19,6 @@ impl LastFM {
     pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
         cx.new_view(|cx| {
             let models = cx.global::<Models>();
-            let mmbs = models.mmbs.clone();
             let state = models.lastfm.clone();
 
             cx.observe(&state, |this: &mut LastFM, m, cx| {
@@ -32,7 +30,6 @@ impl LastFM {
             .detach();
 
             LastFM {
-                mmbs,
                 name: match state.read(cx) {
                     LastFMState::Connected(session) => Some(session.name.clone().into()),
                     _ => None,

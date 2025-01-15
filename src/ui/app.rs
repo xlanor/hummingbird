@@ -14,7 +14,7 @@ use crate::{
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::GPUIPlaybackInterface, thread::PlaybackThread},
-    settings::{setup_settings, Settings, SettingsGlobal},
+    settings::{setup_settings, SettingsGlobal},
 };
 
 use super::{

@@ -1,6 +1,5 @@
 use std::{
     fs::{File, OpenOptions},
-    io::Write,
     sync::Arc,
 };
 
@@ -217,7 +216,7 @@ pub fn create_last_fm_mmbs(cx: &mut AppContext, mmbs_list: &Model<MMBSList>, ses
         let mut client = LastFMClient::new(key.to_string(), secret);
         client.set_session(session);
         let mmbs = LastFM::new(client);
-        mmbs_list.update(cx, |m, cx| {
+        mmbs_list.update(cx, |m, _| {
             m.0.insert("lastfm".to_string(), Arc::new(Mutex::new(mmbs)));
         })
     }

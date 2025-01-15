@@ -1,6 +1,4 @@
 use chrono::{DateTime, Utc};
-use isahc::prelude::*;
-use serde_json::Map;
 
 use super::{
     requests::LFMRequestBuilder,

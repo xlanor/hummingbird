@@ -1,7 +1,6 @@
 use isahc::prelude::*;
 use serde::Deserialize;
 use smallvec::SmallVec;
-use tracing::debug;
 
 pub struct LFMRequestBuilder {
     api_key: String,
