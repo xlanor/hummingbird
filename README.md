@@ -26,6 +26,10 @@ design standard.
 # Usage
 Muzak hasn't yet seen a full release, but it's already usable.
 
+> [!WARNING]
+> Windows support isn't tested frequently, as I don't use Windows reguarly.
+> If you're on Windows and encounter a bug, please open an issue.
+
 The latest commit is built using Github Actions and uploaded to the
 [latest](https://github.com/143mailliw/muzak/releases/tag/latest) tag
 automatically. The macOS binary is signed and notarized, and should work on
@@ -41,7 +45,7 @@ cd muzak
 # these can be obtained from https://www.last.fm/api/account/create
 # you can also set these in a .env file in the root of the project
 #
-# Muzak will still build without these keys, but scrobbling will not work
+# Muzak will still build without these keys, but scrobbling will be disabled
 export LASTFM_API_KEY="your key"
 export LASTFM_API_SECRET="your secret"
 
