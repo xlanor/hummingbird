@@ -74,6 +74,13 @@ in this example.
   "button_danger_text": "#FEE3E3",
 
   "slider_foreground": "#0673C6",
-  "slider_background": "#37404E"
+  "slider_background": "#37404E",
+
+  "elevated_background": "#161A22",
+  "elevated_border_color": "#272D37",
+
+  "menu_item": "#282F3D00",
+  "menu_item_hover": "#282F3D",
+  "menu_item_active": "#0D1014",
 }
 ```
