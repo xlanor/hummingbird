@@ -21,7 +21,9 @@ jobs:
             - name: Create .env
               env:
                   DOTENV: ${{ secrets.DOTENV }}
+                  TEST: ${{ secrets.TEST }}
               run:
+                  echo $TEST
                   echo $DOTENV > .env
             - name: Build
               run: cargo build --verbose --release
