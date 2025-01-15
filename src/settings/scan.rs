@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::{fs::exists, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
+use tracing::{error, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanSettings {
@@ -17,12 +18,27 @@ impl Default for ScanSettings {
 }
 
 fn retrieve_default_paths() -> Vec<PathBuf> {
-    // TODO: we should also probably check if these directories exist
-    let system_music = directories::UserDirs::new()
-        .unwrap()
-        .audio_dir()
-        .unwrap()
-        .to_path_buf();
+    if let Some(user_directories) = directories::UserDirs::new() {
+        if let Some(dir) = user_directories.audio_dir() {
+            if exists(dir).unwrap_or(false) {
+                return vec![dir.into()];
+            } else {
+                warn!("Music directory doesn't exist: nothing will be scanned by default.");
+            }
+        } else {
+            let dir = user_directories.home_dir().join("Music");
+            warn!("Music directory couldn't be discovered normally, using $HOME/Music.");
+            if exists(&dir).unwrap_or(false) {
+                return vec![dir.into()];
+            } else {
+                warn!("$HOME/Music doesn't exist: nothing will be scanned by default.");
+            }
+        };
+    } else {
+        error!("Couldn't find your home directory.");
+        warn!("Nothing will be scanned by default, and no config files will be loadable.");
+        warn!("Please create a home directory for this user.");
+    }
 
-    vec![system_music]
+    vec![]
 }
