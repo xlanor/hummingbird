@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_std::task;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use client::LastFMClient;
@@ -24,7 +25,7 @@ pub struct LastFM {
     duration: u64,
     metadata: Option<Arc<Metadata>>,
     last_postion: u64,
-    has_scrobbled: bool,
+    should_scrobble: bool,
 }
 
 impl LastFM {
@@ -36,7 +37,27 @@ impl LastFM {
             metadata: None,
             duration: 0,
             last_postion: 0,
-            has_scrobbled: true,
+            should_scrobble: false,
+        }
+    }
+
+    pub async fn scrobble(&mut self) {
+        if let Some(info) = &self.metadata {
+            if let (Some(artist), Some(track)) = (info.artist.clone(), info.name.clone()) {
+                if let Err(e) = self
+                    .client
+                    .scrobble(
+                        artist,
+                        track,
+                        self.start_timestamp.unwrap(),
+                        info.album.clone(),
+                        None,
+                    )
+                    .await
+                {
+                    warn!("Could not scrobble: {}", e)
+                }
+            }
         }
     }
 }
@@ -44,10 +65,15 @@ impl LastFM {
 #[async_trait]
 impl MediaMetadataBroadcastService for LastFM {
     async fn new_track(&mut self, _: String) {
+        if self.should_scrobble {
+            debug!("attempting scrobble");
+            self.scrobble().await;
+        }
+
         self.start_timestamp = Some(chrono::offset::Utc::now());
         self.accumulated_time = 0;
         self.last_postion = 0;
-        self.has_scrobbled = false;
+        self.should_scrobble = false;
     }
 
     async fn metadata_recieved(&mut self, info: Arc<Metadata>) {
@@ -64,7 +90,13 @@ impl MediaMetadataBroadcastService for LastFM {
         self.metadata = Some(info);
     }
 
-    async fn state_changed(&mut self, _: PlaybackState) {}
+    async fn state_changed(&mut self, state: PlaybackState) {
+        if self.should_scrobble && state != PlaybackState::Playing {
+            debug!("attempting scrobble");
+            self.scrobble().await;
+            self.should_scrobble = false;
+        }
+    }
 
     async fn position_changed(&mut self, position: u64) {
         if position < self.last_postion + 2 {
@@ -75,31 +107,24 @@ impl MediaMetadataBroadcastService for LastFM {
 
         if self.duration >= 30
             && (self.accumulated_time > self.duration / 2 || self.accumulated_time > 240)
-            && !self.has_scrobbled
+            && !self.should_scrobble
         {
             if let Some(info) = &self.metadata {
-                debug!("attempting scrobble");
-                if let (Some(artist), Some(track)) = (info.artist.clone(), info.name.clone()) {
-                    self.has_scrobbled = true;
-                    if let Err(e) = self
-                        .client
-                        .scrobble(
-                            artist,
-                            track,
-                            self.start_timestamp.unwrap(),
-                            info.album.clone(),
-                            None,
-                        )
-                        .await
-                    {
-                        warn!("Could not scrobble: {}", e)
-                    }
-                }
+                self.should_scrobble = true;
             }
         }
     }
 
     async fn duration_changed(&mut self, duration: u64) {
         self.duration = duration;
+    }
+}
+
+impl Drop for LastFM {
+    fn drop(&mut self) {
+        if self.should_scrobble {
+            debug!("attempting scrobble before dropping LastFM, this will block");
+            task::block_on(self.scrobble());
+        }
     }
 }
