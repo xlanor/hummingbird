@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use gpui::AppContext;
+use gpui::{App, AppContext};
 
 use crate::ui::models::{ImageTransfer, Models};
 
@@ -72,7 +72,7 @@ impl GPUIDataInterface {
 
     /// Starts the broadcast loop that will read events from the data thread and update data models
     /// accordingly. This function should be called once, and will panic if called more than once.
-    pub fn start_broadcast(&mut self, cx: &mut AppContext) {
+    pub fn start_broadcast(&mut self, cx: &mut App) {
         let mut events_rx = None;
         std::mem::swap(&mut self.events_rx, &mut events_rx);
 

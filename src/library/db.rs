@@ -1,7 +1,7 @@
 use std::{path::Path, sync::Arc, time::Duration};
 
 use async_std::task;
-use gpui::{AppContext, Global};
+use gpui::{App, AppContext, Global};
 use moka::future::Cache;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use tracing::debug;
@@ -200,7 +200,7 @@ pub trait LibraryAccess {
 }
 
 // TODO: profile this with a large library
-impl LibraryAccess for AppContext {
+impl LibraryAccess for App {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
         task::block_on(list_albums(&pool.0, sort_method))

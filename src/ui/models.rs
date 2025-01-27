@@ -5,7 +5,7 @@ use std::{
 
 use ahash::AHashMap;
 use async_std::sync::Mutex;
-use gpui::{AppContext, Context, EventEmitter, Global, Model, RenderImage};
+use gpui::{App, AppContext, Context, Entity, EventEmitter, Global, RenderImage};
 use tracing::{debug, error, warn};
 
 use crate::{
@@ -42,25 +42,25 @@ pub enum LastFMState {
 impl EventEmitter<Session> for LastFMState {}
 
 pub struct Models {
-    pub metadata: Model<Metadata>,
-    pub albumart: Model<Option<Arc<RenderImage>>>,
-    pub queue: Model<Queue>,
-    pub image_transfer_model: Model<TransferDummy>,
-    pub scan_state: Model<ScanEvent>,
-    pub mmbs: Model<MMBSList>,
-    pub lastfm: Model<LastFMState>,
+    pub metadata: Entity<Metadata>,
+    pub albumart: Entity<Option<Arc<RenderImage>>>,
+    pub queue: Entity<Queue>,
+    pub image_transfer_model: Entity<TransferDummy>,
+    pub scan_state: Entity<ScanEvent>,
+    pub mmbs: Entity<MMBSList>,
+    pub lastfm: Entity<LastFMState>,
 }
 
 impl Global for Models {}
 
 #[derive(Clone)]
 pub struct PlaybackInfo {
-    pub position: Model<u64>,
-    pub duration: Model<u64>,
-    pub playback_state: Model<PlaybackState>,
-    pub current_track: Model<Option<String>>,
-    pub shuffling: Model<bool>,
-    pub volume: Model<f64>,
+    pub position: Entity<u64>,
+    pub duration: Entity<u64>,
+    pub playback_state: Entity<PlaybackState>,
+    pub current_track: Entity<Option<String>>,
+    pub shuffling: Entity<bool>,
+    pub volume: Entity<f64>,
 }
 
 impl Global for PlaybackInfo {}
@@ -89,15 +89,15 @@ pub enum MMBSEvent {
 
 impl EventEmitter<MMBSEvent> for MMBSList {}
 
-pub fn build_models(cx: &mut AppContext) {
+pub fn build_models(cx: &mut App) {
     debug!("Building models");
-    let metadata: Model<Metadata> = cx.new_model(|_| Metadata::default());
-    let albumart: Model<Option<Arc<RenderImage>>> = cx.new_model(|_| None);
-    let queue: Model<Queue> = cx.new_model(|_| Queue(Vec::new()));
-    let image_transfer_model: Model<TransferDummy> = cx.new_model(|_| TransferDummy);
-    let scan_state: Model<ScanEvent> = cx.new_model(|_| ScanEvent::ScanCompleteIdle);
-    let mmbs: Model<MMBSList> = cx.new_model(|_| MMBSList(AHashMap::new()));
-    let lastfm: Model<LastFMState> = cx.new_model(|cx| {
+    let metadata: Entity<Metadata> = cx.new(|_| Metadata::default());
+    let albumart: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
+    let queue: Entity<Queue> = cx.new(|_| Queue(Vec::new()));
+    let image_transfer_model: Entity<TransferDummy> = cx.new(|_| TransferDummy);
+    let scan_state: Entity<ScanEvent> = cx.new(|_| ScanEvent::ScanCompleteIdle);
+    let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(AHashMap::new()));
+    let lastfm: Entity<LastFMState> = cx.new(|cx| {
         let dirs = get_dirs();
         let directory = dirs.data_dir().to_path_buf();
         let path = directory.join("lastfm.json");
@@ -194,12 +194,12 @@ pub fn build_models(cx: &mut AppContext) {
         lastfm,
     });
 
-    let position: Model<u64> = cx.new_model(|_| 0);
-    let duration: Model<u64> = cx.new_model(|_| 0);
-    let playback_state: Model<PlaybackState> = cx.new_model(|_| PlaybackState::Stopped);
-    let current_track: Model<Option<String>> = cx.new_model(|_| None);
-    let shuffling: Model<bool> = cx.new_model(|_| false);
-    let volume: Model<f64> = cx.new_model(|_| 1.0);
+    let position: Entity<u64> = cx.new(|_| 0);
+    let duration: Entity<u64> = cx.new(|_| 0);
+    let playback_state: Entity<PlaybackState> = cx.new(|_| PlaybackState::Stopped);
+    let current_track: Entity<Option<String>> = cx.new(|_| None);
+    let shuffling: Entity<bool> = cx.new(|_| false);
+    let volume: Entity<f64> = cx.new(|_| 1.0);
 
     cx.set_global(PlaybackInfo {
         position,
@@ -211,7 +211,7 @@ pub fn build_models(cx: &mut AppContext) {
     });
 }
 
-pub fn create_last_fm_mmbs(cx: &mut AppContext, mmbs_list: &Model<MMBSList>, session: String) {
+pub fn create_last_fm_mmbs(cx: &mut App, mmbs_list: &Entity<MMBSList>, session: String) {
     if let (Some(key), Some(secret)) = (LASTFM_API_KEY, LASTFM_API_SECRET) {
         let mut client = LastFMClient::new(key.to_string(), secret);
         client.set_session(session);

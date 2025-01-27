@@ -8,7 +8,7 @@ use std::{
 
 use ahash::AHashMap;
 use async_std::task;
-use gpui::{AppContext, Global};
+use gpui::{App, AppContext, Global};
 use image::imageops::thumbnail;
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
@@ -66,7 +66,7 @@ impl ScanInterface {
             .expect("could not send tx");
     }
 
-    pub fn start_broadcast(&mut self, cx: &mut AppContext) {
+    pub fn start_broadcast(&mut self, cx: &mut App) {
         let mut events_rx = None;
         std::mem::swap(&mut self.events_rx, &mut events_rx);
 

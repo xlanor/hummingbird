@@ -2,7 +2,7 @@ pub mod scan;
 
 use std::{fs::File, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-use gpui::{AppContext, AsyncAppContext, Context, Global, Model};
+use gpui::{AppContext, AsyncApp, Context, Entity, Global};
 use notify::{Event, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
@@ -29,14 +29,14 @@ pub fn create_settings(path: &PathBuf) -> Settings {
 }
 
 pub struct SettingsGlobal {
-    pub model: Model<Settings>,
+    pub model: Entity<Settings>,
     pub watcher: Option<Box<dyn Watcher>>,
 }
 
 impl Global for SettingsGlobal {}
 
-pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
-    let settings = cx.new_model(|_| create_settings(&path));
+pub fn setup_settings<T: 'static>(cx: &mut Context<T>, path: PathBuf) {
+    let settings = cx.new(|_| create_settings(&path));
     let settings_model = settings.clone(); // for the closure
 
     // create and setup file watcher
@@ -49,7 +49,7 @@ pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
             warn!("failed to watch settings file: {:?}", e);
         }
 
-        cx.spawn(|mut cx: AsyncAppContext| async move {
+        cx.spawn(|_, mut app: AsyncApp| async move {
             loop {
                 while let Ok(event) = rx.try_recv() {
                     match event {
@@ -60,7 +60,7 @@ pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
                                         info!("Settings changed, updating...");
                                         let settings = create_settings(&path);
                                         settings_model
-                                            .update(&mut cx, |v, _| {
+                                            .update(&mut app, |v, _| {
                                                 *v = settings;
                                             })
                                             .expect("settings model could not be updated");
@@ -68,7 +68,7 @@ pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
                                     notify::EventKind::Remove(_) => {
                                         info!("Settings file removed, using default settings");
                                         settings_model
-                                            .update(&mut cx, |v, _| {
+                                            .update(&mut app, |v, _| {
                                                 *v = Settings::default();
                                             })
                                             .expect("settings model could not be updated");
@@ -81,7 +81,7 @@ pub fn setup_settings(cx: &mut AppContext, path: PathBuf) {
                     }
                 }
 
-                cx.background_executor()
+                app.background_executor()
                     .timer(Duration::from_millis(10))
                     .await;
             }
