@@ -2,7 +2,7 @@ pub mod scan;
 
 use std::{fs::File, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-use gpui::{AppContext, AsyncApp, Context, Entity, Global};
+use gpui::{App, AppContext, AsyncApp, Context, Entity, Global};
 use notify::{Event, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
@@ -35,7 +35,7 @@ pub struct SettingsGlobal {
 
 impl Global for SettingsGlobal {}
 
-pub fn setup_settings<T: 'static>(cx: &mut Context<T>, path: PathBuf) {
+pub fn setup_settings(cx: &mut App, path: PathBuf) {
     let settings = cx.new(|_| create_settings(&path));
     let settings_model = settings.clone(); // for the closure
 
@@ -49,7 +49,7 @@ pub fn setup_settings<T: 'static>(cx: &mut Context<T>, path: PathBuf) {
             warn!("failed to watch settings file: {:?}", e);
         }
 
-        cx.spawn(|_, mut app: AsyncApp| async move {
+        cx.spawn(|mut app: AsyncApp| async move {
             loop {
                 while let Ok(event) = rx.try_recv() {
                     match event {

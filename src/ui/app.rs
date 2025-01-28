@@ -287,9 +287,9 @@ pub async fn run() {
 
     let pool = create_pool(file).await;
 
-    App::new()
+    Application::new()
         .with_assets(Assets)
-        .run(move |cx: &mut AppContext| {
+        .run(move |cx: &mut App| {
             let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
             find_fonts(cx).expect("unable to load fonts");
 
@@ -347,14 +347,14 @@ pub async fn run() {
                     kind: WindowKind::Normal,
                     ..Default::default()
                 },
-                |cx| {
-                    cx.new_view(|cx| {
-                        cx.observe_window_appearance(|_, cx| {
-                            cx.refresh();
+                |window, cx| {
+                    cx.new(|cx| {
+                        cx.observe_window_appearance(window, |_, window, cx| {
+                            cx.refresh_windows();
                         })
                         .detach();
 
-                        let show_queue = cx.new_model(|_| true);
+                        let show_queue = cx.new(|_| true);
 
                         WindowShadow {
                             controls: Controls::new(cx, show_queue.clone()),

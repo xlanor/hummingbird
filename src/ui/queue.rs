@@ -23,7 +23,7 @@ pub struct QueueItem {
 
 impl QueueItem {
     pub fn new(cx: &mut App, path: String, idx: usize, clear_cache: bool) -> Entity<Self> {
-        cx.new_view(move |cx| {
+        cx.new(move |cx| {
             let current_track = cx.global::<PlaybackInfo>().current_track.clone();
 
             let interface = cx.global::<GPUIDataInterface>();
@@ -257,7 +257,7 @@ impl Render for Queue {
                                     .active(|this| this.bg(theme.nav_button_active))
                                     .cursor_pointer()
                                     .child("")
-                                    .on_click(cx.listener(|this: &mut Self, _, cx| {
+                                    .on_click(cx.listener(|this: &mut Self, _, _, cx| {
                                         this.show_queue.update(cx, |v, _| *v = !(*v))
                                     })),
                             ),

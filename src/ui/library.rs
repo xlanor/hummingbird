@@ -12,13 +12,13 @@ mod release_view;
 
 #[derive(Clone)]
 enum LibraryView {
-    Album(View<AlbumView>),
-    Release(View<ReleaseView>),
+    Album(Entity<AlbumView>),
+    Release(Entity<ReleaseView>),
 }
 
 pub struct Library {
     view: LibraryView,
-    navigation_view: View<NavigationView>,
+    navigation_view: Entity<NavigationView>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -32,8 +32,8 @@ impl EventEmitter<ViewSwitchMessage> for VecDeque<ViewSwitchMessage> {}
 
 fn make_view(
     message: &ViewSwitchMessage,
-    cx: &mut ViewContext<'_, Library>,
-    model: Model<VecDeque<ViewSwitchMessage>>,
+    cx: &mut App,
+    model: Entity<VecDeque<ViewSwitchMessage>>,
 ) -> LibraryView {
     match message {
         ViewSwitchMessage::Albums => LibraryView::Album(AlbumView::new(cx, model.clone())),
@@ -43,9 +43,9 @@ fn make_view(
 }
 
 impl Library {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
-        cx.new_view(|cx| {
-            let switcher_model = cx.new_model(|_| {
+    pub fn new(cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| {
+            let switcher_model = cx.new(|_| {
                 let mut deque = VecDeque::new();
                 deque.push_back(ViewSwitchMessage::Albums);
                 deque
@@ -103,7 +103,7 @@ impl Library {
 }
 
 impl Render for Library {
-    fn render(&mut self, _: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
             .w_full()
             .h_full()
