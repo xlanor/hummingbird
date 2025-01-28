@@ -133,7 +133,7 @@ impl ReleaseView {
 }
 
 impl Render for ReleaseView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         div()
@@ -318,7 +318,7 @@ struct TrackItem {
 }
 
 impl RenderOnce for TrackItem {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         let tracks = self.tracks.clone();

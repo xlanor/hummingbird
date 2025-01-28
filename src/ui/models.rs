@@ -5,7 +5,7 @@ use std::{
 
 use ahash::AHashMap;
 use async_std::sync::Mutex;
-use gpui::{App, AppContext, Context, Entity, EventEmitter, Global, RenderImage};
+use gpui::{App, AppContext, Entity, EventEmitter, Global, RenderImage};
 use tracing::{debug, error, warn};
 
 use crate::{

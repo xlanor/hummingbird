@@ -1,7 +1,7 @@
 use std::{path::Path, sync::Arc, time::Duration};
 
 use async_std::task;
-use gpui::{App, AppContext, Global};
+use gpui::{App, Global};
 use moka::future::Cache;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use tracing::debug;

@@ -124,7 +124,7 @@ impl ScanStatus {
 }
 
 impl Render for ScanStatus {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let status = self.scan_model.read(cx);
 
@@ -169,7 +169,7 @@ pub enum WindowButton {
 }
 
 impl RenderOnce for WindowButton {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         let (bg, hover, active) = if self == WindowButton::Close {

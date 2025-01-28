@@ -141,7 +141,7 @@ impl AlbumView {
 }
 
 impl Render for AlbumView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         div()
@@ -233,7 +233,7 @@ impl AlbumItem {
 }
 
 impl Render for AlbumItem {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         if let Some(album) = &self.album {

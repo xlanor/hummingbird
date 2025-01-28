@@ -2,7 +2,7 @@ pub mod scan;
 
 use std::{fs::File, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-use gpui::{App, AppContext, AsyncApp, Context, Entity, Global};
+use gpui::{App, AppContext, AsyncApp, Entity, Global};
 use notify::{Event, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};

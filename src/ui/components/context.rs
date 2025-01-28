@@ -83,9 +83,8 @@ impl Element for ContextMenu {
 
         let theme = cx.global::<Theme>();
 
-        let anchored = window.with_element_state(
-            id.unwrap(),
-            move |prev: Option<Rc<ContextMenuState>>, cx| {
+        let anchored =
+            window.with_element_state(id.unwrap(), move |prev: Option<Rc<ContextMenuState>>, _| {
                 let state = prev.unwrap_or_else(|| Rc::new(ContextMenuState::new()));
 
                 let point = *state.position.borrow();
@@ -115,8 +114,7 @@ impl Element for ContextMenu {
                 } else {
                     (None, state)
                 }
-            },
-        );
+            });
 
         let state = if let Some(mut anchored) = anchored {
             let layout = anchored.request_layout(None, window, cx);

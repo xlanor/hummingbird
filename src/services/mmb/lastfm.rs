@@ -108,10 +108,9 @@ impl MediaMetadataBroadcastService for LastFM {
         if self.duration >= 30
             && (self.accumulated_time > self.duration / 2 || self.accumulated_time > 240)
             && !self.should_scrobble
+            && self.metadata.is_some()
         {
-            if let Some(info) = &self.metadata {
-                self.should_scrobble = true;
-            }
+            self.should_scrobble = true;
         }
     }
 

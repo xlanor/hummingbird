@@ -102,7 +102,7 @@ impl InfoSection {
 }
 
 impl Render for InfoSection {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = self.playback_info.playback_state.read(cx);
 
@@ -218,7 +218,7 @@ impl PlaybackSection {
 }
 
 impl Render for PlaybackSection {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let state = self.info.playback_state.read(cx);
         let shuffling = self.info.shuffling.read(cx);
         let theme = cx.global::<Theme>();
@@ -369,7 +369,7 @@ impl Scrubber {
 }
 
 impl Render for Scrubber {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let position = *self.position.read(cx);
         let duration = *self.duration.read(cx);
@@ -454,7 +454,7 @@ impl SecondaryControls {
 }
 
 impl Render for SecondaryControls {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let volume = self.info.volume.read(cx);
         let show_queue = self.show_queue.clone();

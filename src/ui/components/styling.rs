@@ -9,13 +9,12 @@ where
     T: Styled,
 {
     fn background_opacity(mut self, opacity: f32) -> Self {
-        match &mut self.style().background {
-            Some(v) => match v {
+        if let Some(v) = &mut self.style().background {
+            match v {
                 Fill::Color(hsla) => {
                     *v = Fill::Color(hsla.opacity(opacity));
                 }
-            },
-            None => (),
+            }
         }
 
         self

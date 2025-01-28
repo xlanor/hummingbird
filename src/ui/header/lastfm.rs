@@ -41,7 +41,7 @@ impl LastFM {
 }
 
 impl Render for LastFM {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = self.state.clone();
 
@@ -82,7 +82,7 @@ impl Render for LastFM {
                         .into_any_element(),
                 }),
             )
-            .on_click(move |_, window, cx| {
+            .on_click(move |_, _, cx| {
                 let state = state.clone();
                 let read = state.read(cx).clone();
 

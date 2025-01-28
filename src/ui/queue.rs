@@ -55,7 +55,7 @@ impl QueueItem {
 }
 
 impl Render for QueueItem {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         if let Some(item) = self.item.as_ref() {
@@ -206,7 +206,7 @@ impl Queue {
 }
 
 impl Render for Queue {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let shuffling = self.shuffling.read(cx);
 

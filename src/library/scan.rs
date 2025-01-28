@@ -8,7 +8,7 @@ use std::{
 
 use ahash::AHashMap;
 use async_std::task;
-use gpui::{App, AppContext, Global};
+use gpui::{App, Global};
 use image::imageops::thumbnail;
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};

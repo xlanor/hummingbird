@@ -71,7 +71,7 @@ impl Element for Slider {
         bounds: Bounds<Pixels>,
         _: &mut Self::RequestLayoutState,
         window: &mut Window,
-        cx: &mut App,
+        _: &mut App,
     ) -> Self::PrepaintState {
         self.hitbox = Some(window.insert_hitbox(bounds, false));
     }

@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use gpui::{App, AppContext};
+use gpui::App;
 
 use crate::ui::models::{ImageTransfer, Models};
 

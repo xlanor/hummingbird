@@ -18,7 +18,7 @@ pub enum CMenuItem {
 }
 
 impl RenderOnce for CMenuItem {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         match self {
