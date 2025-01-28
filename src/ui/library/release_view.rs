@@ -15,7 +15,6 @@ use crate::{
     },
     playback::interface::{replace_queue, GPUIPlaybackInterface},
     ui::{
-        app::DropOnNavigateQueue,
         components::{
             button::{button, ButtonIntent, ButtonSize},
             context::context,
@@ -24,6 +23,7 @@ use crate::{
         constants::FONT_AWESOME,
         models::{Models, PlaybackInfo},
         theme::Theme,
+        util::drop_image_from_app,
     },
 };
 
@@ -58,11 +58,17 @@ impl ReleaseView {
                         debug!("captured decoded image for album ID: {}", album_id);
                         this.image = Some(image.1.clone());
 
-                        cx.global::<DropOnNavigateQueue>().add(image.1.clone());
                         cx.notify();
                     }
                 },
             )
+            .detach();
+
+            cx.on_release(|this: &mut Self, cx: &mut App| {
+                if let Some(image) = this.image.clone() {
+                    drop_image_from_app(cx, image);
+                }
+            })
             .detach();
 
             if let Some(image) = album.image.clone() {

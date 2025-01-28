@@ -12,7 +12,6 @@ use crate::{
         types::Album,
     },
     ui::{
-        app::DropOnNavigateQueue,
         models::Models,
         theme::Theme,
         util::{create_or_retrieve_view, prune_views},
@@ -65,10 +64,6 @@ impl AlbumView {
                 }
             })
             .detach();
-
-            let queue = cx.global::<DropOnNavigateQueue>().clone();
-
-            queue.drop_all(cx);
 
             AlbumView {
                 views_model,

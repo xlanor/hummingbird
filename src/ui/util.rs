@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use ahash::AHashMap;
-use gpui::{App, Entity, Render};
+use gpui::{App, Entity, Render, RenderImage};
 use tracing::debug;
 
 pub fn prune_views<T>(
@@ -61,5 +63,17 @@ where
             });
             view
         }
+    }
+}
+
+pub fn drop_image_from_app(cx: &mut App, image: Arc<RenderImage>) {
+    for window in cx.windows() {
+        let image = image.clone();
+
+        window
+            .update(cx, move |_, window, _| {
+                window.drop_image(image).expect("bruh");
+            })
+            .expect("couldn't get window");
     }
 }
