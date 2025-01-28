@@ -29,7 +29,7 @@ fn retrieve_default_paths() -> Vec<PathBuf> {
             let dir = user_directories.home_dir().join("Music");
             warn!("Music directory couldn't be discovered normally, using $HOME/Music.");
             if exists(&dir).unwrap_or(false) {
-                return vec![dir.into()];
+                return vec![dir];
             } else {
                 warn!("$HOME/Music doesn't exist: nothing will be scanned by default.");
             }

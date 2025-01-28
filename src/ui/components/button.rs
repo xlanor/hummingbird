@@ -85,7 +85,7 @@ impl ButtonSize {
 }
 
 impl ButtonIntent {
-    fn base<T>(&self, dest: T, cx: &mut AppContext) -> T
+    fn base<T>(&self, dest: T, cx: &mut App) -> T
     where
         T: Styled,
     {
@@ -106,7 +106,7 @@ impl ButtonIntent {
                 .text_color(theme.button_danger_text),
         }
     }
-    fn hover<T>(&self, dest: T, cx: &mut AppContext) -> T
+    fn hover<T>(&self, dest: T, cx: &mut App) -> T
     where
         T: Styled,
     {
@@ -119,7 +119,7 @@ impl ButtonIntent {
             ButtonIntent::Danger => dest.bg(theme.button_danger_hover),
         }
     }
-    fn active<T>(&self, dest: T, cx: &mut AppContext) -> T
+    fn active<T>(&self, dest: T, cx: &mut App) -> T
     where
         T: Styled,
     {
@@ -181,7 +181,7 @@ impl ParentElement for Button {
 }
 
 impl RenderOnce for Button {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let style = self.style;
         let size = self.size;
         let intent = self.intent;
@@ -214,7 +214,7 @@ impl InteractiveButton {
         self
     }
 
-    pub fn on_click(mut self, fun: impl Fn(&ClickEvent, &mut WindowContext) + 'static) -> Self {
+    pub fn on_click(mut self, fun: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         self.div = self.div.on_click(fun);
         self
     }
@@ -233,7 +233,7 @@ impl ParentElement for InteractiveButton {
 }
 
 impl RenderOnce for InteractiveButton {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let style = self.style;
         let size = self.size;
         let intent = self.intent;

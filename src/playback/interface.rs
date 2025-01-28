@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use gpui::AppContext;
+use gpui::App;
 
 use crate::{
     data::interface::GPUIDataInterface,
@@ -139,19 +139,19 @@ impl GPUIPlaybackInterface {
     /// Starts the broadcast loop that will read events from the playback thread and update data
     /// models accordingly. This function should be called once, and will panic if called more than
     /// once.
-    pub fn start_broadcast(&mut self, cx: &mut AppContext) {
+    pub fn start_broadcast(&mut self, app: &mut App) {
         let mut events_rx = None;
         std::mem::swap(&mut self.events_rx, &mut events_rx);
 
-        let metadata_model = cx.global::<Models>().metadata.clone();
-        let albumart_model = cx.global::<Models>().albumart.clone();
-        let queue_model = cx.global::<Models>().queue.clone();
-        let mmbs_model = cx.global::<Models>().mmbs.clone();
+        let metadata_model = app.global::<Models>().metadata.clone();
+        let albumart_model = app.global::<Models>().albumart.clone();
+        let queue_model = app.global::<Models>().queue.clone();
+        let mmbs_model = app.global::<Models>().mmbs.clone();
 
-        let playback_info = cx.global::<PlaybackInfo>().clone();
+        let playback_info = app.global::<PlaybackInfo>().clone();
 
         if let Some(events_rx) = events_rx {
-            cx.spawn(|mut cx| async move {
+            app.spawn(|mut cx| async move {
                 loop {
                     while let Ok(event) = events_rx.try_recv() {
                         match event {
@@ -292,11 +292,11 @@ impl GPUIPlaybackInterface {
 }
 
 // TODO: this should be in a trait for AppContext
-pub fn replace_queue(paths: Vec<String>, cx: &mut AppContext) {
-    let playback_interface = cx.global::<GPUIPlaybackInterface>();
+pub fn replace_queue(paths: Vec<String>, app: &mut App) {
+    let playback_interface = app.global::<GPUIPlaybackInterface>();
     playback_interface.replace_queue(paths.clone());
 
-    let data_interface = cx.global::<GPUIDataInterface>();
+    let data_interface = app.global::<GPUIDataInterface>();
 
     data_interface.evict_cache();
 }

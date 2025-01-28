@@ -31,22 +31,22 @@ use super::{
 };
 
 struct WindowShadow {
-    pub controls: View<Controls>,
-    pub queue: View<Queue>,
-    pub library: View<Library>,
-    pub header: View<Header>,
-    pub show_queue: Model<bool>,
+    pub controls: Entity<Controls>,
+    pub queue: Entity<Queue>,
+    pub library: Entity<Library>,
+    pub header: Entity<Header>,
+    pub show_queue: Entity<bool>,
 }
 
 impl Render for WindowShadow {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
-        let decorations = cx.window_decorations();
+        let decorations = window.window_decorations();
         let rounding = APP_ROUNDING;
         let shadow_size = px(10.0);
         let border_size = px(1.0);
-        cx.set_client_inset(shadow_size);
+        window.set_client_inset(shadow_size);
 
         let queue = self.queue.clone();
 
@@ -60,23 +60,23 @@ impl Render for WindowShadow {
                     .bg(gpui::transparent_black())
                     .child(
                         canvas(
-                            |_bounds, cx| {
-                                cx.insert_hitbox(
+                            |_bounds, window, _| {
+                                window.insert_hitbox(
                                     Bounds::new(
                                         point(px(0.0), px(0.0)),
-                                        cx.window_bounds().get_bounds().size,
+                                        window.window_bounds().get_bounds().size,
                                     ),
                                     false,
                                 )
                             },
-                            move |_bounds, hitbox, cx| {
-                                let mouse = cx.mouse_position();
-                                let size = cx.window_bounds().get_bounds().size;
+                            move |_bounds, hitbox, window, _| {
+                                let mouse = window.mouse_position();
+                                let size = window.window_bounds().get_bounds().size;
                                 let Some(edge) = resize_edge(mouse, shadow_size, size, tiling)
                                 else {
                                     return;
                                 };
-                                cx.set_cursor_style(
+                                window.set_cursor_style(
                                     match edge {
                                         ResizeEdge::Top | ResizeEdge::Bottom => {
                                             CursorStyle::ResizeUpDown
@@ -112,12 +112,12 @@ impl Render for WindowShadow {
                     .when(!tiling.bottom, |div| div.pb(shadow_size))
                     .when(!tiling.left, |div| div.pl(shadow_size))
                     .when(!tiling.right, |div| div.pr(shadow_size))
-                    .on_mouse_down(MouseButton::Left, move |e, cx| {
-                        let size = cx.window_bounds().get_bounds().size;
+                    .on_mouse_down(MouseButton::Left, move |e, window, _| {
+                        let size = window.window_bounds().get_bounds().size;
                         let pos = e.position;
 
                         if let Some(edge) = resize_edge(pos, shadow_size, size, tiling) {
-                            cx.start_window_resize(edge)
+                            window.start_window_resize(edge)
                         };
                     }),
             })
@@ -161,7 +161,7 @@ impl Render for WindowShadow {
                                 }])
                             }),
                     })
-                    .on_mouse_move(|_e, cx| {
+                    .on_mouse_move(|_e, _, cx| {
                         cx.stop_propagation();
                     })
                     .overflow_hidden()
@@ -227,7 +227,7 @@ fn resize_edge(
     Some(edge)
 }
 
-pub fn find_fonts(cx: &mut AppContext) -> gpui::Result<()> {
+pub fn find_fonts(cx: &mut App) -> gpui::Result<()> {
     let paths = cx.asset_source().list("fonts")?;
     let mut fonts = vec![];
     for path in paths {
@@ -251,11 +251,19 @@ impl Global for Pool {}
 pub struct DropOnNavigateQueue(Rc<RefCell<Vec<Arc<RenderImage>>>>);
 
 impl DropOnNavigateQueue {
-    pub fn drop_all(&self, cx: &mut WindowContext) {
-        let mut borrow = self.0.borrow_mut();
+    pub fn drop_all(&self, cx: &mut App) {
+        let borrow = self.0.clone();
 
-        while let Some(item) = borrow.pop() {
-            cx.drop_image(item).expect("bruh");
+        for window in cx.windows() {
+            let mut borrow = borrow.borrow_mut();
+
+            window
+                .update(cx, move |_, window, _| {
+                    while let Some(item) = borrow.pop() {
+                        window.drop_image(item).expect("bruh");
+                    }
+                })
+                .expect("couldn't get window");
         }
     }
 
@@ -283,9 +291,9 @@ pub async fn run() {
 
     let pool = create_pool(file).await;
 
-    App::new()
+    Application::new()
         .with_assets(Assets)
-        .run(move |cx: &mut AppContext| {
+        .run(move |cx: &mut App| {
             let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
             find_fonts(cx).expect("unable to load fonts");
 
@@ -343,14 +351,14 @@ pub async fn run() {
                     kind: WindowKind::Normal,
                     ..Default::default()
                 },
-                |cx| {
-                    cx.new_view(|cx| {
-                        cx.observe_window_appearance(|_, cx| {
-                            cx.refresh();
+                |window, cx| {
+                    cx.new(|cx| {
+                        cx.observe_window_appearance(window, |_, _, cx| {
+                            cx.refresh_windows();
                         })
                         .detach();
 
-                        let show_queue = cx.new_model(|_| true);
+                        let show_queue = cx.new(|_| true);
 
                         WindowShadow {
                             controls: Controls::new(cx, show_queue.clone()),

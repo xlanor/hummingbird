@@ -1,12 +1,12 @@
 use ahash::AHashMap;
-use gpui::{AppContext, Model, Render, View, WindowContext};
+use gpui::{App, Entity, Render};
 use tracing::debug;
 
 pub fn prune_views<T>(
-    views_model: Model<AHashMap<usize, View<T>>>,
-    render_counter: Model<usize>,
+    views_model: Entity<AHashMap<usize, Entity<T>>>,
+    render_counter: Entity<usize>,
     current: usize,
-    cx: &mut AppContext,
+    cx: &mut App,
 ) -> bool
 where
     T: Render,
@@ -43,11 +43,11 @@ where
 }
 
 pub fn create_or_retrieve_view<T>(
-    views_model: Model<AHashMap<usize, View<T>>>,
+    views_model: Entity<AHashMap<usize, Entity<T>>>,
     idx: usize,
-    creation_fn: impl FnOnce(&mut WindowContext<'_>) -> View<T>,
-    cx: &mut WindowContext<'_>,
-) -> View<T>
+    creation_fn: impl FnOnce(&mut App) -> Entity<T>,
+    cx: &mut App,
+) -> Entity<T>
 where
     T: Render,
 {

@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufReader, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-use gpui::{rgb, rgba, AppContext, AsyncAppContext, Context, EventEmitter, Global, Rgba};
+use gpui::{rgb, rgba, App, AppContext, AsyncApp, EventEmitter, Global, Rgba};
 use notify::{Event, RecursiveMode, Watcher};
 use serde::Deserialize;
 use tracing::{error, info, warn};
@@ -165,13 +165,13 @@ pub struct ThemeWatcher(pub Box<dyn Watcher>);
 
 impl Global for ThemeWatcher {}
 
-pub fn setup_theme(cx: &mut AppContext, path: PathBuf) {
+pub fn setup_theme(cx: &mut App, path: PathBuf) {
     cx.set_global(create_theme(&path));
-    let theme_transmitter = cx.new_model(|_| ThemeEvTransmitter);
+    let theme_transmitter = cx.new(|_| ThemeEvTransmitter);
 
     cx.subscribe(&theme_transmitter, |_, theme, cx| {
         cx.set_global(theme.clone());
-        cx.refresh();
+        cx.refresh_windows();
     })
     .detach();
 
@@ -184,7 +184,7 @@ pub fn setup_theme(cx: &mut AppContext, path: PathBuf) {
             warn!("failed to watch settings directory: {:?}", e);
         }
 
-        cx.spawn(|mut cx: AsyncAppContext| async move {
+        cx.spawn(|mut cx: AsyncApp| async move {
             loop {
                 while let Ok(event) = rx.try_recv() {
                     match event {

@@ -17,13 +17,13 @@ use super::{
 pub struct QueueItem {
     item: Option<UIQueueItem>,
     path: String,
-    current_track: Model<Option<String>>,
+    current_track: Entity<Option<String>>,
     idx: usize,
 }
 
 impl QueueItem {
-    pub fn new(cx: &mut WindowContext, path: String, idx: usize, clear_cache: bool) -> View<Self> {
-        cx.new_view(move |cx| {
+    pub fn new(cx: &mut App, path: String, idx: usize, clear_cache: bool) -> Entity<Self> {
+        cx.new(move |cx| {
             let current_track = cx.global::<PlaybackInfo>().current_track.clone();
 
             let interface = cx.global::<GPUIDataInterface>();
@@ -55,7 +55,7 @@ impl QueueItem {
 }
 
 impl Render for QueueItem {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         if let Some(item) = self.item.as_ref() {
@@ -85,7 +85,7 @@ impl Render for QueueItem {
                 .cursor_pointer()
                 .border_color(theme.border_color)
                 .when(is_current, |div| div.bg(theme.queue_item_current))
-                .on_click(move |_, cx| {
+                .on_click(move |_, _, cx| {
                     cx.global::<GPUIPlaybackInterface>().jump(idx);
                 })
                 .hover(|div| div.bg(theme.queue_item_hover))
@@ -139,23 +139,23 @@ impl Render for QueueItem {
 }
 
 pub struct Queue {
-    views_model: Model<AHashMap<usize, View<QueueItem>>>,
-    render_counter: Model<usize>,
+    views_model: Entity<AHashMap<usize, Entity<QueueItem>>>,
+    render_counter: Entity<usize>,
     state: ListState,
-    shuffling: Model<bool>,
-    show_queue: Model<bool>,
+    shuffling: Entity<bool>,
+    show_queue: Entity<bool>,
 }
 
 impl Queue {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>, show_queue: Model<bool>) -> View<Self> {
-        cx.new_view(|cx| {
-            let views_model = cx.new_model(|_| AHashMap::new());
-            let render_counter = cx.new_model(|_| 0);
+    pub fn new(cx: &mut App, show_queue: Entity<bool>) -> Entity<Self> {
+        cx.new(|cx| {
+            let views_model = cx.new(|_| AHashMap::new());
+            let render_counter = cx.new(|_| 0);
             let items = cx.global::<Models>().queue.clone();
 
             cx.observe(&items, move |this: &mut Queue, m, cx| {
-                this.views_model = cx.new_model(|_| AHashMap::new());
-                this.render_counter = cx.new_model(|_| 0);
+                this.views_model = cx.new(|_| AHashMap::new());
+                this.render_counter = cx.new(|_| 0);
 
                 let items = m.read(cx).clone();
                 let views_model = this.views_model.clone();
@@ -165,7 +165,7 @@ impl Queue {
                     items.0.len(),
                     ListAlignment::Top,
                     px(200.0),
-                    move |idx, cx| {
+                    move |idx, _, cx| {
                         let item = items.0.get(idx).unwrap().clone();
                         let was_removed =
                             prune_views(views_model.clone(), render_counter.clone(), idx, cx);
@@ -195,7 +195,7 @@ impl Queue {
             Self {
                 views_model,
                 render_counter,
-                state: ListState::new(0, ListAlignment::Top, px(200.0), move |_, _| {
+                state: ListState::new(0, ListAlignment::Top, px(200.0), move |_, _, _| {
                     div().into_any_element()
                 }),
                 shuffling,
@@ -206,7 +206,7 @@ impl Queue {
 }
 
 impl Render for Queue {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let shuffling = self.shuffling.read(cx);
 
@@ -257,7 +257,7 @@ impl Render for Queue {
                                     .active(|this| this.bg(theme.nav_button_active))
                                     .cursor_pointer()
                                     .child("")
-                                    .on_click(cx.listener(|this: &mut Self, _, cx| {
+                                    .on_click(cx.listener(|this: &mut Self, _, _, cx| {
                                         this.show_queue.update(cx, |v, _| *v = !(*v))
                                     })),
                             ),
@@ -293,7 +293,7 @@ impl Render for Queue {
                             .child("Clear")
                             .w_full()
                             .id("clear-queue")
-                            .on_click(|_, cx| {
+                            .on_click(|_, _, cx| {
                                 cx.global::<GPUIPlaybackInterface>().clear_queue();
                                 cx.global::<GPUIPlaybackInterface>().stop();
                             }),
@@ -307,7 +307,7 @@ impl Render for Queue {
                             .when(!shuffling, |this| this.child("Shuffle"))
                             .w_full()
                             .id("queue-shuffle")
-                            .on_click(|_, cx| {
+                            .on_click(|_, _, cx| {
                                 cx.global::<GPUIPlaybackInterface>().toggle_shuffle()
                             }),
                     ),

@@ -12,14 +12,14 @@ use super::{
 };
 
 pub struct Controls {
-    info_section: View<InfoSection>,
-    scrubber: View<Scrubber>,
-    secondary_controls: View<SecondaryControls>,
+    info_section: Entity<InfoSection>,
+    scrubber: Entity<Scrubber>,
+    secondary_controls: Entity<SecondaryControls>,
 }
 
 impl Controls {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>, show_queue: Model<bool>) -> View<Self> {
-        cx.new_view(|cx| Self {
+    pub fn new(cx: &mut App, show_queue: Entity<bool>) -> Entity<Self> {
+        cx.new(|cx| Self {
             info_section: InfoSection::new(cx),
             scrubber: Scrubber::new(cx),
             secondary_controls: SecondaryControls::new(cx, show_queue),
@@ -28,8 +28,8 @@ impl Controls {
 }
 
 impl Render for Controls {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let decorations = cx.window_decorations();
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let decorations = window.window_decorations();
         let theme = cx.global::<Theme>();
 
         div()
@@ -62,8 +62,8 @@ pub struct InfoSection {
 }
 
 impl InfoSection {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
-        cx.new_view(|cx| {
+    pub fn new(cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| {
             let metadata_model = cx.global::<Models>().metadata.clone();
             let albumart_model = cx.global::<Models>().albumart.clone();
             let playback_info = cx.global::<PlaybackInfo>().clone();
@@ -102,7 +102,7 @@ impl InfoSection {
 }
 
 impl Render for InfoSection {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = self.playback_info.playback_state.read(cx);
 
@@ -196,8 +196,8 @@ pub struct PlaybackSection {
 }
 
 impl PlaybackSection {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
-        cx.new_view(|cx| {
+    pub fn new(cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| {
             let info = cx.global::<PlaybackInfo>().clone();
             let state = info.playback_state.clone();
             let shuffling = info.shuffling.clone();
@@ -218,7 +218,7 @@ impl PlaybackSection {
 }
 
 impl Render for PlaybackSection {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let state = self.info.playback_state.read(cx);
         let shuffling = self.info.shuffling.read(cx);
         let theme = cx.global::<Theme>();
@@ -247,11 +247,11 @@ impl Render for PlaybackSection {
                     .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
                     .id("header-shuffle-button")
                     .active(|style| style.bg(theme.playback_button_active))
-                    .on_mouse_down(MouseButton::Left, |_, cx| {
+                    .on_mouse_down(MouseButton::Left, |_, window, cx| {
                         cx.stop_propagation();
-                        cx.prevent_default();
+                        window.prevent_default();
                     })
-                    .on_click(|_, cx| {
+                    .on_click(|_, _, cx| {
                         cx.global::<GPUIPlaybackInterface>().toggle_shuffle();
                     })
                     .when(*shuffling, |this| this.child(""))
@@ -277,12 +277,12 @@ impl Render for PlaybackSection {
                             .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
                             .id("header-prev-button")
                             .active(|style| style.bg(theme.playback_button_active))
-                            .on_mouse_down(MouseButton::Left, |_, cx| {
+                            .on_mouse_down(MouseButton::Left, |_, window, cx| {
                                 cx.stop_propagation();
-                                cx.prevent_default();
+                                window.prevent_default();
                             })
-                            .on_click(|_, cx| {
-                                cx.dispatch_action(Box::new(Previous));
+                            .on_click(|_, _, cx| {
+                                cx.dispatch_action(&Previous);
                             })
                             .child(""),
                     )
@@ -301,12 +301,12 @@ impl Render for PlaybackSection {
                             .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
                             .id("header-play-button")
                             .active(|style| style.bg(theme.playback_button_active))
-                            .on_mouse_down(MouseButton::Left, |_, cx| {
+                            .on_mouse_down(MouseButton::Left, |_, window, cx| {
                                 cx.stop_propagation();
-                                cx.prevent_default();
+                                window.prevent_default();
                             })
-                            .on_click(|_, cx| {
-                                cx.dispatch_action(Box::new(PlayPause));
+                            .on_click(|_, _, cx| {
+                                cx.dispatch_action(&PlayPause);
                             })
                             .when(*state == PlaybackState::Playing, |div| div.child(""))
                             .when(*state != PlaybackState::Playing, |div| div.child("")),
@@ -324,12 +324,12 @@ impl Render for PlaybackSection {
                             .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
                             .id("header-next-button")
                             .active(|style| style.bg(theme.playback_button_active))
-                            .on_mouse_down(MouseButton::Left, |_, cx| {
+                            .on_mouse_down(MouseButton::Left, |_, window, cx| {
                                 cx.stop_propagation();
-                                cx.prevent_default();
+                                window.prevent_default();
                             })
-                            .on_click(|_, cx| {
-                                cx.dispatch_action(Box::new(Next));
+                            .on_click(|_, _, cx| {
+                                cx.dispatch_action(&Next);
                             })
                             .child(""),
                     ),
@@ -338,14 +338,14 @@ impl Render for PlaybackSection {
 }
 
 pub struct Scrubber {
-    position: Model<u64>,
-    duration: Model<u64>,
-    playback_section: View<PlaybackSection>,
+    position: Entity<u64>,
+    duration: Entity<u64>,
+    playback_section: Entity<PlaybackSection>,
 }
 
 impl Scrubber {
-    fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
-        cx.new_view(|cx| {
+    fn new(cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| {
             let position_model = cx.global::<PlaybackInfo>().position.clone();
             let duration_model = cx.global::<PlaybackInfo>().duration.clone();
 
@@ -369,7 +369,7 @@ impl Scrubber {
 }
 
 impl Render for Scrubber {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let position = *self.position.read(cx);
         let duration = *self.duration.read(cx);
@@ -422,7 +422,7 @@ impl Render for Scrubber {
                     .rounded(px(3.0))
                     .id("scrubber-back")
                     .value(position as f32 / duration as f32)
-                    .on_change(move |v, cx| {
+                    .on_change(move |v, _, cx| {
                         if duration > 0 {
                             cx.global::<GPUIPlaybackInterface>()
                                 .seek(v as f64 * duration as f64);
@@ -434,12 +434,12 @@ impl Render for Scrubber {
 
 pub struct SecondaryControls {
     info: PlaybackInfo,
-    show_queue: Model<bool>,
+    show_queue: Entity<bool>,
 }
 
 impl SecondaryControls {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>, show_queue: Model<bool>) -> View<Self> {
-        cx.new_view(|cx| {
+    pub fn new(cx: &mut App, show_queue: Entity<bool>) -> Entity<Self> {
+        cx.new(|cx| {
             let info = cx.global::<PlaybackInfo>().clone();
             let volume = info.volume.clone();
 
@@ -454,7 +454,7 @@ impl SecondaryControls {
 }
 
 impl Render for SecondaryControls {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let volume = self.info.volume.read(cx);
         let show_queue = self.show_queue.clone();
@@ -491,7 +491,7 @@ impl Render for SecondaryControls {
                         .rounded(px(3.0))
                         .id("volume")
                         .value((*volume) as f32)
-                        .on_change(move |v, cx| {
+                        .on_change(move |v, _, cx| {
                             cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
                         }),
                 )
@@ -512,7 +512,7 @@ impl Render for SecondaryControls {
                         .hover(|this| this.bg(theme.playback_button_hover))
                         .active(|this| this.bg(theme.playback_button_active))
                         .child("")
-                        .on_click(move |_, cx| {
+                        .on_click(move |_, _, cx| {
                             show_queue.update(cx, |m, cx| {
                                 *m = !*m;
                                 cx.notify();
@@ -526,7 +526,7 @@ impl Render for SecondaryControls {
 pub struct EmptyView;
 
 impl Render for EmptyView {
-    fn render(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         div()
     }
 }

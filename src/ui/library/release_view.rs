@@ -37,8 +37,8 @@ pub struct ReleaseView {
 }
 
 impl ReleaseView {
-    pub(super) fn new<V: 'static>(cx: &mut ViewContext<V>, album_id: i64) -> View<Self> {
-        cx.new_view(|cx| {
+    pub(super) fn new(cx: &mut App, album_id: i64) -> Entity<Self> {
+        cx.new(|cx| {
             let image = None;
             // TODO: error handling
             let album = cx
@@ -76,8 +76,11 @@ impl ReleaseView {
 
             let tracks_clone = tracks.clone();
 
-            let state =
-                ListState::new(tracks.len(), ListAlignment::Top, px(25.0), move |idx, _| {
+            let state = ListState::new(
+                tracks.len(),
+                ListAlignment::Top,
+                px(25.0),
+                move |idx, _, _| {
                     TrackItem {
                         track: tracks_clone[idx].clone(),
                         is_start: if idx > 0 {
@@ -92,7 +95,8 @@ impl ReleaseView {
                         tracks: tracks_clone.clone(),
                     }
                     .into_any_element()
-                });
+                },
+            );
 
             let release_info = {
                 let mut info = String::default();
@@ -129,7 +133,7 @@ impl ReleaseView {
 }
 
 impl Render for ReleaseView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         div()
@@ -211,7 +215,7 @@ impl Render for ReleaseView {
                                             .font_weight(FontWeight::BOLD)
                                             .intent(ButtonIntent::Primary)
                                             .on_click(cx.listener(
-                                                |this: &mut ReleaseView, _, cx| {
+                                                |this: &mut ReleaseView, _, _, cx| {
                                                     let paths = this
                                                         .tracks
                                                         .iter()
@@ -231,7 +235,7 @@ impl Render for ReleaseView {
                                             .font_weight(FontWeight::BOLD)
                                             .flex_none()
                                             .on_click(cx.listener(
-                                                |this: &mut ReleaseView, _, cx| {
+                                                |this: &mut ReleaseView, _, _, cx| {
                                                     let paths = this
                                                         .tracks
                                                         .iter()
@@ -251,7 +255,7 @@ impl Render for ReleaseView {
                                             .font_weight(FontWeight::BOLD)
                                             .flex_none()
                                             .on_click(cx.listener(
-                                                |this: &mut ReleaseView, _, cx| {
+                                                |this: &mut ReleaseView, _, _, cx| {
                                                     let paths = this
                                                         .tracks
                                                         .iter()
@@ -314,7 +318,7 @@ struct TrackItem {
 }
 
 impl RenderOnce for TrackItem {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         let tracks = self.tracks.clone();
@@ -329,7 +333,7 @@ impl RenderOnce for TrackItem {
                     .flex_col()
                     .w_full()
                     .id(self.track.id as usize)
-                    .on_click(move |_, cx| play_from_track(cx, &tracks, track_id))
+                    .on_click(move |_, _, cx| play_from_track(cx, &tracks, track_id))
                     .when(self.is_start, |this| {
                         this.child(
                             div()
@@ -399,7 +403,7 @@ impl RenderOnce for TrackItem {
                             "track_play",
                             Some(""),
                             "Play",
-                            move |_, cx| {
+                            move |_, _, cx| {
                                 let playback_interface = cx.global::<GPUIPlaybackInterface>();
                                 let queue_length = cx.global::<Models>().queue.read(cx).0.len();
                                 playback_interface.queue(&track_location);
@@ -410,13 +414,13 @@ impl RenderOnce for TrackItem {
                             "track_play_from_here",
                             Some(""),
                             "Play from here",
-                            move |_, cx| play_from_track(cx, &tracks_2, track_id),
+                            move |_, _, cx| play_from_track(cx, &tracks_2, track_id),
                         ))
                         .item(menu_item(
                             "track_add_to_queue",
                             Some("+"),
                             "Add to queue",
-                            move |_, cx| {
+                            move |_, _, cx| {
                                 let playback_interface = cx.global::<GPUIPlaybackInterface>();
                                 playback_interface.queue(&track_location_2);
                             },
@@ -426,7 +430,7 @@ impl RenderOnce for TrackItem {
     }
 }
 
-fn play_from_track(cx: &mut WindowContext, tracks: &Arc<Vec<Track>>, id: i64) {
+fn play_from_track(cx: &mut App, tracks: &Arc<Vec<Track>>, id: i64) {
     let paths = tracks.iter().map(|track| track.location.clone()).collect();
 
     replace_queue(paths, cx);

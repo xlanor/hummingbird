@@ -16,19 +16,19 @@ use super::{
 };
 
 pub struct Header {
-    scan_status: View<ScanStatus>,
-    lastfm: Option<View<lastfm::LastFM>>,
+    scan_status: Entity<ScanStatus>,
+    lastfm: Option<Entity<lastfm::LastFM>>,
 }
 
 impl Header {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
+    pub fn new(cx: &mut App) -> Entity<Self> {
         let lastfm = if LASTFM_API_SECRET.is_some() && LASTFM_API_KEY.is_some() {
             Some(lastfm::LastFM::new(cx))
         } else {
             None
         };
 
-        cx.new_view(|cx| Self {
+        cx.new(|cx| Self {
             scan_status: ScanStatus::new(cx),
             lastfm,
         })
@@ -36,8 +36,8 @@ impl Header {
 }
 
 impl Render for Header {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let decorations = cx.window_decorations();
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let decorations = window.window_decorations();
         let theme = cx.global::<Theme>();
 
         div()
@@ -52,17 +52,17 @@ impl Render for Header {
             .id("titlebar")
             .border_color(theme.border_color)
             .when(cfg!(target_os = "windows"), |this| {
-                this.on_mouse_down(MouseButton::Left, |_, cx| cx.stop_propagation())
+                this.on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             })
             .when(cfg!(not(target_os = "windows")), |this| {
-                this.on_mouse_down(MouseButton::Left, move |ev, cx| {
+                this.on_mouse_down(MouseButton::Left, move |ev, window, _| {
                     if ev.click_count != 2 {
-                        cx.start_window_move();
+                        window.start_window_move();
                     }
                 })
-                .on_click(|ev, cx| {
+                .on_click(|ev, window, _| {
                     if ev.down.click_count == 2 {
-                        cx.zoom_window();
+                        window.zoom_window();
                     }
                 })
             })
@@ -105,14 +105,14 @@ impl Render for Header {
 }
 
 pub struct ScanStatus {
-    scan_model: Model<ScanEvent>,
+    scan_model: Entity<ScanEvent>,
 }
 
 impl ScanStatus {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
+    pub fn new(cx: &mut App) -> Entity<Self> {
         let scan_model = cx.global::<Models>().scan_state.clone();
 
-        cx.new_view(|cx| {
+        cx.new(|cx| {
             cx.observe(&scan_model, |_, _, cx| {
                 cx.notify();
             })
@@ -124,7 +124,7 @@ impl ScanStatus {
 }
 
 impl Render for ScanStatus {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let status = self.scan_model.read(cx);
 
@@ -169,7 +169,7 @@ pub enum WindowButton {
 }
 
 impl RenderOnce for WindowButton {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         let (bg, hover, active) = if self == WindowButton::Close {
@@ -203,9 +203,9 @@ impl RenderOnce for WindowButton {
             .active(|this| this.bg(active))
             .font_family(FONT_AWESOME)
             .text_size(px(11.0))
-            .on_mouse_down(MouseButton::Left, |_, cx| {
+            .on_mouse_down(MouseButton::Left, |_, window, cx| {
                 cx.stop_propagation();
-                cx.prevent_default();
+                window.prevent_default();
             })
             .child(match self {
                 WindowButton::Close => "",
@@ -213,10 +213,10 @@ impl RenderOnce for WindowButton {
                 WindowButton::Maximize => "",
             })
             .when(self == WindowButton::Close, |this| this.rounded_tr(px(4.0)))
-            .on_click(move |_, cx| match self {
-                WindowButton::Close => cx.dispatch_action(Box::new(Quit)),
-                WindowButton::Minimize => cx.minimize_window(),
-                WindowButton::Maximize => cx.zoom_window(),
+            .on_click(move |_, window, cx| match self {
+                WindowButton::Close => cx.dispatch_action(&Quit),
+                WindowButton::Minimize => window.minimize_window(),
+                WindowButton::Maximize => window.zoom_window(),
             })
     }
 }

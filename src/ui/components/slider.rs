@@ -4,7 +4,7 @@ use gpui::*;
 
 use crate::ui::theme::Theme;
 
-type ClickHandler = dyn FnMut(f32, &mut WindowContext);
+type ClickHandler = dyn FnMut(f32, &mut Window, &mut App);
 
 pub struct Slider {
     pub(self) id: Option<ElementId>,
@@ -25,7 +25,7 @@ impl Slider {
         self
     }
 
-    pub fn on_change(mut self, func: impl FnMut(f32, &mut WindowContext) + 'static) -> Self {
+    pub fn on_change(mut self, func: impl FnMut(f32, &mut Window, &mut App) + 'static) -> Self {
         self.on_change = Some(Rc::new(RefCell::new(func)));
         self
     }
@@ -57,11 +57,12 @@ impl Element for Slider {
     fn request_layout(
         &mut self,
         _: Option<&GlobalElementId>,
-        cx: &mut WindowContext,
+        window: &mut Window,
+        cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut style = Style::default();
         style.refine(&self.style);
-        (cx.request_layout(style, []), ())
+        (window.request_layout(style, [], cx), ())
     }
 
     fn prepaint(
@@ -69,9 +70,10 @@ impl Element for Slider {
         _: Option<&GlobalElementId>,
         bounds: Bounds<Pixels>,
         _: &mut Self::RequestLayoutState,
-        cx: &mut WindowContext,
+        window: &mut Window,
+        _: &mut App,
     ) -> Self::PrepaintState {
-        self.hitbox = Some(cx.insert_hitbox(bounds, false));
+        self.hitbox = Some(window.insert_hitbox(bounds, false));
     }
 
     fn paint(
@@ -80,7 +82,8 @@ impl Element for Slider {
         bounds: Bounds<Pixels>,
         _: &mut Self::RequestLayoutState,
         _: &mut Self::PrepaintState,
-        cx: &mut WindowContext,
+        window: &mut Window,
+        cx: &mut App,
     ) {
         let theme = cx.global::<Theme>();
         let default_background = theme.slider_background;
@@ -92,11 +95,11 @@ impl Element for Slider {
         let mut corners = Corners::default();
         corners.refine(&self.style.corner_radii);
 
-        cx.set_cursor_style(CursorStyle::PointingHand, self.hitbox.as_ref().unwrap());
+        window.set_cursor_style(CursorStyle::PointingHand, self.hitbox.as_ref().unwrap());
 
-        cx.paint_quad(quad(
+        window.paint_quad(quad(
             bounds,
-            corners.to_pixels(bounds.size, cx.rem_size()),
+            corners.to_pixels(bounds.size, window.rem_size()),
             self.style
                 .background
                 .clone()
@@ -109,64 +112,67 @@ impl Element for Slider {
         let mut borders = Edges::default();
         borders.refine(&self.style.border_widths);
 
-        cx.paint_quad(quad(
+        window.paint_quad(quad(
             inner_bounds,
-            corners.to_pixels(bounds.size, cx.rem_size()),
+            corners.to_pixels(bounds.size, window.rem_size()),
             self.style
                 .text
                 .clone()
                 .and_then(|v| v.color)
                 .unwrap_or(default_foreground.into()),
-            borders.to_pixels(cx.rem_size()),
+            borders.to_pixels(window.rem_size()),
             self.style.border_color.unwrap_or_default(),
         ));
 
         if let Some(func) = self.on_change.as_ref() {
-            cx.with_optional_element_state(id, move |v: Option<Option<Rc<RefCell<bool>>>>, cx| {
-                let mouse_in = v.flatten().unwrap_or_else(|| Rc::new(RefCell::new(false)));
-                let func = func.clone();
-                let func_copy = func.clone();
+            window.with_optional_element_state(
+                id,
+                move |v: Option<Option<Rc<RefCell<bool>>>>, cx| {
+                    let mouse_in = v.flatten().unwrap_or_else(|| Rc::new(RefCell::new(false)));
+                    let func = func.clone();
+                    let func_copy = func.clone();
 
-                let mouse_in_1 = mouse_in.clone();
+                    let mouse_in_1 = mouse_in.clone();
 
-                cx.on_mouse_event(move |ev: &MouseDownEvent, _, cx| {
-                    if !bounds.contains(&ev.position) {
-                        return;
-                    }
+                    cx.on_mouse_event(move |ev: &MouseDownEvent, _, window, cx| {
+                        if !bounds.contains(&ev.position) {
+                            return;
+                        }
 
-                    cx.prevent_default();
-                    cx.stop_propagation();
+                        window.prevent_default();
+                        cx.stop_propagation();
 
-                    let relative = ev.position - bounds.origin;
-                    let relative_x = relative.x.0;
-                    let width = bounds.size.width.0;
-                    let value = (relative_x / width).clamp(0.0, 1.0);
-
-                    (func.borrow_mut())(value, cx);
-                    (*mouse_in_1.borrow_mut()) = true;
-                });
-
-                let mouse_in_2 = mouse_in.clone();
-
-                cx.on_mouse_event(move |ev: &MouseMoveEvent, _, cx| {
-                    if *mouse_in_2.borrow() {
                         let relative = ev.position - bounds.origin;
                         let relative_x = relative.x.0;
                         let width = bounds.size.width.0;
                         let value = (relative_x / width).clamp(0.0, 1.0);
 
-                        (func_copy.borrow_mut())(value, cx);
-                    }
-                });
+                        (func.borrow_mut())(value, window, cx);
+                        (*mouse_in_1.borrow_mut()) = true;
+                    });
 
-                let mouse_in_3 = mouse_in.clone();
+                    let mouse_in_2 = mouse_in.clone();
 
-                cx.on_mouse_event(move |_: &MouseUpEvent, _, _| {
-                    (*mouse_in_3.borrow_mut()) = false;
-                });
+                    cx.on_mouse_event(move |ev: &MouseMoveEvent, _, window, cx| {
+                        if *mouse_in_2.borrow() {
+                            let relative = ev.position - bounds.origin;
+                            let relative_x = relative.x.0;
+                            let width = bounds.size.width.0;
+                            let value = (relative_x / width).clamp(0.0, 1.0);
 
-                ((), Some(mouse_in))
-            })
+                            (func_copy.borrow_mut())(value, window, cx);
+                        }
+                    });
+
+                    let mouse_in_3 = mouse_in.clone();
+
+                    cx.on_mouse_event(move |_: &MouseUpEvent, _, _, _| {
+                        (*mouse_in_3.borrow_mut()) = false;
+                    });
+
+                    ((), Some(mouse_in))
+                },
+            )
         }
     }
 }

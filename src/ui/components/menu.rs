@@ -2,7 +2,7 @@ use gpui::{prelude::FluentBuilder, *};
 
 use crate::ui::{constants::FONT_AWESOME, theme::Theme};
 
-type ClickEvHandler = dyn Fn(&ClickEvent, &mut WindowContext);
+type ClickEvHandler = dyn Fn(&ClickEvent, &mut Window, &mut App);
 
 // named like this to not conflict with GPUI's MenuItem
 #[derive(IntoElement)]
@@ -18,7 +18,7 @@ pub enum CMenuItem {
 }
 
 impl RenderOnce for CMenuItem {
-    fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         match self {
@@ -66,7 +66,7 @@ pub fn menu_item(
     id: impl Into<ElementId>,
     icon: Option<impl Into<SharedString>>,
     text: impl Into<SharedString>,
-    func: impl Fn(&ClickEvent, &mut WindowContext) + 'static,
+    func: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
 ) -> CMenuItem {
     CMenuItem::Item(
         id.into(),
@@ -91,7 +91,7 @@ impl Menu {
 }
 
 impl RenderOnce for Menu {
-    fn render(self, _: &mut WindowContext) -> impl IntoElement {
+    fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         self.div.flex().flex_col().children(self.items)
     }
 }
