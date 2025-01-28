@@ -252,15 +252,19 @@ pub struct DropOnNavigateQueue(Rc<RefCell<Vec<Arc<RenderImage>>>>);
 
 impl DropOnNavigateQueue {
     pub fn drop_all(&self, cx: &mut App) {
-        let mut borrow = self.0.borrow_mut();
+        let borrow = self.0.clone();
 
-        // todo: fix this
-        /*while let Some(item) = borrow.pop() {
-            for window in cx.windows() {
-                window.update(cx, update)
-            }
-            window.drop_image(item).expect("bruh");
-        }*/
+        for window in cx.windows() {
+            let mut borrow = borrow.borrow_mut();
+
+            window
+                .update(cx, move |_, window, _| {
+                    while let Some(item) = borrow.pop() {
+                        window.drop_image(item).expect("bruh");
+                    }
+                })
+                .expect("couldn't get window");
+        }
     }
 
     pub fn add(&self, item: Arc<RenderImage>) {
