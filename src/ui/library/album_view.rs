@@ -23,23 +23,23 @@ use super::ViewSwitchMessage;
 
 #[derive(Clone)]
 pub struct AlbumView {
-    views_model: Model<AHashMap<usize, View<AlbumItem>>>,
-    render_counter: Model<usize>,
+    views_model: Entity<AHashMap<usize, Entity<AlbumItem>>>,
+    render_counter: Entity<usize>,
     list_state: ListState,
-    view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
+    view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
 }
 
 impl AlbumView {
-    pub(super) fn new<V: 'static>(
-        cx: &mut ViewContext<V>,
-        view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
-    ) -> View<Self> {
-        cx.new_view(|cx| {
+    pub(super) fn new(
+        cx: &mut App,
+        view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
+    ) -> Entity<Self> {
+        cx.new(|cx| {
             let album_ids = cx.list_albums(AlbumSortMethod::TitleAsc).map_err(|e| {
                 error!("Failed to retrieve album IDs from SQLite: {:?}", e);
             });
-            let views_model = cx.new_model(|_| AHashMap::new());
-            let render_counter = cx.new_model(|_| 0);
+            let views_model = cx.new(|_| AHashMap::new());
+            let render_counter = cx.new(|_| 0);
 
             let list_state = AlbumView::make_list_state(
                 album_ids.clone().ok(),
@@ -79,13 +79,13 @@ impl AlbumView {
         })
     }
 
-    fn regenerate_list_state<V: 'static>(&mut self, cx: &mut ViewContext<V>) {
+    fn regenerate_list_state<V: 'static>(&mut self, cx: &mut Context<V>) {
         let curr_scroll = self.list_state.logical_scroll_top();
         let album_ids = cx.list_albums(AlbumSortMethod::TitleAsc).map_err(|e| {
             error!("Failed to retrieve album IDs from SQLite: {:?}", e);
         });
-        self.views_model = cx.new_model(|_| AHashMap::new());
-        self.render_counter = cx.new_model(|_| 0);
+        self.views_model = cx.new(|_| AHashMap::new());
+        self.render_counter = cx.new(|_| 0);
 
         self.list_state = AlbumView::make_list_state(
             album_ids.ok(),
@@ -101,9 +101,9 @@ impl AlbumView {
 
     fn make_list_state(
         album_ids: Option<Vec<(u32, String)>>,
-        views_model: Model<AHashMap<usize, View<AlbumItem>>>,
-        render_counter: Model<usize>,
-        view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
+        views_model: Entity<AHashMap<usize, Entity<AlbumItem>>>,
+        render_counter: Entity<usize>,
+        view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
     ) -> ListState {
         match album_ids {
             Some(album_ids) => {
@@ -113,7 +113,7 @@ impl AlbumView {
                     album_ids.len(),
                     ListAlignment::Top,
                     px(300.0),
-                    move |idx, cx| {
+                    move |idx, _, cx| {
                         let album_ids = album_ids_copy.clone();
                         let view_switch_model = view_switch_model.clone();
 
@@ -133,7 +133,7 @@ impl AlbumView {
                     },
                 )
             }
-            None => ListState::new(0, ListAlignment::Top, px(64.0), move |_, _| {
+            None => ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {
                 div().into_any_element()
             }),
         }
@@ -141,7 +141,7 @@ impl AlbumView {
 }
 
 impl Render for AlbumView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         div()
@@ -201,16 +201,16 @@ impl Render for AlbumView {
 pub struct AlbumItem {
     album: Option<Arc<Album>>,
     artist: Option<Arc<String>>,
-    view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
+    view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
     id: SharedString,
 }
 
 impl AlbumItem {
     pub(self) fn new(
-        cx: &mut WindowContext,
+        cx: &mut App,
         album_id: i64,
-        view_switch_model: Model<VecDeque<ViewSwitchMessage>>,
-    ) -> View<Self> {
+        view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
+    ) -> Entity<Self> {
         debug!("Creating AlbumItem view for album ID: {}", album_id);
 
         let album = cx
@@ -220,7 +220,7 @@ impl AlbumItem {
         let artist = album
             .as_ref()
             .and_then(|album| cx.get_artist_name_by_id(album.artist_id).ok());
-        cx.new_view(|_| AlbumItem {
+        cx.new(|_| AlbumItem {
             id: SharedString::from(format!(
                 "album-item-{}",
                 album.as_ref().map(|album| album.id).unwrap_or_default()
@@ -233,7 +233,7 @@ impl AlbumItem {
 }
 
 impl Render for AlbumItem {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         if let Some(album) = &self.album {
@@ -293,7 +293,7 @@ impl Render for AlbumItem {
                         .overflow_x_hidden()
                         .when_some(self.artist.clone(), |this, v| this.child((*v).clone())),
                 )
-                .on_click(cx.listener(|this, _, cx| {
+                .on_click(cx.listener(|this, _, _, cx| {
                     this.view_switch_model.update(cx, |_, cx| {
                         cx.emit(ViewSwitchMessage::Release(this.album.as_ref().unwrap().id))
                     })

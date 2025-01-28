@@ -12,17 +12,17 @@ use crate::{
 use super::ViewSwitchMessage;
 
 pub(super) struct NavigationView {
-    view_switcher_model: Model<VecDeque<ViewSwitchMessage>>,
+    view_switcher_model: Entity<VecDeque<ViewSwitchMessage>>,
     current_message: ViewSwitchMessage,
     description: Option<SharedString>,
 }
 
 impl NavigationView {
-    pub(super) fn new<V: 'static>(
-        cx: &mut ViewContext<V>,
-        view_switcher_model: Model<VecDeque<ViewSwitchMessage>>,
-    ) -> View<Self> {
-        cx.new_view(|cx| {
+    pub(super) fn new(
+        cx: &mut App,
+        view_switcher_model: Entity<VecDeque<ViewSwitchMessage>>,
+    ) -> Entity<Self> {
+        cx.new(|cx| {
             let current_message = *view_switcher_model
                 .read(cx)
                 .back()
@@ -56,7 +56,7 @@ impl NavigationView {
 }
 
 impl Render for NavigationView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         div()
@@ -84,7 +84,7 @@ impl Render for NavigationView {
                             .hover(|this| this.bg(theme.nav_button_hover))
                             .active(|this| this.bg(theme.nav_button_active))
                             .cursor_pointer()
-                            .on_click(cx.listener(|this, _, cx| {
+                            .on_click(cx.listener(|this, _, _, cx| {
                                 this.view_switcher_model.update(cx, |_, cx| {
                                     cx.emit(ViewSwitchMessage::Back);
                                 })

@@ -11,13 +11,13 @@ use crate::{
 };
 
 pub struct LastFM {
-    state: Model<LastFMState>,
+    state: Entity<LastFMState>,
     name: Option<SharedString>,
 }
 
 impl LastFM {
-    pub fn new<V: 'static>(cx: &mut ViewContext<V>) -> View<Self> {
-        cx.new_view(|cx| {
+    pub fn new(cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| {
             let models = cx.global::<Models>();
             let state = models.lastfm.clone();
 
@@ -41,7 +41,7 @@ impl LastFM {
 }
 
 impl Render for LastFM {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = self.state.clone();
 
@@ -56,8 +56,8 @@ impl Render for LastFM {
             .id("lastfm-button")
             .hover(|this| this.bg(theme.window_button_hover))
             .active(|this| this.bg(theme.window_button_active))
-            .on_mouse_down(MouseButton::Left, |_, cx| {
-                cx.prevent_default();
+            .on_mouse_down(MouseButton::Left, |_, window, cx| {
+                window.prevent_default();
                 cx.stop_propagation();
             })
             .child(
@@ -82,7 +82,7 @@ impl Render for LastFM {
                         .into_any_element(),
                 }),
             )
-            .on_click(move |_, cx| {
+            .on_click(move |_, window, cx| {
                 let state = state.clone();
                 let read = state.read(cx).clone();
 
@@ -95,7 +95,7 @@ impl Render for LastFM {
     }
 }
 
-fn get_token(cx: &mut WindowContext<'_>, state: Model<LastFMState>) {
+fn get_token(cx: &mut App, state: Entity<LastFMState>) {
     cx.spawn(|mut cx| async move {
         let mut client = LastFMClient::new(
             LASTFM_API_KEY.unwrap().to_string(),
@@ -127,7 +127,7 @@ fn get_token(cx: &mut WindowContext<'_>, state: Model<LastFMState>) {
     .detach();
 }
 
-fn confirm(cx: &mut WindowContext<'_>, state: Model<LastFMState>, token: String) {
+fn confirm(cx: &mut App, state: Entity<LastFMState>, token: String) {
     cx.spawn(|mut cx| async move {
         let mut client = LastFMClient::new(
             LASTFM_API_KEY.unwrap().to_string(),
