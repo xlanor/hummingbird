@@ -1,4 +1,4 @@
-use gpui::{actions, AppContext, KeyBinding, Menu, MenuItem, SharedString};
+use gpui::{actions, App, KeyBinding, Menu, MenuItem, SharedString};
 use tracing::{debug, info};
 
 use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
@@ -7,7 +7,7 @@ use super::models::PlaybackInfo;
 
 actions!(muzak, [Quit, PlayPause, Next, Previous]);
 
-pub fn register_actions(cx: &mut AppContext) {
+pub fn register_actions(cx: &mut App) {
     debug!("registering actions");
     cx.on_action(quit);
     cx.on_action(play_pause);
@@ -31,12 +31,12 @@ pub fn register_actions(cx: &mut AppContext) {
     }]);
 }
 
-fn quit(_: &Quit, cx: &mut AppContext) {
+fn quit(_: &Quit, cx: &mut App) {
     info!("Quitting...");
     cx.quit();
 }
 
-fn play_pause(_: &PlayPause, cx: &mut AppContext) {
+fn play_pause(_: &PlayPause, cx: &mut App) {
     let state = cx.global::<PlaybackInfo>().playback_state.read(cx);
     let interface = cx.global::<GPUIPlaybackInterface>();
     match state {
@@ -52,12 +52,12 @@ fn play_pause(_: &PlayPause, cx: &mut AppContext) {
     }
 }
 
-fn next(_: &Next, cx: &mut AppContext) {
+fn next(_: &Next, cx: &mut App) {
     let interface = cx.global::<GPUIPlaybackInterface>();
     interface.next();
 }
 
-fn previous(_: &Previous, cx: &mut AppContext) {
+fn previous(_: &Previous, cx: &mut App) {
     let interface = cx.global::<GPUIPlaybackInterface>();
     interface.previous();
 }
