@@ -68,23 +68,24 @@ impl Element for ContextMenu {
     fn request_layout(
         &mut self,
         id: Option<&GlobalElementId>,
-        cx: &mut WindowContext,
+        window: &mut Window,
+        cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let style = Style::default();
 
         let mut layout_ids: SmallVec<[LayoutId; 2]> = SmallVec::new();
 
         if let Some(element) = self.element.as_mut() {
-            layout_ids.push(element.request_layout(cx));
+            layout_ids.push(element.request_layout(window, cx));
         }
 
         let menu = self.menu.take();
 
-        let anchored = cx.with_element_state(
+        let theme = cx.global::<Theme>();
+
+        let anchored = window.with_element_state(
             id.unwrap(),
             move |prev: Option<Rc<ContextMenuState>>, cx| {
-                let theme = cx.global::<Theme>();
-
                 let state = prev.unwrap_or_else(|| Rc::new(ContextMenuState::new()));
 
                 let point = *state.position.borrow();
@@ -101,13 +102,13 @@ impl Element for ContextMenu {
                             .border_color(theme.elevated_border_color)
                             .bg(theme.elevated_background)
                             .id("menu")
-                            .on_click(move |_, cx| {
+                            .on_click(move |_, window, _| {
                                 (*state_clone.position.borrow_mut()) = None;
-                                cx.refresh()
+                                window.refresh()
                             })
-                            .on_mouse_down_out(move |_, cx| {
+                            .on_mouse_down_out(move |_, window, _| {
                                 (*state_clone_2.position.borrow_mut()) = None;
-                                cx.refresh()
+                                window.refresh()
                             }),
                     ));
                     (Some(new), state)
@@ -118,14 +119,14 @@ impl Element for ContextMenu {
         );
 
         let state = if let Some(mut anchored) = anchored {
-            let layout = anchored.request_layout(None, cx);
+            let layout = anchored.request_layout(None, window, cx);
             layout_ids.push(layout.0);
             Some((anchored, layout.0, layout.1))
         } else {
             None
         };
 
-        (cx.request_layout(style, layout_ids), state)
+        (window.request_layout(style, layout_ids, cx), state)
     }
 
     fn prepaint(
@@ -133,18 +134,23 @@ impl Element for ContextMenu {
         _: Option<&GlobalElementId>,
         _: Bounds<Pixels>,
         request_layout: &mut Self::RequestLayoutState,
-        cx: &mut WindowContext,
+        window: &mut Window,
+        cx: &mut App,
     ) -> Self::PrepaintState {
         if let Some(element) = self.element.as_mut() {
-            element.prepaint(cx);
+            element.prepaint(window, cx);
         }
 
         if let Some(anchored) = request_layout {
-            let bounds = cx.layout_bounds(anchored.1);
+            let bounds = window.layout_bounds(anchored.1);
 
-            anchored
-                .0
-                .prepaint(None, cx.layout_bounds(anchored.1), &mut anchored.2, cx);
+            anchored.0.prepaint(
+                None,
+                window.layout_bounds(anchored.1),
+                &mut anchored.2,
+                window,
+                cx,
+            );
 
             Some(bounds)
         } else {
@@ -158,23 +164,29 @@ impl Element for ContextMenu {
         bounds: Bounds<Pixels>,
         request_layout: &mut Self::RequestLayoutState,
         prepaint: &mut Self::PrepaintState,
-        cx: &mut WindowContext,
+        window: &mut Window,
+        cx: &mut App,
     ) {
         if let Some(element) = self.element.as_mut() {
-            element.paint(cx);
+            element.paint(window, cx);
         }
 
         if let Some(anchored) = request_layout {
-            anchored
-                .0
-                .paint(None, prepaint.unwrap(), &mut anchored.2, &mut (), cx);
+            anchored.0.paint(
+                None,
+                prepaint.unwrap(),
+                &mut anchored.2,
+                &mut (),
+                window,
+                cx,
+            );
         }
 
-        cx.with_element_state(id.unwrap(), |prev: Option<Rc<ContextMenuState>>, cx| {
+        window.with_element_state(id.unwrap(), |prev: Option<Rc<ContextMenuState>>, cx| {
             let state = prev.unwrap_or_else(|| Rc::new(ContextMenuState::new()));
             let state_clone = state.clone();
 
-            cx.on_mouse_event(move |ev: &MouseDownEvent, phase, _| {
+            cx.on_mouse_event(move |ev: &MouseDownEvent, phase, _, _| {
                 if ev.button == MouseButton::Right
                     && phase == DispatchPhase::Bubble
                     && bounds.contains(&ev.position)
@@ -185,7 +197,7 @@ impl Element for ContextMenu {
 
             let state_clone_2 = state.clone();
 
-            cx.on_mouse_event(move |ev: &MouseUpEvent, phase, _| {
+            cx.on_mouse_event(move |ev: &MouseUpEvent, phase, _, _| {
                 if phase == DispatchPhase::Bubble {
                     let clicked_in = state_clone_2.clicked_in.swap(false, Ordering::AcqRel);
 
