@@ -1,5 +1,8 @@
 use core::panic;
-use std::fs;
+use std::{
+    fs,
+    sync::{Arc, RwLock},
+};
 
 use directories::ProjectDirs;
 use gpui::*;
@@ -13,7 +16,7 @@ use crate::{
         db::{create_cache, create_pool},
         scan::{ScanInterface, ScanThread},
     },
-    playback::{interface::GPUIPlaybackInterface, thread::PlaybackThread},
+    playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
     settings::{setup_settings, SettingsGlobal},
 };
 
@@ -288,6 +291,8 @@ pub async fn run() {
                 error!("unable to create database pool: {}", pool.err().unwrap());
                 panic!("fatal: unable to create database pool");
             }
+
+            let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
 
             let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start();
             let mut data_interface: GPUIDataInterface = DataThread::start();
