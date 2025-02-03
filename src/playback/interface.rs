@@ -17,6 +17,7 @@ use crate::{
 
 use super::{
     events::{PlaybackCommand, PlaybackEvent},
+    queue::QueueItemData,
     thread::PlaybackState,
 };
 
@@ -70,15 +71,15 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn queue(&self, path: &str) {
+    pub fn queue(&self, item: QueueItemData) {
         self.commands_tx
-            .send(PlaybackCommand::Queue(path.to_string()))
+            .send(PlaybackCommand::Queue(item))
             .expect("could not send tx");
     }
 
-    pub fn queue_list(&self, paths: Vec<String>) {
+    pub fn queue_list(&self, items: Vec<QueueItemData>) {
         self.commands_tx
-            .send(PlaybackCommand::QueueList(paths.clone()))
+            .send(PlaybackCommand::QueueList(items))
             .expect("could not send tx");
     }
 
@@ -118,9 +119,9 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn replace_queue(&self, paths: Vec<String>) {
+    pub fn replace_queue(&self, items: Vec<QueueItemData>) {
         self.commands_tx
-            .send(PlaybackCommand::ReplaceQueue(paths.clone()))
+            .send(PlaybackCommand::ReplaceQueue(items))
             .expect("could not send tx");
     }
 
@@ -251,15 +252,12 @@ impl GPUIPlaybackInterface {
                                     })
                                     .expect("failed to broadcast MMBS event NewTrack");
                             }
-                            PlaybackEvent::QueueUpdated(v) => {
+                            PlaybackEvent::QueueUpdated => {
                                 queue_model
-                                    .update(&mut cx, |m, cx| {
-                                        m.0 = v;
-                                        cx.notify()
-                                    })
+                                    .update(&mut cx, |m, cx| cx.notify())
                                     .expect("failed to update queue");
                             }
-                            PlaybackEvent::ShuffleToggled(v) => {
+                            PlaybackEvent::ShuffleToggled(v, idx) => {
                                 playback_info
                                     .shuffling
                                     .update(&mut cx, |m, cx| {
@@ -292,9 +290,9 @@ impl GPUIPlaybackInterface {
 }
 
 // TODO: this should be in a trait for AppContext
-pub fn replace_queue(paths: Vec<String>, app: &mut App) {
+pub fn replace_queue(items: Vec<QueueItemData>, app: &mut App) {
     let playback_interface = app.global::<GPUIPlaybackInterface>();
-    playback_interface.replace_queue(paths.clone());
+    playback_interface.replace_queue(items);
 
     let data_interface = app.global::<GPUIDataInterface>();
 

@@ -2,7 +2,7 @@
 
 use crate::media::metadata::Metadata;
 
-use super::thread::PlaybackState;
+use super::{queue::QueueItemData, thread::PlaybackState};
 
 /// A command to the playback thread. This is used to control the playback thread from other
 /// threads. The playback thread recieves these commands from an MPSC channel, and processes them
@@ -18,10 +18,10 @@ pub enum PlaybackCommand {
     Open(String),
     /// Requests that the playback thread queue the specified file for playback after the current
     /// file. If there is no current file, the specified file will be played immediately.
-    Queue(String),
+    Queue(QueueItemData),
     /// Requests that the playback thread queue a list of files for playback after the current
     /// file. If there is no current file, the first file in the list will be played immediately.
-    QueueList(Vec<String>),
+    QueueList(Vec<QueueItemData>),
     /// Requests that the playback thread skip to the next file in the queue.
     Next,
     /// Requests that the playback thread skip to the previous file in the queue.
@@ -37,7 +37,7 @@ pub enum PlaybackCommand {
     SetVolume(f64),
     /// Requests that the playback thread replace the current queue with the specified queue.
     /// This will set the current playing track to the first item in the queue.
-    ReplaceQueue(Vec<String>),
+    ReplaceQueue(Vec<QueueItemData>),
     /// Requests that the playback thread stop playback.
     Stop,
     /// Requests that the playback thread shuffle (or stop shuffling) the next tracks in the
@@ -57,8 +57,8 @@ pub enum PlaybackEvent {
     /// Indicates that the duration of the current file has changed. The f64 is the new duration,
     /// in seconds.
     DurationChanged(u64),
-    /// Indicates that the queue has been updated. The vector is the new queue.
-    QueueUpdated(Vec<String>),
+    /// Indicates that the queue has been updated.
+    QueueUpdated,
     /// Indicates that the position in the queue has changed. The usize is the new position.
     QueuePositionChanged(usize),
     /// Indicates that the MediaProvider has provided new metadata to be consumed by the user
@@ -71,7 +71,7 @@ pub enum PlaybackEvent {
     /// in seconds.
     PositionChanged(u64),
     /// Notification for when shuffling is disabled or enabled by the thread.
-    ShuffleToggled(bool),
+    ShuffleToggled(bool, usize),
     /// Indicates that the volume has changed. The f64 is the new volume, from 0.0 to 1.0.
     VolumeChanged(f64),
 }

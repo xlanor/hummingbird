@@ -1,14 +1,24 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    fmt::Display,
+    sync::{Arc, Mutex},
+};
 
 use gpui::{App, AppContext, Entity, RenderImage, SharedString};
 
 use crate::{data::types::UIQueueItem, library::db::LibraryAccess, ui::models::Models};
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct QueueItemData {
     data: Entity<Option<QueueItemUIData>>,
     db_id: Option<i64>,
     db_album_id: Option<i64>,
     path: String,
+}
+
+impl Display for QueueItemData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.path)
+    }
 }
 
 pub struct QueueItemUIData {
