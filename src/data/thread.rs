@@ -15,25 +15,26 @@ use tracing::{debug, warn};
 
 use crate::{
     media::{builtin::symphonia::SymphoniaProvider, traits::MediaProvider},
+    playback::queue::{DataSource, QueueItemUIData},
     util::rgb_to_bgr,
 };
 
 use super::{
     events::{DataCommand, DataEvent, ImageLayout, ImageType},
     interface::DataInterface,
-    types::UIQueueItem,
 };
 
-fn create_generic_queue_item(path: String) -> UIQueueItem {
-    UIQueueItem {
-        track_name: path
-            .split(std::path::MAIN_SEPARATOR_STR)
-            .last()
-            .map(|v| SharedString::from(v.to_string()))
-            .unwrap(),
-        artist_name: SharedString::from("Unknown Artist"),
-        file_path: path,
-        album_art: None,
+fn create_generic_queue_item(path: String) -> QueueItemUIData {
+    QueueItemUIData {
+        image: None,
+        name: Some(
+            path.split(std::path::MAIN_SEPARATOR_STR)
+                .last()
+                .map(|v| SharedString::from(v.to_string()))
+                .unwrap(),
+        ),
+        artist_name: Some(SharedString::from("Unknown Artist")),
+        source: DataSource::Metadata,
     }
 }
 
@@ -138,7 +139,7 @@ impl DataThread {
         Ok(())
     }
 
-    fn read_metadata(&mut self, path: String) -> UIQueueItem {
+    fn read_metadata(&mut self, path: String) -> QueueItemUIData {
         let file = if let Ok(file) = std::fs::File::open(path.clone()) {
             file
         } else {
@@ -203,23 +204,41 @@ impl DataThread {
                 }
             });
 
-        UIQueueItem {
-            file_path: path.clone(),
-            track_name: metadata
-                .name
-                .map(SharedString::from)
-                .unwrap_or_else(|| create_generic_queue_item(path).track_name),
-            artist_name: metadata
-                .artist
-                .map(SharedString::from)
-                .unwrap_or_else(|| SharedString::from("Unknown Artist")),
-            album_art,
+        // UIQueueItem {
+        //     file_path: path.clone(),
+        //     track_name: metadata
+        //         .name
+        //         .map(SharedString::from)
+        //         .unwrap_or_else(|| create_generic_queue_item(path).track_name),
+        //     artist_name: metadata
+        //         .artist
+        //         .map(SharedString::from)
+        //         .unwrap_or_else(|| SharedString::from("Unknown Artist")),
+        //     album_art,
+        // }
+
+        QueueItemUIData {
+            image: album_art,
+            name: Some(
+                metadata
+                    .name
+                    .map(SharedString::from)
+                    .unwrap_or_else(|| create_generic_queue_item(path).name.unwrap()),
+            ),
+            artist_name: Some(
+                metadata
+                    .artist
+                    .map(SharedString::from)
+                    .unwrap_or_else(|| SharedString::from("Unknown Artist")),
+            ),
+            source: DataSource::Metadata,
         }
     }
 
     fn evict_unneeded_data(&mut self) {
         // we have to duplicate this data in order to get around borrowing rules
         let keys: Vec<u64> = self.image_cache.keys().cloned().collect();
+        let mut removed = vec![];
 
         for key in keys {
             let value = self.image_cache.get(&key).unwrap();
@@ -227,8 +246,16 @@ impl DataThread {
             // no clue how this could possibly be less than 2 but it doesn't hurt to check
             if Arc::<gpui::RenderImage>::strong_count(value) <= 2 {
                 debug!("evicting {}", key);
-                self.image_cache.remove(&key);
+                let result = self.image_cache.remove(&key);
+
+                if let Some(result) = result {
+                    removed.push(result);
+                }
             }
         }
+
+        self.events_tx
+            .send(DataEvent::CacheDrops(removed))
+            .expect("could not send event");
     }
 }

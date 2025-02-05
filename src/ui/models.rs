@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    sync::Arc,
+    sync::{Arc, RwLock},
 };
 
 use ahash::AHashMap;
@@ -12,11 +12,13 @@ use crate::{
     data::{
         events::{ImageLayout, ImageType},
         interface::GPUIDataInterface,
-        types::UIQueueItem,
     },
     library::scan::ScanEvent,
     media::metadata::Metadata,
-    playback::thread::PlaybackState,
+    playback::{
+        queue::{QueueItemData, QueueItemUIData},
+        thread::PlaybackState,
+    },
     services::mmb::{
         lastfm::{client::LastFMClient, types::Session, LastFM, LASTFM_API_KEY, LASTFM_API_SECRET},
         MediaMetadataBroadcastService,
@@ -70,10 +72,13 @@ pub struct TransferDummy;
 
 impl EventEmitter<ImageTransfer> for TransferDummy {}
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Queue(pub Vec<String>);
+#[derive(Debug, Clone)]
+pub struct Queue {
+    pub data: Arc<RwLock<Vec<QueueItemData>>>,
+    pub position: usize,
+}
 
-impl EventEmitter<UIQueueItem> for Queue {}
+impl EventEmitter<(String, QueueItemUIData)> for Queue {}
 
 #[derive(Clone)]
 pub struct MMBSList(pub AHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService>>>);
@@ -89,11 +94,11 @@ pub enum MMBSEvent {
 
 impl EventEmitter<MMBSEvent> for MMBSList {}
 
-pub fn build_models(cx: &mut App) {
+pub fn build_models(cx: &mut App, queue: Queue) {
     debug!("Building models");
     let metadata: Entity<Metadata> = cx.new(|_| Metadata::default());
     let albumart: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
-    let queue: Entity<Queue> = cx.new(|_| Queue(Vec::new()));
+    let queue: Entity<Queue> = cx.new(move |_| queue);
     let image_transfer_model: Entity<TransferDummy> = cx.new(|_| TransferDummy);
     let scan_state: Entity<ScanEvent> = cx.new(|_| ScanEvent::ScanCompleteIdle);
     let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(AHashMap::new()));

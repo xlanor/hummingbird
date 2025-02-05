@@ -1,6 +1,9 @@
 use crate::{
-    data::{interface::GPUIDataInterface, types::UIQueueItem},
-    playback::interface::GPUIPlaybackInterface,
+    data::interface::GPUIDataInterface,
+    playback::{
+        interface::GPUIPlaybackInterface,
+        queue::{DataSource, QueueItemData},
+    },
 };
 use ahash::AHashMap;
 use gpui::*;
@@ -11,44 +14,47 @@ use super::{
     constants::FONT_AWESOME,
     models::{Models, PlaybackInfo},
     theme::Theme,
-    util::{create_or_retrieve_view, prune_views},
+    util::{create_or_retrieve_view, drop_image_from_app, prune_views},
 };
 
 pub struct QueueItem {
-    item: Option<UIQueueItem>,
-    path: String,
-    current_track: Entity<Option<String>>,
+    item: QueueItemData,
+    current: usize,
     idx: usize,
 }
 
 impl QueueItem {
-    pub fn new(cx: &mut App, path: String, idx: usize, clear_cache: bool) -> Entity<Self> {
+    pub fn new(cx: &mut App, item: QueueItemData, idx: usize) -> Entity<Self> {
         cx.new(move |cx| {
-            let current_track = cx.global::<PlaybackInfo>().current_track.clone();
+            cx.on_release(|m: &mut QueueItem, cx| {
+                let data = m.item.get_data(cx).read(cx).as_ref().unwrap();
 
-            let interface = cx.global::<GPUIDataInterface>();
-
-            if clear_cache {
-                interface.evict_cache();
-            }
-
-            interface.get_metadata(path.clone());
-
-            let queue_model = cx.global::<Models>().queue.clone();
-
-            cx.subscribe(&queue_model, move |this: &mut QueueItem, _, ev, cx| {
-                if ev.file_path == this.path {
-                    this.item = Some(ev.clone());
-                    cx.notify();
+                if let (Some(image), DataSource::Library) = (data.image.clone(), data.source) {
+                    drop_image_from_app(cx, image);
                 }
+
+                m.item.drop_data(cx);
+            })
+            .detach();
+
+            let queue = cx.global::<Models>().queue.clone();
+
+            cx.observe(&queue, |this: &mut QueueItem, queue, cx| {
+                this.current = queue.read(cx).position;
+            })
+            .detach();
+
+            let data = item.get_data(cx);
+
+            cx.observe(&data, |_, _, cx| {
+                cx.notify();
             })
             .detach();
 
             Self {
-                item: None,
-                path,
-                current_track,
+                item,
                 idx,
+                current: queue.read(cx).position,
             }
         })
     }
@@ -56,20 +62,20 @@ impl QueueItem {
 
 impl Render for QueueItem {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = cx.global::<Theme>();
+        let data = self.item.get_data(cx).read(cx);
+        let theme = cx.global::<Theme>().clone();
 
-        if let Some(item) = self.item.as_ref() {
-            let is_current = self
-                .current_track
-                .read(cx)
-                .as_ref()
-                .map(|v| v == &item.file_path)
-                .unwrap_or(false);
+        if let Some(item) = data.as_ref() {
+            // let is_current = self
+            //     .current_track
+            //     .read(cx)
+            //     .as_ref()
+            //     .map(|v| v == &item.file_path)
+            //     .unwrap_or(false);
 
-            let album_art = item
-                .album_art
-                .as_ref()
-                .map(|v| ImageSource::Render(v.clone()));
+            let is_current = self.current == self.idx;
+
+            let album_art = item.image.as_ref().cloned();
 
             let idx = self.idx;
 
@@ -120,11 +126,15 @@ impl Render for QueueItem {
                             div()
                                 .text_ellipsis()
                                 .font_weight(FontWeight::EXTRA_BOLD)
-                                .child(item.track_name.clone()), // .child(item.metadata.name.clone().unwrap_or(
-                                                                 //     item.file_path.split(MAIN_SEPARATOR).last().unwrap().into(),
-                                                                 // )),
+                                .when_some(item.name.clone(), |this, string| this.child(string)),
                         )
-                        .child(div().text_ellipsis().child(item.artist_name.clone())),
+                        .child(
+                            div()
+                                .text_ellipsis()
+                                .when_some(item.artist_name.clone(), |this, string| {
+                                    this.child(string)
+                                }),
+                        ),
                 )
         } else {
             // TODO: Skeleton for this
@@ -161,25 +171,37 @@ impl Queue {
                 let views_model = this.views_model.clone();
                 let render_counter = this.render_counter.clone();
 
-                this.state = ListState::new(
-                    items.0.len(),
-                    ListAlignment::Top,
-                    px(200.0),
-                    move |idx, _, cx| {
-                        let item = items.0.get(idx).unwrap().clone();
+                let length = items.data.read().expect("couldn't read queue").len();
+
+                let current_top = this.state.logical_scroll_top();
+
+                this.state =
+                    ListState::new(length, ListAlignment::Top, px(200.0), move |idx, _, cx| {
+                        let item = items
+                            .data
+                            .read()
+                            .expect("couldn't read queue")
+                            .get(idx)
+                            .unwrap()
+                            .clone();
                         let was_removed =
                             prune_views(views_model.clone(), render_counter.clone(), idx, cx);
+
+                        if was_removed {
+                            cx.global::<GPUIDataInterface>().evict_cache();
+                        }
 
                         div()
                             .child(create_or_retrieve_view(
                                 views_model.clone(),
                                 idx,
-                                move |cx| QueueItem::new(cx, item, idx, was_removed),
+                                move |cx| QueueItem::new(cx, item, idx),
                                 cx,
                             ))
                             .into_any_element()
-                    },
-                );
+                    });
+
+                this.state.scroll_to(current_top);
 
                 cx.notify();
             })

@@ -1,5 +1,8 @@
 use core::panic;
-use std::fs;
+use std::{
+    fs,
+    sync::{Arc, RwLock},
+};
 
 use directories::ProjectDirs;
 use gpui::*;
@@ -13,7 +16,7 @@ use crate::{
         db::{create_cache, create_pool},
         scan::{ScanInterface, ScanThread},
     },
-    playback::{interface::GPUIPlaybackInterface, thread::PlaybackThread},
+    playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
     settings::{setup_settings, SettingsGlobal},
 };
 
@@ -25,9 +28,10 @@ use super::{
     global_actions::register_actions,
     header::Header,
     library::Library,
-    models::build_models,
+    models::{self, build_models},
     queue::Queue,
     theme::{setup_theme, Theme},
+    util::drop_image_from_app,
 };
 
 struct WindowShadow {
@@ -251,6 +255,10 @@ pub fn get_dirs() -> ProjectDirs {
     directories::ProjectDirs::from("me", "william341", "muzak").expect("couldn't find project dirs")
 }
 
+pub struct DropImageDummyModel;
+
+impl EventEmitter<Vec<Arc<RenderImage>>> for DropImageDummyModel {}
+
 pub async fn run() {
     let dirs = get_dirs();
     let directory = dirs.data_dir().to_path_buf();
@@ -270,7 +278,15 @@ pub async fn run() {
 
             register_actions(cx);
 
-            build_models(cx);
+            let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
+
+            build_models(
+                cx,
+                models::Queue {
+                    data: queue.clone(),
+                    position: 0,
+                },
+            );
 
             setup_theme(cx, directory.join("theme.json"));
             setup_settings(cx, directory.join("settings.json"));
@@ -289,13 +305,22 @@ pub async fn run() {
                 panic!("fatal: unable to create database pool");
             }
 
-            let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start();
+            let drop_model = cx.new(|_| DropImageDummyModel);
+
+            cx.subscribe(&drop_model, |_, vec, cx| {
+                for image in vec.clone() {
+                    drop_image_from_app(cx, image);
+                }
+            })
+            .detach();
+
+            let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start(queue);
             let mut data_interface: GPUIDataInterface = DataThread::start();
 
             playback_interface.start_broadcast(cx);
-            data_interface.start_broadcast(cx);
+            data_interface.start_broadcast(cx, drop_model);
 
-            parse_args_and_prepare(&playback_interface);
+            parse_args_and_prepare(cx, &playback_interface);
 
             cx.set_global(playback_interface);
             cx.set_global(data_interface);

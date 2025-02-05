@@ -10,4 +10,4 @@ mod library;
 pub mod models;
 mod queue;
 mod theme;
-mod util;
+pub mod util;
