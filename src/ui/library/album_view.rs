@@ -14,7 +14,7 @@ use crate::{
     ui::{
         models::Models,
         theme::Theme,
-        util::{create_or_retrieve_view, prune_views},
+        util::{create_or_retrieve_view, drop_image_from_app, prune_views},
     },
 };
 
@@ -215,14 +215,25 @@ impl AlbumItem {
         let artist = album
             .as_ref()
             .and_then(|album| cx.get_artist_name_by_id(album.artist_id).ok());
-        cx.new(|_| AlbumItem {
-            id: SharedString::from(format!(
-                "album-item-{}",
-                album.as_ref().map(|album| album.id).unwrap_or_default()
-            )),
-            album,
-            artist,
-            view_switch_model,
+        cx.new(|cx| {
+            cx.on_release(|this: &mut Self, cx: &mut App| {
+                if let Some(album) = this.album.clone() {
+                    if let Some(image) = album.thumb.clone() {
+                        drop_image_from_app(cx, image.0);
+                    }
+                }
+            })
+            .detach();
+
+            AlbumItem {
+                id: SharedString::from(format!(
+                    "album-item-{}",
+                    album.as_ref().map(|album| album.id).unwrap_or_default()
+                )),
+                album,
+                artist,
+                view_switch_model,
+            }
         })
     }
 }
