@@ -446,7 +446,7 @@ impl RenderOnce for TrackItem {
                                     .global::<Models>()
                                     .queue
                                     .read(cx)
-                                    .0
+                                    .data
                                     .read()
                                     .expect("couldn't get queue")
                                     .len();

@@ -254,10 +254,10 @@ impl GPUIPlaybackInterface {
                             }
                             PlaybackEvent::QueueUpdated => {
                                 queue_model
-                                    .update(&mut cx, |m, cx| cx.notify())
+                                    .update(&mut cx, |_, cx| cx.notify())
                                     .expect("failed to update queue");
                             }
-                            PlaybackEvent::ShuffleToggled(v, idx) => {
+                            PlaybackEvent::ShuffleToggled(v, _) => {
                                 playback_info
                                     .shuffling
                                     .update(&mut cx, |m, cx| {
@@ -273,7 +273,12 @@ impl GPUIPlaybackInterface {
                                     cx.notify()
                                 })
                                 .expect("failed to update volume model"),
-                            _ => (),
+                            PlaybackEvent::QueuePositionChanged(v) => queue_model
+                                .update(&mut cx, |m, cx| {
+                                    m.position = v;
+                                    cx.notify();
+                                })
+                                .expect("failed to update queue position"),
                         }
                     }
 

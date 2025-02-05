@@ -3,9 +3,13 @@ use std::{
     time::Duration,
 };
 
-use gpui::App;
+use gpui::{App, AppContext, Entity};
 
-use crate::ui::models::{ImageTransfer, Models};
+use crate::ui::{
+    app::DropImageDummyModel,
+    models::{ImageTransfer, Models},
+    util::drop_image_from_app,
+};
 
 use super::events::{DataCommand, DataEvent, ImageLayout, ImageType};
 
@@ -72,7 +76,7 @@ impl GPUIDataInterface {
 
     /// Starts the broadcast loop that will read events from the data thread and update data models
     /// accordingly. This function should be called once, and will panic if called more than once.
-    pub fn start_broadcast(&mut self, cx: &mut App) {
+    pub fn start_broadcast(&mut self, cx: &mut App, drop_model: Entity<DropImageDummyModel>) {
         let mut events_rx = None;
         std::mem::swap(&mut self.events_rx, &mut events_rx);
 
@@ -109,13 +113,16 @@ impl GPUIDataInterface {
                                 }
                                 _ => todo!(),
                             },
-                            DataEvent::MetadataRead(_, item) => {
+                            DataEvent::MetadataRead(path, item) => {
                                 queue_model
                                     .update(&mut cx, |_, cx| {
-                                        cx.emit(item);
+                                        cx.emit((path, item));
                                     })
                                     .expect("failed to update queue");
                             }
+                            DataEvent::CacheDrops(vec) => drop_model
+                                .update(&mut cx, |_, cx| cx.emit(vec))
+                                .expect("failed to promote to cx"),
                         }
                     }
 

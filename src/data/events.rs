@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use gpui::RenderImage;
 
-use super::types::UIQueueItem;
+use crate::playback::queue::QueueItemUIData;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ImageType {
@@ -42,5 +42,6 @@ pub enum DataEvent {
     /// Indicates that the data processing thread has encountered an error while decoding the
     /// specified image.
     DecodeError(ImageType),
-    MetadataRead(String, UIQueueItem),
+    MetadataRead(String, QueueItemUIData),
+    CacheDrops(Vec<Arc<RenderImage>>),
 }

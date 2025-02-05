@@ -12,11 +12,13 @@ use crate::{
     data::{
         events::{ImageLayout, ImageType},
         interface::GPUIDataInterface,
-        types::UIQueueItem,
     },
     library::scan::ScanEvent,
     media::metadata::Metadata,
-    playback::{queue::QueueItemData, thread::PlaybackState},
+    playback::{
+        queue::{QueueItemData, QueueItemUIData},
+        thread::PlaybackState,
+    },
     services::mmb::{
         lastfm::{client::LastFMClient, types::Session, LastFM, LASTFM_API_KEY, LASTFM_API_SECRET},
         MediaMetadataBroadcastService,
@@ -71,9 +73,12 @@ pub struct TransferDummy;
 impl EventEmitter<ImageTransfer> for TransferDummy {}
 
 #[derive(Debug, Clone)]
-pub struct Queue(pub Arc<RwLock<Vec<QueueItemData>>>);
+pub struct Queue {
+    pub data: Arc<RwLock<Vec<QueueItemData>>>,
+    pub position: usize,
+}
 
-impl EventEmitter<UIQueueItem> for Queue {}
+impl EventEmitter<(String, QueueItemUIData)> for Queue {}
 
 #[derive(Clone)]
 pub struct MMBSList(pub AHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService>>>);

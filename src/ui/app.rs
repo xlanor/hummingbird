@@ -31,6 +31,7 @@ use super::{
     models::{self, build_models},
     queue::Queue,
     theme::{setup_theme, Theme},
+    util::drop_image_from_app,
 };
 
 struct WindowShadow {
@@ -254,6 +255,10 @@ pub fn get_dirs() -> ProjectDirs {
     directories::ProjectDirs::from("me", "william341", "muzak").expect("couldn't find project dirs")
 }
 
+pub struct DropImageDummyModel;
+
+impl EventEmitter<Vec<Arc<RenderImage>>> for DropImageDummyModel {}
+
 pub async fn run() {
     let dirs = get_dirs();
     let directory = dirs.data_dir().to_path_buf();
@@ -275,7 +280,13 @@ pub async fn run() {
 
             let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
 
-            build_models(cx, models::Queue(queue.clone()));
+            build_models(
+                cx,
+                models::Queue {
+                    data: queue.clone(),
+                    position: 0,
+                },
+            );
 
             setup_theme(cx, directory.join("theme.json"));
             setup_settings(cx, directory.join("settings.json"));
@@ -294,11 +305,20 @@ pub async fn run() {
                 panic!("fatal: unable to create database pool");
             }
 
+            let drop_model = cx.new(|_| DropImageDummyModel);
+
+            cx.subscribe(&drop_model, |_, vec, cx| {
+                for image in vec.clone() {
+                    drop_image_from_app(cx, image);
+                }
+            })
+            .detach();
+
             let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start(queue);
             let mut data_interface: GPUIDataInterface = DataThread::start();
 
             playback_interface.start_broadcast(cx);
-            data_interface.start_broadcast(cx);
+            data_interface.start_broadcast(cx, drop_model);
 
             parse_args_and_prepare(cx, &playback_interface);
 

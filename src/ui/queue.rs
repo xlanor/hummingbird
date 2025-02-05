@@ -1,8 +1,8 @@
 use crate::{
-    data::{interface::GPUIDataInterface, types::UIQueueItem},
+    data::interface::GPUIDataInterface,
     playback::{
         interface::GPUIPlaybackInterface,
-        queue::{QueueItemData, QueueItemUIData},
+        queue::{DataSource, QueueItemData},
     },
 };
 use ahash::AHashMap;
@@ -14,25 +14,48 @@ use super::{
     constants::FONT_AWESOME,
     models::{Models, PlaybackInfo},
     theme::Theme,
-    util::{create_or_retrieve_view, prune_views},
+    util::{create_or_retrieve_view, drop_image_from_app, prune_views},
 };
 
 pub struct QueueItem {
     item: QueueItemData,
+    current: usize,
     idx: usize,
 }
 
 impl QueueItem {
-    pub fn new(cx: &mut App, item: QueueItemData, idx: usize, clear_cache: bool) -> Entity<Self> {
+    pub fn new(cx: &mut App, item: QueueItemData, idx: usize) -> Entity<Self> {
         cx.new(move |cx| {
             cx.on_release(|m: &mut QueueItem, cx| {
+                let data = m.item.get_data(cx).read(cx).as_ref().unwrap();
+
+                if let (Some(image), DataSource::Library) = (data.image.clone(), data.source) {
+                    drop_image_from_app(cx, image);
+                }
+
                 m.item.drop_data(cx);
             })
             .detach();
 
-            item.get_data(cx);
+            let queue = cx.global::<Models>().queue.clone();
 
-            Self { item, idx }
+            cx.observe(&queue, |this: &mut QueueItem, queue, cx| {
+                this.current = queue.read(cx).position;
+            })
+            .detach();
+
+            let data = item.get_data(cx);
+
+            cx.observe(&data, |_, _, cx| {
+                cx.notify();
+            })
+            .detach();
+
+            Self {
+                item,
+                idx,
+                current: queue.read(cx).position,
+            }
         })
     }
 }
@@ -50,7 +73,7 @@ impl Render for QueueItem {
             //     .map(|v| v == &item.file_path)
             //     .unwrap_or(false);
 
-            let is_current = false;
+            let is_current = self.current == self.idx;
 
             let album_art = item.image.as_ref().cloned();
 
@@ -148,12 +171,14 @@ impl Queue {
                 let views_model = this.views_model.clone();
                 let render_counter = this.render_counter.clone();
 
-                let length = items.0.read().expect("couldn't read queue").len();
+                let length = items.data.read().expect("couldn't read queue").len();
+
+                let current_top = this.state.logical_scroll_top();
 
                 this.state =
                     ListState::new(length, ListAlignment::Top, px(200.0), move |idx, _, cx| {
                         let item = items
-                            .0
+                            .data
                             .read()
                             .expect("couldn't read queue")
                             .get(idx)
@@ -162,15 +187,21 @@ impl Queue {
                         let was_removed =
                             prune_views(views_model.clone(), render_counter.clone(), idx, cx);
 
+                        if was_removed {
+                            cx.global::<GPUIDataInterface>().evict_cache();
+                        }
+
                         div()
                             .child(create_or_retrieve_view(
                                 views_model.clone(),
                                 idx,
-                                move |cx| QueueItem::new(cx, item, idx, was_removed),
+                                move |cx| QueueItem::new(cx, item, idx),
                                 cx,
                             ))
                             .into_any_element()
                     });
+
+                this.state.scroll_to(current_top);
 
                 cx.notify();
             })

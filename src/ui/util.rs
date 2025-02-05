@@ -70,6 +70,8 @@ pub fn drop_image_from_app(cx: &mut App, image: Arc<RenderImage>) {
     for window in cx.windows() {
         let image = image.clone();
 
+        debug!("dropping an image from {:?}", window.window_id());
+
         window
             .update(cx, move |_, window, _| {
                 window.drop_image(image).expect("bruh");

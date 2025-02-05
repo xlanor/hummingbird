@@ -228,6 +228,9 @@ impl PlaybackThread {
             let path = queue[0].get_path().clone();
             drop(queue);
             self.open(&(path));
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(0))
+                .expect("unable to send event");
             self.queue_next = 1;
         }
 
@@ -290,6 +293,9 @@ impl PlaybackThread {
             let next_path = queue[self.queue_next].get_path().clone();
             drop(queue);
             self.open(&next_path);
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next))
+                .expect("unable to send event");
             self.queue_next += 1;
         } else if !user_initiated {
             info!("Playback queue is empty, stopping playback");
@@ -306,10 +312,16 @@ impl PlaybackThread {
             self.queue_next = queue.len();
             drop(queue);
             self.open(&track);
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
+                .expect("unable to send event");
         } else if self.queue_next > 1 {
             info!("Opening previous file in queue");
             let prev_path = queue[self.queue_next - 2].get_path().clone();
             drop(queue);
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 2))
+                .expect("unable to send event");
             self.queue_next -= 1;
             debug!("queue_next: {}", self.queue_next);
             self.open(&prev_path);
@@ -368,6 +380,9 @@ impl PlaybackThread {
             if let Some(first) = first {
                 self.open(first.get_path());
                 self.queue_next = pre_len + 1;
+                self.events_tx
+                    .send(PlaybackEvent::QueuePositionChanged(pre_len))
+                    .expect("unable to send event");
             }
         }
 
@@ -408,6 +423,9 @@ impl PlaybackThread {
             drop(queue);
             self.open(&item);
             self.queue_next = index + 1;
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(index))
+                .expect("unable to send event");
         }
     }
 
@@ -439,6 +457,9 @@ impl PlaybackThread {
         let mut queue = self.queue.write().expect("couldn't get the queue");
         *queue = Vec::new();
         self.queue_next = 0;
+        self.events_tx
+            .send(PlaybackEvent::QueuePositionChanged(0))
+            .expect("unable to send event");
         self.events_tx
             .send(PlaybackEvent::QueueUpdated)
             .expect("unable to send event");
@@ -490,7 +511,7 @@ impl PlaybackThread {
             self.shuffle = true;
 
             self.events_tx
-                .send(PlaybackEvent::ShuffleToggled(true, self.queue_next - 0))
+                .send(PlaybackEvent::ShuffleToggled(true, self.queue_next))
                 .expect("unable to send event");
             self.events_tx
                 .send(PlaybackEvent::QueueUpdated)

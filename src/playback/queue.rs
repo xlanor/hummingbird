@@ -1,11 +1,8 @@
-use std::{
-    fmt::Display,
-    sync::{Arc, Mutex},
-};
+use std::{fmt::Display, sync::Arc};
 
 use gpui::{App, AppContext, Entity, RenderImage, SharedString};
 
-use crate::{data::types::UIQueueItem, library::db::LibraryAccess, ui::models::Models};
+use crate::{data::interface::GPUIDataInterface, library::db::LibraryAccess, ui::models::Models};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueueItemData {
@@ -21,10 +18,18 @@ impl Display for QueueItemData {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct QueueItemUIData {
     pub image: Option<Arc<RenderImage>>,
     pub name: Option<SharedString>,
     pub artist_name: Option<SharedString>,
+    pub source: DataSource,
+}
+
+#[derive(Clone, Debug, PartialEq, Copy)]
+pub enum DataSource {
+    Metadata,
+    Library,
 }
 
 impl QueueItemData {
@@ -41,12 +46,14 @@ impl QueueItemData {
         let model = self.data.clone();
         let track_id = self.db_id;
         let album_id = self.db_album_id;
+        let path = self.path.clone();
         model.update(cx, move |m, cx| {
             if m.is_none() {
                 *m = Some(QueueItemUIData {
                     image: None,
                     name: None,
                     artist_name: None,
+                    source: DataSource::Library,
                 });
 
                 if let (Some(track_id), Some(album_id)) = (track_id, album_id) {
@@ -70,14 +77,20 @@ impl QueueItemData {
                     // vital information left blank, try retriving the metadata from disk
                     // much slower, especially on windows
                     let queue_model = cx.global::<Models>().queue.clone();
+                    let path_clone = path.clone();
 
-                    cx.subscribe(&queue_model, |m, _, ev: &UIQueueItem, cx| {
-                        m.as_mut().unwrap().artist_name = Some(ev.artist_name.clone());
-                        m.as_mut().unwrap().image = ev.album_art.clone();
-                        m.as_mut().unwrap().name = Some(ev.track_name.clone());
-                        cx.notify();
-                    })
+                    cx.subscribe(
+                        &queue_model,
+                        move |m, _, ev: &(String, QueueItemUIData), cx| {
+                            if ev.0 == path_clone {
+                                *m = Some(ev.1.clone());
+                            }
+                            cx.notify();
+                        },
+                    )
                     .detach();
+
+                    cx.global::<GPUIDataInterface>().get_metadata(path);
                 }
             }
         });
