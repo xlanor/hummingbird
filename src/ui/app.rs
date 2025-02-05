@@ -28,7 +28,7 @@ use super::{
     global_actions::register_actions,
     header::Header,
     library::Library,
-    models::build_models,
+    models::{self, build_models},
     queue::Queue,
     theme::{setup_theme, Theme},
 };
@@ -273,7 +273,9 @@ pub async fn run() {
 
             register_actions(cx);
 
-            build_models(cx);
+            let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
+
+            build_models(cx, models::Queue(queue.clone()));
 
             setup_theme(cx, directory.join("theme.json"));
             setup_settings(cx, directory.join("settings.json"));
@@ -292,15 +294,13 @@ pub async fn run() {
                 panic!("fatal: unable to create database pool");
             }
 
-            let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
-
-            let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start();
+            let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start(queue);
             let mut data_interface: GPUIDataInterface = DataThread::start();
 
             playback_interface.start_broadcast(cx);
             data_interface.start_broadcast(cx);
 
-            parse_args_and_prepare(&playback_interface);
+            parse_args_and_prepare(cx, &playback_interface);
 
             cx.set_global(playback_interface);
             cx.set_global(data_interface);

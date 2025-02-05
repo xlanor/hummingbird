@@ -13,7 +13,10 @@ use crate::{
         db::{AlbumMethod, LibraryAccess},
         types::{Album, Artist, Track},
     },
-    playback::interface::{replace_queue, GPUIPlaybackInterface},
+    playback::{
+        interface::{replace_queue, GPUIPlaybackInterface},
+        queue::QueueItemData,
+    },
     ui::{
         components::{
             button::{button, ButtonIntent, ButtonSize},
@@ -225,7 +228,14 @@ impl Render for ReleaseView {
                                                     let paths = this
                                                         .tracks
                                                         .iter()
-                                                        .map(|track| track.location.clone())
+                                                        .map(|track| {
+                                                            QueueItemData::new(
+                                                                cx,
+                                                                track.location.clone(),
+                                                                Some(track.id),
+                                                                track.album_id,
+                                                            )
+                                                        })
                                                         .collect();
 
                                                     replace_queue(paths, cx)
@@ -245,7 +255,14 @@ impl Render for ReleaseView {
                                                     let paths = this
                                                         .tracks
                                                         .iter()
-                                                        .map(|track| track.location.clone())
+                                                        .map(|track| {
+                                                            QueueItemData::new(
+                                                                cx,
+                                                                track.location.clone(),
+                                                                Some(track.id),
+                                                                track.album_id,
+                                                            )
+                                                        })
                                                         .collect();
 
                                                     cx.global::<GPUIPlaybackInterface>()
@@ -265,7 +282,14 @@ impl Render for ReleaseView {
                                                     let paths = this
                                                         .tracks
                                                         .iter()
-                                                        .map(|track| track.location.clone())
+                                                        .map(|track| {
+                                                            QueueItemData::new(
+                                                                cx,
+                                                                track.location.clone(),
+                                                                Some(track.id),
+                                                                track.album_id,
+                                                            )
+                                                        })
                                                         .collect();
 
                                                     if !(*cx
@@ -332,6 +356,7 @@ impl RenderOnce for TrackItem {
         let track_location = self.track.location.clone();
         let track_location_2 = self.track.location;
         let track_id = self.track.id;
+        let album_id = self.track.album_id;
         context(("context", self.track.id as usize))
             .with(
                 div()
@@ -410,9 +435,22 @@ impl RenderOnce for TrackItem {
                             Some(""),
                             "Play",
                             move |_, _, cx| {
+                                let data = QueueItemData::new(
+                                    cx,
+                                    track_location.clone(),
+                                    Some(track_id),
+                                    album_id,
+                                );
                                 let playback_interface = cx.global::<GPUIPlaybackInterface>();
-                                let queue_length = cx.global::<Models>().queue.read(cx).0.len();
-                                playback_interface.queue(&track_location);
+                                let queue_length = cx
+                                    .global::<Models>()
+                                    .queue
+                                    .read(cx)
+                                    .0
+                                    .read()
+                                    .expect("couldn't get queue")
+                                    .len();
+                                playback_interface.queue(data);
                                 playback_interface.jump(queue_length);
                             },
                         ))
@@ -427,8 +465,14 @@ impl RenderOnce for TrackItem {
                             Some("+"),
                             "Add to queue",
                             move |_, _, cx| {
+                                let data = QueueItemData::new(
+                                    cx,
+                                    track_location_2.clone(),
+                                    Some(track_id),
+                                    album_id,
+                                );
                                 let playback_interface = cx.global::<GPUIPlaybackInterface>();
-                                playback_interface.queue(&track_location_2);
+                                playback_interface.queue(data);
                             },
                         )),
                 ),
@@ -437,7 +481,10 @@ impl RenderOnce for TrackItem {
 }
 
 fn play_from_track(cx: &mut App, tracks: &Arc<Vec<Track>>, id: i64) {
-    let paths = tracks.iter().map(|track| track.location.clone()).collect();
+    let paths = tracks
+        .iter()
+        .map(|track| QueueItemData::new(cx, track.location.clone(), Some(track.id), track.album_id))
+        .collect();
 
     replace_queue(paths, cx);
 
