@@ -281,8 +281,8 @@ impl Render for PlaybackSection {
                                 cx.stop_propagation();
                                 window.prevent_default();
                             })
-                            .on_click(|_, _, cx| {
-                                cx.dispatch_action(&Previous);
+                            .on_click(|_, window, cx| {
+                                window.dispatch_action(Box::new(Previous), cx);
                             })
                             .child(""),
                     )
@@ -305,8 +305,8 @@ impl Render for PlaybackSection {
                                 cx.stop_propagation();
                                 window.prevent_default();
                             })
-                            .on_click(|_, _, cx| {
-                                cx.dispatch_action(&PlayPause);
+                            .on_click(|_, window, cx| {
+                                window.dispatch_action(Box::new(PlayPause), cx);
                             })
                             .when(*state == PlaybackState::Playing, |div| div.child(""))
                             .when(*state != PlaybackState::Playing, |div| div.child("")),
@@ -328,8 +328,8 @@ impl Render for PlaybackSection {
                                 cx.stop_propagation();
                                 window.prevent_default();
                             })
-                            .on_click(|_, _, cx| {
-                                cx.dispatch_action(&Next);
+                            .on_click(|_, window, cx| {
+                                window.dispatch_action(Box::new(Next), cx);
                             })
                             .child(""),
                     ),
