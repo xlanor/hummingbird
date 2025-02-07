@@ -3388,6 +3388,7 @@ dependencies = [
  "symphonia",
  "tracing",
  "tracing-subscriber",
+ "unicode-segmentation",
  "urlencoding",
  "uuid",
 ]

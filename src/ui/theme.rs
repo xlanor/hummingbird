@@ -68,6 +68,8 @@ pub struct Theme {
     pub menu_item: Rgba,
     pub menu_item_hover: Rgba,
     pub menu_item_active: Rgba,
+
+    pub modal_overlay_bg: Rgba,
 }
 
 impl Default for Theme {
@@ -134,6 +136,8 @@ impl Default for Theme {
             menu_item: rgba(0x282F3D00),
             menu_item_hover: rgb(0x282F3D),
             menu_item_active: rgb(0x0D1014),
+
+            modal_overlay_bg: rgba(0x0C111633),
         }
     }
 }
