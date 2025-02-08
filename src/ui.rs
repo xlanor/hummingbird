@@ -9,5 +9,6 @@ mod header;
 mod library;
 pub mod models;
 mod queue;
+mod search;
 mod theme;
 pub mod util;

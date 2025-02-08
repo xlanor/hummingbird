@@ -23,6 +23,7 @@ use crate::{
 use super::{
     arguments::parse_args_and_prepare,
     assets::Assets,
+    components::{input, modal},
     constants::APP_ROUNDING,
     controls::Controls,
     global_actions::register_actions,
@@ -30,6 +31,7 @@ use super::{
     library::Library,
     models::{self, build_models},
     queue::Queue,
+    search::SearchView,
     theme::{setup_theme, Theme},
     util::drop_image_from_app,
 };
@@ -39,6 +41,7 @@ struct WindowShadow {
     pub queue: Entity<Queue>,
     pub library: Entity<Library>,
     pub header: Entity<Header>,
+    pub search: Entity<SearchView>,
     pub show_queue: Entity<bool>,
 }
 
@@ -186,7 +189,8 @@ impl Render for WindowShadow {
                             .child(self.library.clone())
                             .when(*self.show_queue.read(cx), |this| this.child(queue)),
                     )
-                    .child(self.controls.clone()),
+                    .child(self.controls.clone())
+                    .child(self.search.clone()),
             )
     }
 }
@@ -288,6 +292,9 @@ pub async fn run() {
                 },
             );
 
+            input::bind_actions(cx);
+            modal::bind_actions(cx);
+
             setup_theme(cx, directory.join("theme.json"));
             setup_settings(cx, directory.join("settings.json"));
 
@@ -360,6 +367,7 @@ pub async fn run() {
                             queue: Queue::new(cx, show_queue.clone()),
                             library: Library::new(cx),
                             header: Header::new(cx),
+                            search: SearchView::new(cx),
                             show_queue,
                         }
                     })

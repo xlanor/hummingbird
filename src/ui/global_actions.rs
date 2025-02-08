@@ -5,7 +5,7 @@ use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 
 use super::models::PlaybackInfo;
 
-actions!(muzak, [Quit, PlayPause, Next, Previous]);
+actions!(muzak, [Quit, PlayPause, Next, Previous, Search]);
 
 pub fn register_actions(cx: &mut App) {
     debug!("registering actions");
@@ -19,10 +19,12 @@ pub fn register_actions(cx: &mut App) {
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
         cx.bind_keys([KeyBinding::new("cmd-right", Next, None)]);
         cx.bind_keys([KeyBinding::new("cmd-left", Previous, None)]);
+        cx.bind_keys([KeyBinding::new("cmd-f", Search, None)]);
     } else {
         cx.bind_keys([KeyBinding::new("ctrl-w", Quit, None)]);
         cx.bind_keys([KeyBinding::new("ctrl-right", Next, None)]);
         cx.bind_keys([KeyBinding::new("ctrl-left", Previous, None)]);
+        cx.bind_keys([KeyBinding::new("ctrl-f", Search, None)]);
     }
     cx.bind_keys([KeyBinding::new("space", PlayPause, None)]);
     cx.set_menus(vec![Menu {

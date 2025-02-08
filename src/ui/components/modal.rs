@@ -1,13 +1,16 @@
+use std::rc::Rc;
+
 use gpui::*;
 use prelude::FluentBuilder;
 
 use crate::ui::theme::Theme;
 
-type OnExitHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App)>;
+type OnExitHandler = dyn Fn(&mut Window, &mut App);
 
+#[derive(IntoElement)]
 pub struct Modal {
     div: Stateful<Div>,
-    on_exit: Option<OnExitHandler>,
+    on_exit: Option<Rc<OnExitHandler>>,
 }
 
 impl Modal {
@@ -18,10 +21,16 @@ impl Modal {
         }
     }
 
-    pub fn on_exit(mut self, handler: OnExitHandler) -> Self {
-        self.on_exit = Some(handler);
+    pub fn on_exit(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_exit = Some(Rc::new(handler));
         self
     }
+}
+
+actions!(muzak::modal, [CloseModal]);
+
+pub fn bind_actions(cx: &mut App) {
+    cx.bind_keys([KeyBinding::new("escape", CloseModal, None)]);
 }
 
 impl ParentElement for Modal {
@@ -31,22 +40,32 @@ impl ParentElement for Modal {
 }
 
 impl RenderOnce for Modal {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
-        anchored().position(point(px(0.0), px(0.0))).child(
+        let size = window.viewport_size();
+
+        anchored().position(point(px(0.0), px(0.0))).child(deferred(
             div()
                 .flex()
-                .w_full()
-                .h_full()
+                .w(size.width)
+                .h(size.height)
                 .bg(theme.modal_overlay_bg)
                 .id("modal-bg")
                 .when_some(self.on_exit, |this, on_exit| {
-                    this.on_any_mouse_down(on_exit)
+                    let on_exit_clone = Rc::clone(&on_exit);
+                    this.on_any_mouse_down(move |_, window, cx| {
+                        on_exit_clone(window, cx);
+                    })
+                    .on_action(move |_: &CloseModal, window, cx| {
+                        on_exit(window, cx);
+                    })
                 })
                 .child(
                     self.div
+                        .occlude()
                         .m_auto()
                         .border_color(theme.border_color)
+                        .border_1()
                         .bg(theme.background_primary)
                         .rounded(px(8.0))
                         .flex_col()
@@ -54,7 +73,7 @@ impl RenderOnce for Modal {
                             cx.stop_propagation();
                         }),
                 ),
-        )
+        ))
     }
 }
 
