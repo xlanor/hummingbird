@@ -73,6 +73,9 @@ pub struct Theme {
 
     pub text_input_selection: Rgba,
     pub caret_color: Rgba,
+
+    pub palette_item_hover: Rgba,
+    pub palette_item_active: Rgba,
 }
 
 impl Default for Theme {
@@ -144,6 +147,9 @@ impl Default for Theme {
 
             text_input_selection: rgba(0x0673C688),
             caret_color: rgb(0xF4F5F6),
+
+            palette_item_hover: rgb(0x282F3D),
+            palette_item_active: rgb(0x0D1014),
         }
     }
 }

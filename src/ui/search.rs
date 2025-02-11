@@ -7,6 +7,7 @@ use tracing::debug;
 use super::{
     components::{input::TextInput, modal::modal},
     global_actions::Search,
+    theme::Theme,
 };
 
 pub struct SearchView {
@@ -58,6 +59,7 @@ impl Render for SearchView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let show = self.show.clone();
         let show_read = show.read(cx);
+        let theme = cx.global::<Theme>();
 
         if *show_read {
             modal()
@@ -69,11 +71,31 @@ impl Render for SearchView {
                 })
                 .child(
                     div()
-                        .p(px(10.0))
-                        .line_height(px(16.0))
                         .w(px(500.0))
-                        .child(self.input.clone())
-                        .child(self.search.clone()),
+                        .h(px(400.0))
+                        .overflow_hidden()
+                        .flex_col()
+                        .child(
+                            div()
+                                .w_full()
+                                .p(px(10.0))
+                                .line_height(px(14.0))
+                                .h(px(36.0))
+                                .text_sm()
+                                .border_b(px(1.0))
+                                .border_color(theme.border_color)
+                                .child(self.input.clone()),
+                        )
+                        .child(
+                            div()
+                                .flex()
+                                .w_full()
+                                .h_full()
+                                // FIXME: weird layout issue, this is a hack
+                                // eventually this should be removed
+                                .pb(px(36.0))
+                                .child(self.search.clone()),
+                        ),
                 )
                 .into_any_element()
         } else {
