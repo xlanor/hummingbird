@@ -1,5 +1,7 @@
 mod model;
 
+use std::collections::VecDeque;
+
 use gpui::*;
 use model::SearchModel;
 use tracing::debug;
@@ -7,6 +9,8 @@ use tracing::debug;
 use super::{
     components::{input::TextInput, modal::modal},
     global_actions::Search,
+    library::ViewSwitchMessage,
+    models::Models,
     theme::Theme,
 };
 
@@ -14,6 +18,7 @@ pub struct SearchView {
     show: Entity<bool>,
     input: Entity<TextInput>,
     search: Entity<SearchModel>,
+    view_switcher: Entity<VecDeque<ViewSwitchMessage>>,
 }
 
 impl SearchView {
@@ -41,16 +46,43 @@ impl SearchView {
             })
             .detach();
 
+            cx.subscribe(
+                &search,
+                |this: &mut SearchView, _, ev: &ViewSwitchMessage, cx| {
+                    this.view_switcher.update(cx, |_, cx| {
+                        cx.emit(*ev);
+                    });
+                    this.reset(cx);
+                },
+            )
+            .detach();
+
             cx.observe(&show, |_, _, cx| {
                 cx.notify();
             })
             .detach();
 
             SearchView {
+                view_switcher: cx.global::<Models>().switcher_model.clone(),
                 show,
                 input,
                 search,
             }
+        })
+    }
+
+    fn reset(&mut self, cx: &mut Context<Self>) {
+        cx.update_entity(&self.input, |input, cx| {
+            input.reset();
+            cx.notify();
+        });
+        cx.update_entity(&self.search, |search, cx| {
+            search.set_query("".to_string());
+            cx.notify();
+        });
+        self.show.update(cx, |m, cx| {
+            *m = false;
+            cx.notify();
         })
     }
 }
@@ -60,14 +92,15 @@ impl Render for SearchView {
         let show = self.show.clone();
         let show_read = show.read(cx);
         let theme = cx.global::<Theme>();
+        let weak = cx.weak_entity();
 
         if *show_read {
             modal()
                 .on_exit(move |_, cx| {
-                    show.update(cx, |m, cx| {
-                        *m = false;
-                        cx.notify();
+                    weak.update(cx, |this, cx| {
+                        this.reset(cx);
                     })
+                    .expect("failed to update search view")
                 })
                 .child(
                     div()

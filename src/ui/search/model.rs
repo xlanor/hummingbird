@@ -11,7 +11,6 @@ use nucleo::{
     Config, Nucleo, Utf32String,
 };
 use prelude::FluentBuilder;
-use smallvec::smallvec;
 use tracing::debug;
 
 use crate::{
@@ -20,8 +19,9 @@ use crate::{
         types::Album,
     },
     ui::{
+        library::ViewSwitchMessage,
         theme::Theme,
-        util::{create_or_retrieve_view, prune_views},
+        util::{create_or_retrieve_view, drop_image_from_app, prune_views},
     },
 };
 
@@ -87,7 +87,7 @@ impl SearchModel {
             })
             .detach();
 
-            cx.subscribe(&cx.entity(), |this, _, ev, cx| {
+            cx.subscribe(&cx.entity(), |this, _, ev: &String, cx| {
                 this.set_query(ev.clone());
             })
             .detach();
@@ -106,13 +106,18 @@ impl SearchModel {
                 matcher,
                 views_model: views_model.clone(),
                 render_counter: render_counter.clone(),
-                list_state: Self::make_list_state(None, views_model, render_counter),
+                list_state: Self::make_list_state(
+                    cx.weak_entity(),
+                    None,
+                    views_model,
+                    render_counter,
+                ),
                 last_match: Vec::new(),
             }
         })
     }
 
-    fn set_query(&mut self, query: String) {
+    pub fn set_query(&mut self, query: String) {
         self.query = query;
         self.matcher.pattern.reparse(
             0,
@@ -135,7 +140,7 @@ impl SearchModel {
             .collect()
     }
 
-    fn regenerate_list_state<V: 'static>(&mut self, cx: &mut Context<V>) {
+    fn regenerate_list_state(&mut self, cx: &mut Context<Self>) {
         debug!("Regenerating list state");
         let curr_scroll = self.list_state.logical_scroll_top();
         let album_ids = self.get_matches();
@@ -144,6 +149,7 @@ impl SearchModel {
         self.render_counter = cx.new(|_| 0);
 
         self.list_state = SearchModel::make_list_state(
+            cx.weak_entity(),
             Some(album_ids),
             self.views_model.clone(),
             self.render_counter.clone(),
@@ -155,6 +161,7 @@ impl SearchModel {
     }
 
     fn make_list_state(
+        weak_self: WeakEntity<Self>,
         album_ids: Option<Vec<(u32, String)>>,
         views_model: Entity<AHashMap<usize, Entity<AlbumSearchResult>>>,
         render_counter: Entity<usize>,
@@ -162,6 +169,7 @@ impl SearchModel {
         match album_ids {
             Some(album_ids) => {
                 let album_ids_copy = Rc::new(album_ids.clone());
+                let weak_self_copy = weak_self.clone();
 
                 ListState::new(
                     album_ids.len(),
@@ -169,6 +177,7 @@ impl SearchModel {
                     px(300.0),
                     move |idx, _, cx| {
                         let album_ids = album_ids_copy.clone();
+                        let weak_self = weak_self_copy.clone();
 
                         prune_views(views_model.clone(), render_counter.clone(), idx, cx);
                         // TODO: error handling
@@ -177,7 +186,9 @@ impl SearchModel {
                             .child(create_or_retrieve_view(
                                 views_model.clone(),
                                 idx,
-                                move |cx| AlbumSearchResult::new(cx, album_ids[idx].0 as i64),
+                                move |cx| {
+                                    AlbumSearchResult::new(cx, album_ids[idx].0 as i64, weak_self)
+                                },
                                 cx,
                             ))
                             .into_any_element()
@@ -193,6 +204,8 @@ impl SearchModel {
 
 impl EventEmitter<String> for SearchModel {}
 
+impl EventEmitter<ViewSwitchMessage> for SearchModel {}
+
 impl Render for SearchModel {
     fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         div()
@@ -207,10 +220,15 @@ impl Render for SearchModel {
 struct AlbumSearchResult {
     album: Option<Arc<Album>>,
     artist: Option<Arc<String>>,
+    weak_parent: WeakEntity<SearchModel>,
 }
 
 impl AlbumSearchResult {
-    fn new(cx: &mut App, id: i64) -> Entity<AlbumSearchResult> {
+    fn new(
+        cx: &mut App,
+        id: i64,
+        weak_parent: WeakEntity<SearchModel>,
+    ) -> Entity<AlbumSearchResult> {
         cx.new(|cx| {
             let album = cx.get_album_by_id(id, AlbumMethod::UncachedThumb).ok();
 
@@ -218,7 +236,22 @@ impl AlbumSearchResult {
                 .as_ref()
                 .and_then(|album| cx.get_artist_name_by_id(album.artist_id).ok());
 
-            AlbumSearchResult { album, artist }
+            cx.on_release(|this: &mut Self, cx: &mut App| {
+                if let Some(album) = this.album.clone() {
+                    if let Some(image) = album.thumb.clone() {
+                        drop_image_from_app(cx, image.0);
+                        this.album = None;
+                        cx.refresh_windows();
+                    }
+                }
+            })
+            .detach();
+
+            AlbumSearchResult {
+                album,
+                artist,
+                weak_parent,
+            }
         })
     }
 }
@@ -236,6 +269,16 @@ impl Render for AlbumSearchResult {
                 .hover(|this| this.bg(theme.palette_item_hover))
                 .active(|this| this.bg(theme.palette_item_active))
                 .rounded(px(4.0))
+                .on_click(cx.listener(|this, _, _, cx| {
+                    let id = this.album.as_ref().unwrap().id;
+                    let ev = ViewSwitchMessage::Release(id);
+
+                    this.weak_parent
+                        .update(cx, |_, cx| {
+                            cx.emit(ev);
+                        })
+                        .expect("album search result exists without searchmodel");
+                }))
                 .child(
                     div()
                         .rounded(px(2.0))

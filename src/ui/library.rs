@@ -6,6 +6,8 @@ use navigation::NavigationView;
 use release_view::ReleaseView;
 use tracing::debug;
 
+use super::models::Models;
+
 mod album_view;
 mod navigation;
 mod release_view;
@@ -22,7 +24,7 @@ pub struct Library {
 }
 
 #[derive(Clone, Copy, Debug)]
-enum ViewSwitchMessage {
+pub enum ViewSwitchMessage {
     Albums,
     Release(i64),
     Back,
@@ -45,11 +47,7 @@ fn make_view(
 impl Library {
     pub fn new(cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            let switcher_model = cx.new(|_| {
-                let mut deque = VecDeque::new();
-                deque.push_back(ViewSwitchMessage::Albums);
-                deque
-            });
+            let switcher_model = cx.global::<Models>().switcher_model.clone();
             let view = LibraryView::Album(AlbumView::new(cx, switcher_model.clone()));
 
             cx.subscribe(
@@ -57,7 +55,7 @@ impl Library {
                 move |this: &mut Library, m, message, cx| {
                     this.view = match message {
                         ViewSwitchMessage::Back => {
-                            let last = m.update(cx, |v, cx| {
+                            let last = m.update(cx, |v: &mut VecDeque<ViewSwitchMessage>, cx| {
                                 if v.len() > 1 {
                                     v.pop_back();
                                     cx.notify();

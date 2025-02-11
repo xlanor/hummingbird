@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     fs::{File, OpenOptions},
     sync::{Arc, RwLock},
 };
@@ -23,7 +24,7 @@ use crate::{
         lastfm::{client::LastFMClient, types::Session, LastFM, LASTFM_API_KEY, LASTFM_API_SECRET},
         MediaMetadataBroadcastService,
     },
-    ui::app::get_dirs,
+    ui::{app::get_dirs, library::ViewSwitchMessage},
 };
 
 // yes this looks a little silly
@@ -51,6 +52,7 @@ pub struct Models {
     pub scan_state: Entity<ScanEvent>,
     pub mmbs: Entity<MMBSList>,
     pub lastfm: Entity<LastFMState>,
+    pub switcher_model: Entity<VecDeque<ViewSwitchMessage>>,
 }
 
 impl Global for Models {}
@@ -189,6 +191,12 @@ pub fn build_models(cx: &mut App, queue: Queue) {
     })
     .detach();
 
+    let switcher_model = cx.new(|_| {
+        let mut deque = VecDeque::new();
+        deque.push_back(ViewSwitchMessage::Albums);
+        deque
+    });
+
     cx.set_global(Models {
         metadata,
         albumart,
@@ -197,6 +205,7 @@ pub fn build_models(cx: &mut App, queue: Queue) {
         scan_state,
         mmbs,
         lastfm,
+        switcher_model,
     });
 
     let position: Entity<u64> = cx.new(|_| 0);
