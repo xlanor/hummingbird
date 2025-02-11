@@ -215,11 +215,14 @@ impl AlbumItem {
         let artist = album
             .as_ref()
             .and_then(|album| cx.get_artist_name_by_id(album.artist_id).ok());
+
         cx.new(|cx| {
             cx.on_release(|this: &mut Self, cx: &mut App| {
                 if let Some(album) = this.album.clone() {
                     if let Some(image) = album.thumb.clone() {
                         drop_image_from_app(cx, image.0);
+                        this.album = None;
+                        cx.refresh_windows();
                     }
                 }
             })
