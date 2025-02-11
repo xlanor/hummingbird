@@ -145,20 +145,22 @@ impl PlaybackThread {
     }
 
     pub fn broadcast_events(&mut self) {
-        if let Some(provider) = &mut self.media_provider {
-            if provider.metadata_updated() {
-                // TODO: proper error handling
-                let metadata = provider.read_metadata().expect("failed to get metadata");
-                self.events_tx
-                    .send(PlaybackEvent::MetadataUpdate(Box::new(metadata.clone())))
-                    .expect("unable to send event");
-
-                let image = provider.read_image().expect("failed to decode image");
-                self.events_tx
-                    .send(PlaybackEvent::AlbumArtUpdate(image))
-                    .expect("unable to send event");
-            }
+        let Some(provider) = &mut self.media_provider else {
+            return;
+        };
+        if !provider.metadata_updated() {
+            return;
         }
+        // TODO: proper error handling
+        let metadata = provider.read_metadata().expect("failed to get metadata");
+        self.events_tx
+            .send(PlaybackEvent::MetadataUpdate(Box::new(metadata.clone())))
+            .expect("unable to send event");
+
+        let image = provider.read_image().expect("failed to decode image");
+        self.events_tx
+            .send(PlaybackEvent::AlbumArtUpdate(image))
+            .expect("unable to send event");
     }
 
     pub fn command_intake(&mut self) {
@@ -255,34 +257,35 @@ impl PlaybackThread {
             .expect("unable to play stream");
 
         // TODO: handle multiple media providers
-        if let Some(provider) = &mut self.media_provider {
-            // TODO: proper error handling
-            self.resampler = None;
-            let src = std::fs::File::open(path).expect("failed to open media");
-            provider.open(src, None).expect("unable to open file");
-            provider.start_playback().expect("unable to start playback");
+        let Some(provider) = &mut self.media_provider else {
+            return;
+        };
+        // TODO: proper error handling
+        self.resampler = None;
+        let src = std::fs::File::open(path).expect("failed to open media");
+        provider.open(src, None).expect("unable to open file");
+        provider.start_playback().expect("unable to start playback");
 
-            self.state = PlaybackState::Playing;
+        self.state = PlaybackState::Playing;
+        self.events_tx
+            .send(PlaybackEvent::SongChanged(path.clone()))
+            .expect("unable to send event");
+
+        if let Ok(duration) = provider.duration_secs() {
             self.events_tx
-                .send(PlaybackEvent::SongChanged(path.clone()))
+                .send(PlaybackEvent::DurationChanged(duration))
                 .expect("unable to send event");
-
-            if let Ok(duration) = provider.duration_secs() {
-                self.events_tx
-                    .send(PlaybackEvent::DurationChanged(duration))
-                    .expect("unable to send event");
-            } else {
-                self.events_tx
-                    .send(PlaybackEvent::DurationChanged(0))
-                    .expect("unable to send event");
-            }
-
-            self.update_ts();
-
+        } else {
             self.events_tx
-                .send(PlaybackEvent::StateChanged(PlaybackState::Playing))
+                .send(PlaybackEvent::DurationChanged(0))
                 .expect("unable to send event");
         }
+
+        self.update_ts();
+
+        self.events_tx
+            .send(PlaybackEvent::StateChanged(PlaybackState::Playing))
+            .expect("unable to send event");
     }
 
     fn next(&mut self, user_initiated: bool) {
@@ -530,86 +533,88 @@ impl PlaybackThread {
     }
 
     fn play_audio(&mut self) {
-        if let Some(stream) = &mut self.stream {
-            if let Some(provider) = &mut self.media_provider {
-                if self.resampler.is_none() {
-                    // TODO: proper error handling
-                    let first_samples = match provider.read_samples() {
-                        Ok(samples) => samples,
-                        Err(e) => match e {
-                            PlaybackReadError::NothingOpen => {
-                                panic!("thread state is invalid: no file open")
-                            }
-                            PlaybackReadError::NeverStarted => {
-                                panic!("thread state is invalid: playback never started")
-                            }
-                            PlaybackReadError::Eof => {
-                                info!("EOF, moving to next song");
-                                self.next(false);
-                                return;
-                            }
-                            PlaybackReadError::Unknown => return,
-                            PlaybackReadError::DecodeFatal => panic!("fatal decoding error"),
-                        },
-                    };
-                    let duration = provider.frame_duration().expect("can't get duration");
-                    let device_format = stream.get_current_format().unwrap();
+        let Some(stream) = &mut self.stream else {
+            return;
+        };
+        let Some(provider) = &mut self.media_provider else {
+            return;
+        };
+        if self.resampler.is_none() {
+            // TODO: proper error handling
+            let first_samples = match provider.read_samples() {
+                Ok(samples) => samples,
+                Err(e) => match e {
+                    PlaybackReadError::NothingOpen => {
+                        panic!("thread state is invalid: no file open")
+                    }
+                    PlaybackReadError::NeverStarted => {
+                        panic!("thread state is invalid: playback never started")
+                    }
+                    PlaybackReadError::Eof => {
+                        info!("EOF, moving to next song");
+                        self.next(false);
+                        return;
+                    }
+                    PlaybackReadError::Unknown => return,
+                    PlaybackReadError::DecodeFatal => panic!("fatal decoding error"),
+                },
+            };
+            let duration = provider.frame_duration().expect("can't get duration");
+            let device_format = stream.get_current_format().unwrap();
 
-                    self.resampler = Some(Resampler::new(
-                        first_samples.rate,
-                        device_format.sample_rate,
-                        duration,
-                        // TODO: support getting channels from the bitmask
-                        match device_format.channels {
-                            ChannelSpec::Count(v) => v,
-                            _ => 2,
-                        },
-                    ));
-                    self.format = Some(device_format.clone());
+            self.resampler = Some(Resampler::new(
+                first_samples.rate,
+                device_format.sample_rate,
+                duration,
+                // TODO: support getting channels from the bitmask
+                match device_format.channels {
+                    ChannelSpec::Count(v) => v,
+                    _ => 2,
+                },
+            ));
+            self.format = Some(device_format.clone());
 
-                    let converted = self
-                        .resampler
-                        .as_mut()
-                        .unwrap()
-                        .convert_formats(first_samples, self.format.as_ref().unwrap());
+            let converted = self
+                .resampler
+                .as_mut()
+                .unwrap()
+                .convert_formats(first_samples, self.format.as_ref().unwrap());
 
-                    stream
-                        .submit_frame(converted)
-                        .expect("failed to submit frames to stream");
+            stream
+                .submit_frame(converted)
+                .expect("failed to submit frames to stream");
 
-                    self.update_ts();
-                } else {
-                    let samples = match provider.read_samples() {
-                        Ok(samples) => samples,
-                        Err(e) => match e {
-                            PlaybackReadError::NothingOpen => {
-                                panic!("thread state is invalid: no file open")
-                            }
-                            PlaybackReadError::NeverStarted => {
-                                panic!("thread state is invalid: playback never started")
-                            }
-                            PlaybackReadError::Eof => {
-                                info!("EOF, moving to next song");
-                                self.next(false);
-                                return;
-                            }
-                            PlaybackReadError::Unknown => return,
-                            PlaybackReadError::DecodeFatal => panic!("fatal decoding error"),
-                        },
-                    };
-                    let converted = self
-                        .resampler
-                        .as_mut()
-                        .unwrap()
-                        .convert_formats(samples, self.format.as_ref().unwrap());
+            self.update_ts();
+        } else {
+            let samples = match provider.read_samples() {
+                Ok(samples) => samples,
+                Err(e) => match e {
+                    PlaybackReadError::NothingOpen => {
+                        panic!("thread state is invalid: no file open")
+                    }
+                    PlaybackReadError::NeverStarted => {
+                        panic!("thread state is invalid: playback never started")
+                    }
+                    PlaybackReadError::Eof => {
+                        info!("EOF, moving to next song");
+                        self.next(false);
+                        return;
+                    }
+                    PlaybackReadError::Unknown => return,
+                    PlaybackReadError::DecodeFatal => panic!("fatal decoding error"),
+                },
+            };
+            let converted = self
+                .resampler
+                .as_mut()
+                .unwrap()
+                .convert_formats(samples, self.format.as_ref().unwrap());
 
-                    stream
-                        .submit_frame(converted)
-                        .expect("failed to submit frames to stream");
+            stream
+                .submit_frame(converted)
+                .expect("failed to submit frames to stream");
 
-                    self.update_ts();
-                }
-            }
+            self.update_ts();
         }
     }
 }

@@ -116,25 +116,18 @@ impl DataThread {
             rgb_to_bgr(&mut image);
         }
 
-        if thumb {
-            self.events_tx
-                .send(DataEvent::ImageDecoded(
-                    Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
-                        thumbnail(&image, 80, 80),
-                    )]))),
-                    image_type,
-                ))
-                .expect("could not send event");
-        } else {
-            self.events_tx
-                .send(DataEvent::ImageDecoded(
-                    Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
-                        image,
-                    )]))),
-                    image_type,
-                ))
-                .expect("could not send event");
-        }
+        self.events_tx
+            .send(DataEvent::ImageDecoded(
+                Arc::new(RenderImage::new(SmallVec::from_vec(vec![Frame::new(
+                    if thumb {
+                        thumbnail(&image, 80, 80)
+                    } else {
+                        image
+                    },
+                )]))),
+                image_type,
+            ))
+            .expect("could not send event");
 
         Ok(())
     }

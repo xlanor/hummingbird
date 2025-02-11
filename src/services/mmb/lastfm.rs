@@ -42,22 +42,24 @@ impl LastFM {
     }
 
     pub async fn scrobble(&mut self) {
-        if let Some(info) = &self.metadata {
-            if let (Some(artist), Some(track)) = (info.artist.clone(), info.name.clone()) {
-                if let Err(e) = self
-                    .client
-                    .scrobble(
-                        artist,
-                        track,
-                        self.start_timestamp.unwrap(),
-                        info.album.clone(),
-                        None,
-                    )
-                    .await
-                {
-                    warn!("Could not scrobble: {}", e)
-                }
-            }
+        let Some(info) = &self.metadata else {
+            return;
+        };
+        let (Some(artist), Some(track)) = (info.artist.clone(), info.name.clone()) else {
+            return;
+        };
+        if let Err(e) = self
+            .client
+            .scrobble(
+                artist,
+                track,
+                self.start_timestamp.unwrap(),
+                info.album.clone(),
+                None,
+            )
+            .await
+        {
+            warn!("Could not scrobble: {}", e)
         }
     }
 }
@@ -77,14 +79,15 @@ impl MediaMetadataBroadcastService for LastFM {
     }
 
     async fn metadata_recieved(&mut self, info: Arc<Metadata>) {
-        if let (Some(artist), Some(track)) = (info.artist.clone(), info.name.clone()) {
-            if let Err(e) = self
-                .client
-                .now_playing(artist, track, info.album.clone(), None)
-                .await
-            {
-                warn!("Could not set now playing: {}", e)
-            }
+        let (Some(artist), Some(track)) = (info.artist.clone(), info.name.clone()) else {
+            return;
+        };
+        if let Err(e) = self
+            .client
+            .now_playing(artist, track, info.album.clone(), None)
+            .await
+        {
+            warn!("Could not set now playing: {}", e)
         }
 
         self.metadata = Some(info);

@@ -197,28 +197,27 @@ impl Resampler {
         frame: PlaybackFrame,
         target_format: &FormatInfo,
     ) -> PlaybackFrame {
-        if target_format.sample_rate != frame.rate {
-            let source: Vec<Vec<f32>> = convert_samples(frame.samples);
-
-            let resampled = if source[0].len() < self.duration as usize {
-                self.resampler
-                    .process_partial(Some(&source), None)
-                    .expect("resampler error")
-            } else {
-                self.resampler
-                    .process(&source, None)
-                    .expect("resampler error")
-            };
-
-            match_bit_depth(
-                PlaybackFrame {
-                    samples: Samples::Float32(resampled),
-                    rate: target_format.sample_rate,
-                },
-                target_format.sample_type,
-            )
-        } else {
-            match_bit_depth(frame, target_format.sample_type)
+        if target_format.sample_rate == frame.rate {
+            return match_bit_depth(frame, target_format.sample_type);
         }
+        let source: Vec<Vec<f32>> = convert_samples(frame.samples);
+
+        let resampled = if source[0].len() < self.duration as usize {
+            self.resampler
+                .process_partial(Some(&source), None)
+                .expect("resampler error")
+        } else {
+            self.resampler
+                .process(&source, None)
+                .expect("resampler error")
+        };
+
+        match_bit_depth(
+            PlaybackFrame {
+                samples: Samples::Float32(resampled),
+                rate: target_format.sample_rate,
+            },
+            target_format.sample_type,
+        )
     }
 }

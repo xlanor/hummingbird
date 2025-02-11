@@ -167,24 +167,24 @@ pub async fn get_artist_by_id(
     artist_id: i64,
 ) -> Result<Arc<Artist>, sqlx::Error> {
     if let Some(artist) = db_cache.artist_cache.get(&artist_id).await {
-        Ok(artist)
-    } else {
-        let query = include_str!("../../queries/library/find_artist_by_id.sql");
-
-        let artist: Arc<Artist> = Arc::new(
-            sqlx::query_as(query)
-                .bind(artist_id)
-                .fetch_one(pool)
-                .await?,
-        );
-
-        db_cache
-            .artist_cache
-            .insert(artist_id, artist.clone())
-            .await;
-
-        Ok(artist)
+        Ok(artist);
+        return;
     }
+    let query = include_str!("../../queries/library/find_artist_by_id.sql");
+
+    let artist: Arc<Artist> = Arc::new(
+        sqlx::query_as(query)
+            .bind(artist_id)
+            .fetch_one(pool)
+            .await?,
+    );
+
+    db_cache
+        .artist_cache
+        .insert(artist_id, artist.clone())
+        .await;
+
+    Ok(artist)
 }
 
 pub async fn get_track_by_id(pool: &SqlitePool, track_id: i64) -> Result<Arc<Track>, sqlx::Error> {
