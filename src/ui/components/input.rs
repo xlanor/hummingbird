@@ -3,7 +3,10 @@
 use std::ops::Range;
 
 use gpui::*;
+use tracing::debug;
 use unicode_segmentation::*;
+
+use crate::ui::{global_actions::PlayPause, theme::Theme};
 
 actions!(
     text_input,
@@ -24,6 +27,38 @@ actions!(
     ]
 );
 
+pub fn bind_actions(cx: &mut App) {
+    cx.bind_keys([
+        KeyBinding::new("backspace", Backspace, None),
+        KeyBinding::new("delete", Delete, None),
+        KeyBinding::new("left", Left, None),
+        KeyBinding::new("right", Right, None),
+        KeyBinding::new("shift-left", SelectLeft, None),
+        KeyBinding::new("shift-right", SelectRight, None),
+        KeyBinding::new("home", Home, None),
+        KeyBinding::new("end", End, None),
+    ]);
+
+    if cfg!(target_os = "macos") {
+        cx.bind_keys([
+            KeyBinding::new("cmd-a", SelectAll, None),
+            KeyBinding::new("cmd-v", Paste, None),
+            KeyBinding::new("cmd-c", Copy, None),
+            KeyBinding::new("cmd-x", Cut, None),
+            KeyBinding::new("ctrl-cmd-space", ShowCharacterPalette, None),
+        ]);
+    }
+
+    if !cfg!(target_os = "macos") {
+        cx.bind_keys([
+            KeyBinding::new("ctrl-a", SelectAll, None),
+            KeyBinding::new("ctrl-v", Paste, None),
+            KeyBinding::new("ctrl-c", Copy, None),
+            KeyBinding::new("ctrl-x", Cut, None),
+        ]);
+    }
+}
+
 pub struct TextInput {
     focus_handle: FocusHandle,
     content: SharedString,
@@ -35,6 +70,8 @@ pub struct TextInput {
     last_bounds: Option<Bounds<Pixels>>,
     is_selecting: bool,
 }
+
+impl EventEmitter<String> for TextInput {}
 
 impl TextInput {
     fn left(&mut self, _: &Left, _: &mut Window, cx: &mut Context<Self>) {
@@ -86,6 +123,10 @@ impl TextInput {
             self.select_to(self.next_boundary(self.cursor_offset()), cx)
         }
         self.replace_text_in_range(None, "", window, cx)
+    }
+
+    fn space(&mut self, _: &PlayPause, window: &mut Window, cx: &mut Context<Self>) {
+        self.replace_text_in_range(None, " ", window, cx)
     }
 
     fn on_mouse_down(
@@ -298,6 +339,7 @@ impl EntityInputHandler for TextInput {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        debug!("replacing text with {:?}", new_text);
         let range = range_utf16
             .as_ref()
             .map(|range_utf16| self.range_from_utf16(range_utf16))
@@ -309,6 +351,8 @@ impl EntityInputHandler for TextInput {
                 .into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
+
+        cx.emit(self.content.to_string());
         cx.notify();
     }
 
@@ -336,6 +380,7 @@ impl EntityInputHandler for TextInput {
             .map(|new_range| new_range.start + range.start..new_range.end + range.end)
             .unwrap_or_else(|| range.start + new_text.len()..range.start + new_text.len());
 
+        cx.emit(self.content.to_string());
         cx.notify();
     }
 
@@ -375,11 +420,11 @@ impl EntityInputHandler for TextInput {
     }
 }
 
-pub struct TextElement {
+struct TextElement {
     input: Entity<TextInput>,
 }
 
-pub struct PrepaintState {
+struct PrepaintState {
     line: Option<ShapedLine>,
     cursor: Option<PaintQuad>,
     selection: Option<PaintQuad>,
@@ -475,6 +520,8 @@ impl Element for TextElement {
             .shape_line(display_text, font_size, &runs)
             .unwrap();
 
+        let theme = cx.global::<Theme>();
+
         let cursor_pos = line.x_for_index(cursor);
         let (selection, cursor) = if selected_range.is_empty() {
             (
@@ -482,9 +529,9 @@ impl Element for TextElement {
                 Some(fill(
                     Bounds::new(
                         point(bounds.left() + cursor_pos, bounds.top()),
-                        size(px(2.), bounds.bottom() - bounds.top()),
+                        size(px(1.), bounds.bottom() - bounds.top()),
                     ),
-                    gpui::blue(),
+                    theme.caret_color,
                 )),
             )
         } else {
@@ -500,7 +547,7 @@ impl Element for TextElement {
                             bounds.bottom(),
                         ),
                     ),
-                    rgba(0x3311ff30),
+                    theme.text_input_selection,
                 )),
                 None,
             )
@@ -547,62 +594,196 @@ impl Element for TextElement {
     }
 }
 
-pub fn bind_actions(cx: &mut App) {
-    cx.bind_keys([
-        KeyBinding::new("backspace", Backspace, None),
-        KeyBinding::new("delete", Delete, None),
-        KeyBinding::new("left", Left, None),
-        KeyBinding::new("right", Right, None),
-        KeyBinding::new("shift-left", SelectLeft, None),
-        KeyBinding::new("shift-right", SelectRight, None),
-        KeyBinding::new("cmd-a", SelectAll, None),
-        KeyBinding::new("cmd-v", Paste, None),
-        KeyBinding::new("cmd-c", Copy, None),
-        KeyBinding::new("cmd-x", Cut, None),
-        KeyBinding::new("home", Home, None),
-        KeyBinding::new("end", End, None),
-    ]);
-
-    if (cfg!(target_os = "macos")) {
-        cx.bind_keys([
-            KeyBinding::new("cmd-a", SelectAll, None),
-            KeyBinding::new("cmd-v", Paste, None),
-            KeyBinding::new("cmd-c", Copy, None),
-            KeyBinding::new("cmd-x", Cut, None),
-            KeyBinding::new("ctrl-cmd-space", ShowCharacterPalette, None),
-        ]);
-    }
-
-    if (cfg!(not(target_os = "macos"))) {
-        cx.bind_keys([
-            KeyBinding::new("ctrl-a", SelectAll, None),
-            KeyBinding::new("ctrl-v", Paste, None),
-            KeyBinding::new("ctrl-c", Copy, None),
-            KeyBinding::new("ctrl-x", Cut, None),
-        ]);
+impl TextInput {
+    pub fn new(
+        cx: &mut App,
+        focus_handle: FocusHandle,
+        content: Option<SharedString>,
+        placeholder: Option<SharedString>,
+    ) -> Entity<TextInput> {
+        cx.new(|_| TextInput {
+            focus_handle,
+            content: content.unwrap_or_else(|| "".into()),
+            placeholder: placeholder.unwrap_or_else(|| "".into()),
+            selected_range: 0..0,
+            selection_reversed: false,
+            marked_range: None,
+            last_layout: None,
+            last_bounds: None,
+            is_selecting: false,
+        })
     }
 }
 
-pub fn setup_input(
-    cx: &mut App,
-    content: SharedString,
-    placeholder: SharedString,
-) -> Entity<TextInput> {
-    let input = TextInput {
-        focus_handle: cx.focus_handle(),
-        content,
-        placeholder,
-        selected_range: 0..0,
-        selection_reversed: false,
-        marked_range: None,
-        last_layout: None,
-        last_bounds: None,
-        is_selecting: false,
-    };
-
-    cx.new(move |_| input)
+impl Render for TextInput {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .key_context("TextInput")
+            .track_focus(&self.focus_handle(cx))
+            .cursor(CursorStyle::IBeam)
+            .on_action(cx.listener(Self::backspace))
+            .on_action(cx.listener(Self::delete))
+            .on_action(cx.listener(Self::left))
+            .on_action(cx.listener(Self::right))
+            .on_action(cx.listener(Self::select_left))
+            .on_action(cx.listener(Self::select_right))
+            .on_action(cx.listener(Self::select_all))
+            .on_action(cx.listener(Self::home))
+            .on_action(cx.listener(Self::end))
+            .on_action(cx.listener(Self::show_character_palette))
+            .on_action(cx.listener(Self::paste))
+            .on_action(cx.listener(Self::cut))
+            .on_action(cx.listener(Self::copy))
+            .on_action(cx.listener(Self::space))
+            .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
+            .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
+            .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
+            .child(div().w_full().child(TextElement {
+                input: cx.entity().clone(),
+            }))
+    }
 }
 
-pub fn input(input: Entity<TextInput>) -> TextElement {
-    TextElement { input }
+impl Focusable for TextInput {
+    fn focus_handle(&self, _: &App) -> FocusHandle {
+        self.focus_handle.clone()
+    }
 }
+
+// struct InputExample {
+//     text_input: Entity<TextInput>,
+//     recent_keystrokes: Vec<Keystroke>,
+//     focus_handle: FocusHandle,
+// }
+
+// impl Focusable for InputExample {
+//     fn focus_handle(&self, _: &App) -> FocusHandle {
+//         self.focus_handle.clone()
+//     }
+// }
+
+// impl InputExample {
+//     fn on_reset_click(&mut self, _: &MouseUpEvent, _window: &mut Window, cx: &mut Context<Self>) {
+//         self.recent_keystrokes.clear();
+//         self.text_input
+//             .update(cx, |text_input, _cx| text_input.reset());
+//         cx.notify();
+//     }
+// }
+
+// impl Render for InputExample {
+//     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+//         div()
+//             .bg(rgb(0xaaaaaa))
+//             .track_focus(&self.focus_handle(cx))
+//             .flex()
+//             .flex_col()
+//             .size_full()
+//             .child(
+//                 div()
+//                     .bg(white())
+//                     .border_b_1()
+//                     .border_color(black())
+//                     .flex()
+//                     .flex_row()
+//                     .justify_between()
+//                     .child(format!("Keyboard {}", cx.keyboard_layout()))
+//                     .child(
+//                         div()
+//                             .border_1()
+//                             .border_color(black())
+//                             .px_2()
+//                             .bg(yellow())
+//                             .child("Reset")
+//                             .hover(|style| {
+//                                 style
+//                                     .bg(yellow().blend(opaque_grey(0.5, 0.5)))
+//                                     .cursor_pointer()
+//                             })
+//                             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_reset_click)),
+//                     ),
+//             )
+//             .child(self.text_input.clone())
+//             .children(self.recent_keystrokes.iter().rev().map(|ks| {
+//                 format!(
+//                     "{:} {}",
+//                     ks.unparse(),
+//                     if let Some(key_char) = ks.key_char.as_ref() {
+//                         format!("-> {:?}", key_char)
+//                     } else {
+//                         "".to_owned()
+//                     }
+//                 )
+//             }))
+//     }
+// }
+
+// fn main() {
+//     Application::new().run(|cx: &mut App| {
+//         let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
+//         cx.bind_keys([
+//             KeyBinding::new("backspace", Backspace, None),
+//             KeyBinding::new("delete", Delete, None),
+//             KeyBinding::new("left", Left, None),
+//             KeyBinding::new("right", Right, None),
+//             KeyBinding::new("shift-left", SelectLeft, None),
+//             KeyBinding::new("shift-right", SelectRight, None),
+//             KeyBinding::new("cmd-a", SelectAll, None),
+//             KeyBinding::new("cmd-v", Paste, None),
+//             KeyBinding::new("cmd-c", Copy, None),
+//             KeyBinding::new("cmd-x", Cut, None),
+//             KeyBinding::new("home", Home, None),
+//             KeyBinding::new("end", End, None),
+//             KeyBinding::new("ctrl-cmd-space", ShowCharacterPalette, None),
+//         ]);
+
+//         let window = cx
+//             .open_window(
+//                 WindowOptions {
+//                     window_bounds: Some(WindowBounds::Windowed(bounds)),
+//                     ..Default::default()
+//                 },
+//                 |_, cx| {
+//                     let text_input = cx.new(|cx| TextInput {
+//                         focus_handle: cx.focus_handle(),
+//                         content: "".into(),
+//                         placeholder: "Type here...".into(),
+//                         selected_range: 0..0,
+//                         selection_reversed: false,
+//                         marked_range: None,
+//                         last_layout: None,
+//                         last_bounds: None,
+//                         is_selecting: false,
+//                     });
+//                     cx.new(|cx| InputExample {
+//                         text_input,
+//                         recent_keystrokes: vec![],
+//                         focus_handle: cx.focus_handle(),
+//                     })
+//                 },
+//             )
+//             .unwrap();
+//         let view = window.update(cx, |_, _, cx| cx.entity()).unwrap();
+//         cx.observe_keystrokes(move |ev, _, cx| {
+//             view.update(cx, |view, cx| {
+//                 view.recent_keystrokes.push(ev.keystroke.clone());
+//                 cx.notify();
+//             })
+//         })
+//         .detach();
+//         cx.on_keyboard_layout_change({
+//             move |cx| {
+//                 window.update(cx, |_, _, cx| cx.notify()).ok();
+//             }
+//         })
+//         .detach();
+
+//         window
+//             .update(cx, |view, window, cx| {
+//                 window.focus(&view.text_input.focus_handle(cx));
+//                 cx.activate(true);
+//             })
+//             .unwrap();
+//     });
+// }

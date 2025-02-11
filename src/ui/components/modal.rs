@@ -66,7 +66,7 @@ impl RenderOnce for Modal {
                         .m_auto()
                         .border_color(theme.border_color)
                         .border_1()
-                        .bg(theme.background_primary)
+                        .bg(theme.background_secondary)
                         .rounded(px(8.0))
                         .flex_col()
                         .on_any_mouse_down(|_, _, cx| {

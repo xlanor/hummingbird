@@ -70,6 +70,9 @@ pub struct Theme {
     pub menu_item_active: Rgba,
 
     pub modal_overlay_bg: Rgba,
+
+    pub text_input_selection: Rgba,
+    pub caret_color: Rgba,
 }
 
 impl Default for Theme {
@@ -137,7 +140,10 @@ impl Default for Theme {
             menu_item_hover: rgb(0x282F3D),
             menu_item_active: rgb(0x0D1014),
 
-            modal_overlay_bg: rgba(0x0C111633),
+            modal_overlay_bg: rgba(0x0C111655),
+
+            text_input_selection: rgba(0x0673C688),
+            caret_color: rgb(0xF4F5F6),
         }
     }
 }
