@@ -84,7 +84,7 @@ impl LastFMClient {
         duration: Option<u64>,
     ) -> anyhow::Result<()> {
         let Some(session) = self.auth_session.clone() else {
-            Err(anyhow::Error::msg("not logged in"));
+            return Err(anyhow::Error::msg("not logged in"));
         };
         LFMRequestBuilder::new(self.api_key.clone())
             .add_param("method", "track.updateNowPlaying".to_string())

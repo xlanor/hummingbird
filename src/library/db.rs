@@ -167,8 +167,7 @@ pub async fn get_artist_by_id(
     artist_id: i64,
 ) -> Result<Arc<Artist>, sqlx::Error> {
     if let Some(artist) = db_cache.artist_cache.get(&artist_id).await {
-        Ok(artist);
-        return;
+        return Ok(artist);
     }
     let query = include_str!("../../queries/library/find_artist_by_id.sql");
 

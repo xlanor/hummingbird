@@ -15,7 +15,7 @@ pub struct Settings {
 
 pub fn create_settings(path: &PathBuf) -> Settings {
     let Ok(file) = File::open(path) else {
-        Settings::default();
+        return Settings::default();
     };
     let reader = std::io::BufReader::new(file);
 
