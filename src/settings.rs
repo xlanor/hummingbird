@@ -14,16 +14,15 @@ pub struct Settings {
 }
 
 pub fn create_settings(path: &PathBuf) -> Settings {
-    if let Ok(file) = File::open(path) {
-        let reader = std::io::BufReader::new(file);
+    let Ok(file) = File::open(path) else {
+        return Settings::default();
+    };
+    let reader = std::io::BufReader::new(file);
 
-        if let Ok(settings) = serde_json::from_reader(reader) {
-            return settings;
-        } else {
-            warn!("Failed to parse settings file, using default settings");
-            Settings::default()
-        }
+    if let Ok(settings) = serde_json::from_reader(reader) {
+        return settings;
     } else {
+        warn!("Failed to parse settings file, using default settings");
         Settings::default()
     }
 }
@@ -44,57 +43,7 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
 
     let watcher = notify::recommended_watcher(tx);
 
-    if let Ok(mut watcher) = watcher {
-        if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::Recursive) {
-            warn!("failed to watch settings file: {:?}", e);
-        }
-
-        cx.spawn(|mut app: AsyncApp| async move {
-            loop {
-                while let Ok(event) = rx.try_recv() {
-                    match event {
-                        Ok(v) => {
-                            if v.paths.iter().any(|t| t.ends_with("settings.json")) {
-                                match v.kind {
-                                    notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
-                                        info!("Settings changed, updating...");
-                                        let settings = create_settings(&path);
-                                        settings_model
-                                            .update(&mut app, |v, _| {
-                                                *v = settings;
-                                            })
-                                            .expect("settings model could not be updated");
-                                    }
-                                    notify::EventKind::Remove(_) => {
-                                        info!("Settings file removed, using default settings");
-                                        settings_model
-                                            .update(&mut app, |v, _| {
-                                                *v = Settings::default();
-                                            })
-                                            .expect("settings model could not be updated");
-                                    }
-                                    _ => (),
-                                }
-                            }
-                        }
-                        Err(e) => warn!("watch error: {:?}", e),
-                    }
-                }
-
-                app.background_executor()
-                    .timer(Duration::from_millis(10))
-                    .await;
-            }
-        })
-        .detach();
-
-        let global = SettingsGlobal {
-            model: settings,
-            watcher: Some(Box::new(watcher)),
-        };
-
-        cx.set_global(global);
-    } else {
+    let Ok(mut watcher) = watcher else {
         warn!("failed to create settings watcher");
 
         let global = SettingsGlobal {
@@ -103,5 +52,56 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
         };
 
         cx.set_global(global);
+        return;
+    };
+    if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::Recursive) {
+        warn!("failed to watch settings file: {:?}", e);
     }
+
+    cx.spawn(|mut app: AsyncApp| async move {
+        loop {
+            while let Ok(event) = rx.try_recv() {
+                match event {
+                    Ok(v) => {
+                        if !v.paths.iter().any(|t| t.ends_with("settings.json")) {
+                            return;
+                        };
+                        match v.kind {
+                            notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
+                                info!("Settings changed, updating...");
+                                let settings = create_settings(&path);
+                                settings_model
+                                    .update(&mut app, |v, _| {
+                                        *v = settings;
+                                    })
+                                    .expect("settings model could not be updated");
+                            }
+                            notify::EventKind::Remove(_) => {
+                                info!("Settings file removed, using default settings");
+                                settings_model
+                                    .update(&mut app, |v, _| {
+                                        *v = Settings::default();
+                                    })
+                                    .expect("settings model could not be updated");
+                            }
+                            _ => (),
+                        }
+                    }
+                    Err(e) => warn!("watch error: {:?}", e),
+                }
+            }
+
+            app.background_executor()
+                .timer(Duration::from_millis(10))
+                .await;
+        }
+    })
+    .detach();
+
+    let global = SettingsGlobal {
+        model: settings,
+        watcher: Some(Box::new(watcher)),
+    };
+
+    cx.set_global(global);
 }

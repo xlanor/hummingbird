@@ -84,56 +84,56 @@ impl GPUIDataInterface {
         let queue_model = cx.global::<Models>().queue.clone();
         let image_transfer_model = cx.global::<Models>().image_transfer_model.clone();
 
-        if let Some(events_rx) = events_rx {
-            cx.spawn(|mut cx| async move {
-                loop {
-                    while let Ok(event) = events_rx.try_recv() {
-                        match event {
-                            DataEvent::ImageDecoded(v, image_type) => match image_type {
-                                ImageType::CurrentAlbumArt => {
-                                    albumart_model
-                                        .update(&mut cx, |m, cx| {
-                                            *m = Some(v);
-                                            cx.notify()
-                                        })
-                                        .expect("failed to update albumart");
-                                }
-                                _ => image_transfer_model
-                                    .update(&mut cx, |_, cx| cx.emit(ImageTransfer(image_type, v)))
-                                    .expect("failed to transfer image"),
-                            },
-                            DataEvent::DecodeError(image_type) => match image_type {
-                                ImageType::CurrentAlbumArt => {
-                                    albumart_model
-                                        .update(&mut cx, |m, cx| {
-                                            *m = None;
-                                            cx.notify()
-                                        })
-                                        .expect("failed to update albumart");
-                                }
-                                _ => todo!(),
-                            },
-                            DataEvent::MetadataRead(path, item) => {
-                                queue_model
-                                    .update(&mut cx, |_, cx| {
-                                        cx.emit((path, item));
-                                    })
-                                    .expect("failed to update queue");
-                            }
-                            DataEvent::CacheDrops(vec) => drop_model
-                                .update(&mut cx, |_, cx| cx.emit(vec))
-                                .expect("failed to promote to cx"),
-                        }
-                    }
-
-                    cx.background_executor()
-                        .timer(Duration::from_millis(10))
-                        .await;
-                }
-            })
-            .detach();
-        } else {
+        let Some(events_rx) = events_rx else {
             panic!("broadcast thread already started");
-        }
+        };
+
+        cx.spawn(|mut cx| async move {
+            loop {
+                while let Ok(event) = events_rx.try_recv() {
+                    match event {
+                        DataEvent::ImageDecoded(v, image_type) => match image_type {
+                            ImageType::CurrentAlbumArt => {
+                                albumart_model
+                                    .update(&mut cx, |m, cx| {
+                                        *m = Some(v);
+                                        cx.notify()
+                                    })
+                                    .expect("failed to update albumart");
+                            }
+                            _ => image_transfer_model
+                                .update(&mut cx, |_, cx| cx.emit(ImageTransfer(image_type, v)))
+                                .expect("failed to transfer image"),
+                        },
+                        DataEvent::DecodeError(image_type) => match image_type {
+                            ImageType::CurrentAlbumArt => {
+                                albumart_model
+                                    .update(&mut cx, |m, cx| {
+                                        *m = None;
+                                        cx.notify()
+                                    })
+                                    .expect("failed to update albumart");
+                            }
+                            _ => todo!(),
+                        },
+                        DataEvent::MetadataRead(path, item) => {
+                            queue_model
+                                .update(&mut cx, |_, cx| {
+                                    cx.emit((path, item));
+                                })
+                                .expect("failed to update queue");
+                        }
+                        DataEvent::CacheDrops(vec) => drop_model
+                            .update(&mut cx, |_, cx| cx.emit(vec))
+                            .expect("failed to promote to cx"),
+                    }
+                }
+
+                cx.background_executor()
+                    .timer(Duration::from_millis(10))
+                    .await;
+            }
+        })
+        .detach();
     }
 }

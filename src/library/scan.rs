@@ -72,25 +72,26 @@ impl ScanInterface {
 
         let state_model = cx.global::<Models>().scan_state.clone();
 
-        if let Some(events_rx) = events_rx {
-            cx.spawn(|mut cx| async move {
-                loop {
-                    while let Ok(event) = events_rx.try_recv() {
-                        state_model
-                            .update(&mut cx, |m, cx| {
-                                *m = event;
-                                cx.notify()
-                            })
-                            .expect("failed to update scan state model");
-                    }
-
-                    cx.background_executor()
-                        .timer(Duration::from_millis(10))
-                        .await;
+        let Some(events_rx) = events_rx else {
+            return;
+        };
+        cx.spawn(|mut cx| async move {
+            loop {
+                while let Ok(event) = events_rx.try_recv() {
+                    state_model
+                        .update(&mut cx, |m, cx| {
+                            *m = event;
+                            cx.notify()
+                        })
+                        .expect("failed to update scan state model");
                 }
-            })
-            .detach();
-        }
+
+                cx.background_executor()
+                    .timer(Duration::from_millis(10))
+                    .await;
+            }
+        })
+        .detach();
     }
 }
 
@@ -213,17 +214,18 @@ impl ScanThread {
         if file_path.exists() {
             let file = File::open(&file_path);
 
-            if let Ok(file) = file {
-                let reader = BufReader::new(file);
+            let Ok(file) = file else {
+                return;
+            };
+            let reader = BufReader::new(file);
 
-                match serde_json::from_reader(reader) {
-                    Ok(scan_record) => {
-                        self.scan_record = scan_record;
-                    }
-                    Err(e) => {
-                        error!("could not read scan record: {:?}", e);
-                        error!("scanning will be slow until the scan record is rebuilt");
-                    }
+            match serde_json::from_reader(reader) {
+                Ok(scan_record) => {
+                    self.scan_record = scan_record;
+                }
+                Err(e) => {
+                    error!("could not read scan record: {:?}", e);
+                    error!("scanning will be slow until the scan record is rebuilt");
                 }
             }
         }
@@ -299,16 +301,17 @@ impl ScanThread {
         for (exts, _) in self.provider_table.iter() {
             let x = file_is_scannable_with_provider(path, exts);
 
-            if x {
-                if let Some(last_scan) = self.scan_record.get(path) {
-                    if *last_scan == timestamp {
-                        return false;
-                    }
-                }
-
-                self.scan_record.insert(path.clone(), timestamp);
-                return true;
+            if !x {
+                continue;
             }
+            if let Some(last_scan) = self.scan_record.get(path) {
+                if *last_scan == timestamp {
+                    return false;
+                }
+            }
+
+            self.scan_record.insert(path.clone(), timestamp);
+            return true;
         }
 
         false
@@ -353,38 +356,37 @@ impl ScanThread {
     async fn insert_artist(&self, metadata: &Metadata) -> Option<i64> {
         let artist = metadata.album_artist.clone().or(metadata.artist.clone());
 
-        if let Some(artist) = artist {
-            let result: Result<(i64,), sqlx::Error> =
-                sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
-                    .bind(&artist)
-                    .bind(metadata.artist_sort.as_ref().unwrap_or(&artist))
-                    .fetch_one(&self.pool)
-                    .await;
+        let Some(artist) = artist else {
+            return None;
+        };
+        let result: Result<(i64,), sqlx::Error> =
+            sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
+                .bind(&artist)
+                .bind(metadata.artist_sort.as_ref().unwrap_or(&artist))
+                .fetch_one(&self.pool)
+                .await;
 
-            match result {
-                Ok(v) => Some(v.0),
-                Err(sqlx::Error::RowNotFound) => {
-                    let result: Result<(i64,), sqlx::Error> =
-                        sqlx::query_as(include_str!("../../queries/scan/get_artist_id.sql"))
-                            .bind(&artist)
-                            .fetch_one(&self.pool)
-                            .await;
+        match result {
+            Ok(v) => Some(v.0),
+            Err(sqlx::Error::RowNotFound) => {
+                let result: Result<(i64,), sqlx::Error> =
+                    sqlx::query_as(include_str!("../../queries/scan/get_artist_id.sql"))
+                        .bind(&artist)
+                        .fetch_one(&self.pool)
+                        .await;
 
-                    match result {
-                        Ok(v) => Some(v.0),
-                        Err(e) => {
-                            error!("Database error while retriving artist: {:?}", e);
-                            None
-                        }
+                match result {
+                    Ok(v) => Some(v.0),
+                    Err(e) => {
+                        error!("Database error while retriving artist: {:?}", e);
+                        None
                     }
                 }
-                Err(e) => {
-                    error!("Database error while creating artist: {:?}", e);
-                    None
-                }
             }
-        } else {
-            None
+            Err(e) => {
+                error!("Database error while creating artist: {:?}", e);
+                None
+            }
         }
     }
 
@@ -394,68 +396,67 @@ impl ScanThread {
         artist_id: Option<i64>,
         image: &Option<Box<[u8]>>,
     ) -> Option<i64> {
-        if let Some(album) = &metadata.album {
-            let result: Result<(i64,), sqlx::Error> =
-                sqlx::query_as(include_str!("../../queries/scan/get_album_id.sql"))
-                    .bind(album)
-                    .fetch_one(&self.pool)
-                    .await;
+        let Some(album) = &metadata.album else {
+            return None;
+        };
+        let result: Result<(i64,), sqlx::Error> =
+            sqlx::query_as(include_str!("../../queries/scan/get_album_id.sql"))
+                .bind(album)
+                .fetch_one(&self.pool)
+                .await;
 
-            match result {
-                Ok(v) => Some(v.0),
-                Err(sqlx::Error::RowNotFound) => {
-                    let thumb = match image {
-                        Some(image) => {
-                            let decoded = image::ImageReader::new(Cursor::new(&image))
-                                .with_guessed_format()
-                                .ok()?
-                                .decode()
-                                .ok()?
-                                .into_rgba8();
+        match result {
+            Ok(v) => Some(v.0),
+            Err(sqlx::Error::RowNotFound) => {
+                let thumb = match image {
+                    Some(image) => {
+                        let decoded = image::ImageReader::new(Cursor::new(&image))
+                            .with_guessed_format()
+                            .ok()?
+                            .decode()
+                            .ok()?
+                            .into_rgba8();
 
-                            let thumb = thumbnail(&decoded, 70, 70);
+                        let thumb = thumbnail(&decoded, 70, 70);
 
-                            let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+                        let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
 
-                            thumb
-                                .write_to(&mut buf, image::ImageFormat::Bmp)
-                                .expect("i don't know how Cursor could fail");
-                            buf.flush().expect("could not flush buffer");
+                        thumb
+                            .write_to(&mut buf, image::ImageFormat::Bmp)
+                            .expect("i don't know how Cursor could fail");
+                        buf.flush().expect("could not flush buffer");
 
-                            Some(buf.get_mut().clone())
-                        }
-                        None => None,
-                    };
+                        Some(buf.get_mut().clone())
+                    }
+                    None => None,
+                };
 
-                    let result: Result<(i64,), sqlx::Error> =
-                        sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
-                            .bind(album)
-                            .bind(metadata.sort_album.as_ref().unwrap_or(album))
-                            .bind(artist_id)
-                            .bind(image)
-                            .bind(thumb)
-                            .bind(metadata.date)
-                            .bind(&metadata.label)
-                            .bind(&metadata.catalog)
-                            .bind(&metadata.isrc)
-                            .fetch_one(&self.pool)
-                            .await;
+                let result: Result<(i64,), sqlx::Error> =
+                    sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
+                        .bind(album)
+                        .bind(metadata.sort_album.as_ref().unwrap_or(album))
+                        .bind(artist_id)
+                        .bind(image)
+                        .bind(thumb)
+                        .bind(metadata.date)
+                        .bind(&metadata.label)
+                        .bind(&metadata.catalog)
+                        .bind(&metadata.isrc)
+                        .fetch_one(&self.pool)
+                        .await;
 
-                    match result {
-                        Ok(v) => Some(v.0),
-                        Err(e) => {
-                            error!("Database error while creating album: {:?}", e);
-                            None
-                        }
+                match result {
+                    Ok(v) => Some(v.0),
+                    Err(e) => {
+                        error!("Database error while creating album: {:?}", e);
+                        None
                     }
                 }
-                Err(e) => {
-                    error!("Database error while retriving album: {:?}", e);
-                    None
-                }
             }
-        } else {
-            None
+            Err(e) => {
+                error!("Database error while retriving album: {:?}", e);
+                None
+            }
         }
     }
 
