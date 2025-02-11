@@ -107,6 +107,12 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
+    pub fn jump_unshuffled(&self, index: usize) {
+        self.commands_tx
+            .send(PlaybackCommand::JumpUnshuffled(index))
+            .expect("could not send tx");
+    }
+
     pub fn seek(&self, position: f64) {
         self.commands_tx
             .send(PlaybackCommand::Seek(position))

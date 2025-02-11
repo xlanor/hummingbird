@@ -489,5 +489,5 @@ fn play_from_track(cx: &mut App, tracks: &Arc<Vec<Track>>, id: i64) {
     replace_queue(paths, cx);
 
     let playback_interface = cx.global::<GPUIPlaybackInterface>();
-    playback_interface.jump(tracks.iter().position(|t| t.id == id).unwrap())
+    playback_interface.jump_unshuffled(tracks.iter().position(|t| t.id == id).unwrap())
 }

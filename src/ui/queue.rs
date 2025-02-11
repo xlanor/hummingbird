@@ -18,22 +18,24 @@ use super::{
 };
 
 pub struct QueueItem {
-    item: QueueItemData,
+    item: Option<QueueItemData>,
     current: usize,
     idx: usize,
 }
 
 impl QueueItem {
-    pub fn new(cx: &mut App, item: QueueItemData, idx: usize) -> Entity<Self> {
+    pub fn new(cx: &mut App, item: Option<QueueItemData>, idx: usize) -> Entity<Self> {
         cx.new(move |cx| {
             cx.on_release(|m: &mut QueueItem, cx| {
-                let data = m.item.get_data(cx).read(cx).as_ref().unwrap();
+                if let Some(item) = m.item.as_mut() {
+                    let data = item.get_data(cx).read(cx).as_ref().unwrap();
 
-                if let (Some(image), DataSource::Library) = (data.image.clone(), data.source) {
-                    drop_image_from_app(cx, image);
+                    if let (Some(image), DataSource::Library) = (data.image.clone(), data.source) {
+                        drop_image_from_app(cx, image);
+                    }
+
+                    item.drop_data(cx);
                 }
-
-                m.item.drop_data(cx);
             })
             .detach();
 
@@ -44,7 +46,7 @@ impl QueueItem {
             })
             .detach();
 
-            let data = item.get_data(cx);
+            let data = item.as_ref().unwrap().get_data(cx);
 
             cx.observe(&data, |_, _, cx| {
                 cx.notify();
@@ -62,7 +64,10 @@ impl QueueItem {
 
 impl Render for QueueItem {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let data = self.item.get_data(cx).read(cx);
+        let data = self
+            .item
+            .as_ref()
+            .and_then(|item| item.get_data(cx).read(cx).clone());
         let theme = cx.global::<Theme>().clone();
 
         if let Some(item) = data.as_ref() {
@@ -182,8 +187,7 @@ impl Queue {
                             .read()
                             .expect("couldn't read queue")
                             .get(idx)
-                            .unwrap()
-                            .clone();
+                            .cloned();
                         let was_removed =
                             prune_views(views_model.clone(), render_counter.clone(), idx, cx);
 

@@ -175,6 +175,7 @@ impl PlaybackThread {
                 PlaybackCommand::Previous => self.previous(),
                 PlaybackCommand::ClearQueue => self.clear_queue(),
                 PlaybackCommand::Jump(v) => self.jump(v),
+                PlaybackCommand::JumpUnshuffled(v) => self.jump_unshuffled(v),
                 PlaybackCommand::Seek(v) => self.seek(v),
                 PlaybackCommand::SetVolume(v) => self.set_volume(v),
                 PlaybackCommand::ReplaceQueue(v) => self.replace_queue(v),
@@ -432,7 +433,23 @@ impl PlaybackThread {
         }
     }
 
-    fn replace_queue(&mut self, mut paths: Vec<QueueItemData>) {
+    fn jump_unshuffled(&mut self, index: usize) {
+        if !self.shuffle {
+            self.jump(index);
+            return;
+        }
+
+        let queue = self.queue.read().expect("couldn't get the queue");
+        let item = self.original_queue[index].get_path().clone();
+        let pos = queue.iter().position(|a| *a.get_path() == item);
+        drop(queue);
+
+        if let Some(pos) = pos {
+            self.jump(pos);
+        }
+    }
+
+    fn replace_queue(&mut self, paths: Vec<QueueItemData>) {
         info!("Replacing queue with: {:?}", paths);
 
         let mut queue = self.queue.write().expect("couldn't get the queue");
@@ -441,8 +458,10 @@ impl PlaybackThread {
             let mut shuffled_paths = paths.clone();
             shuffled_paths.shuffle(&mut thread_rng());
 
+            *queue = shuffled_paths;
+
             drop(queue);
-            self.original_queue.append(&mut paths);
+            self.original_queue = paths;
         } else {
             *queue = paths;
             drop(queue);
@@ -459,6 +478,7 @@ impl PlaybackThread {
     fn clear_queue(&mut self) {
         let mut queue = self.queue.write().expect("couldn't get the queue");
         *queue = Vec::new();
+        self.original_queue = Vec::new();
         self.queue_next = 0;
         self.events_tx
             .send(PlaybackEvent::QueuePositionChanged(0))

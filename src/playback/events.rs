@@ -31,6 +31,9 @@ pub enum PlaybackCommand {
     ClearQueue,
     /// Jumps to the specified position in the queue.
     Jump(usize),
+    /// Jumps to the specified position in the queue. This will use the position of the track
+    /// in the *unshuffled* queue, regardless of the current shuffle state.
+    JumpUnshuffled(usize),
     /// Requests that the playback thread seek to the specified position in the current file.
     Seek(f64),
     /// Requests that the playback thread set the volume to the specified level.
