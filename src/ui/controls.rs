@@ -374,7 +374,6 @@ impl Render for Scrubber {
         let position = *self.position.read(cx);
         let duration = *self.duration.read(cx);
         let remaining = duration - position;
-
         div()
             .pl(px(13.0))
             .pr(px(13.0))
@@ -423,7 +422,9 @@ impl Render for Scrubber {
                     .id("scrubber-back")
                     .value(position as f32 / duration as f32)
                     .on_change(move |v, _, cx| {
-                        if duration > 0 {
+                        let info = cx.global::<PlaybackInfo>().clone();
+
+                        if duration > 0 && *info.playback_state.read(cx) != PlaybackState::Stopped {
                             cx.global::<GPUIPlaybackInterface>()
                                 .seek(v as f64 * duration as f64);
                         }
