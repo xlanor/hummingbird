@@ -1,5 +1,5 @@
 use std::{
-    ops::{AddAssign, SubAssign},
+    ops::{AddAssign, Deref, SubAssign},
     rc::Rc,
     sync::{mpsc::channel, Arc},
     time::Duration,
@@ -268,7 +268,7 @@ impl Render for SearchModel {
             .h_full()
             .id("search-model")
             .flex()
-            .p(px(3.0))
+            .p(px(4.0))
             .child(list(self.list_state.clone()).gap(px(5.0)).w_full().h_full())
     }
 }
@@ -333,7 +333,8 @@ impl Render for AlbumSearchResult {
 
         if let Some(album) = self.album.as_ref() {
             div()
-                .p(px(7.0))
+                .px(px(8.0))
+                .py(px(8.0))
                 .flex()
                 .cursor_pointer()
                 .id(("searchresult", album.id as u64))
@@ -358,14 +359,14 @@ impl Render for AlbumSearchResult {
                         .rounded(px(2.0))
                         .bg(theme.album_art_background)
                         .shadow_sm()
-                        .w(px(20.0))
-                        .h(px(20.0))
+                        .w(px(18.0))
+                        .h(px(18.0))
                         .flex_shrink_0()
                         .when(album.thumb.is_some(), |div| {
                             div.child(
                                 img(album.thumb.clone().unwrap().0)
-                                    .w(px(20.0))
-                                    .h(px(20.0))
+                                    .w(px(18.0))
+                                    .h(px(18.0))
                                     .rounded(px(2.0)),
                             )
                         }),
@@ -373,7 +374,7 @@ impl Render for AlbumSearchResult {
                 .child(
                     div()
                         .pl(px(8.0))
-                        .mt(px(3.0))
+                        .mt(px(2.0))
                         .line_height(px(14.0))
                         .font_weight(FontWeight::BOLD)
                         .text_sm()
@@ -382,12 +383,12 @@ impl Render for AlbumSearchResult {
                 .when_some(self.artist.as_ref(), |this, name| {
                     this.child(
                         div()
-                            .pl(px(8.0))
-                            .mt(px(3.0))
+                            .ml_auto()
+                            .mt(px(2.0))
                             .line_height(px(14.0))
                             .text_sm()
                             .text_color(theme.text_secondary)
-                            .child(format!("({})", name)),
+                            .child(name.deref().clone()),
                     )
                 })
         } else {

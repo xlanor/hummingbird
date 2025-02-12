@@ -110,16 +110,16 @@ impl Render for SearchView {
                 })
                 .child(
                     div()
-                        .w(px(500.0))
-                        .h(px(400.0))
+                        .w(px(550.0))
+                        .h(px(350.0))
                         .overflow_hidden()
                         .flex_col()
                         .child(
                             div()
                                 .w_full()
-                                .p(px(10.0))
+                                .p(px(12.0))
                                 .line_height(px(14.0))
-                                .h(px(36.0))
+                                .h(px(40.0))
                                 .text_sm()
                                 .border_b(px(1.0))
                                 .border_color(theme.border_color)
@@ -132,7 +132,7 @@ impl Render for SearchView {
                                 .h_full()
                                 // FIXME: weird layout issue, this is a hack
                                 // eventually this should be removed
-                                .pb(px(36.0))
+                                .pb(px(40.0))
                                 .child(self.search.clone()),
                         ),
                 )
