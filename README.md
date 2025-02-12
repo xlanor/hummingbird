@@ -13,6 +13,7 @@ design standard.
 - SQLite-backed library
 - Theming with hot reload
 - Scrobbling (last.fm) support
+- Fuzzy-find album search (press Ctrl + F)
 
 ## Planned Features
 - WASM Extension support:
@@ -22,6 +23,10 @@ design standard.
 - Playlists
 - Advanced search
 - AAC and Opus support
+- ReplayGain
+- Desktop integration
+- Lyrics support
+- Improved library management
 
 # Usage
 Muzak hasn't yet seen a full release, but it's already usable.

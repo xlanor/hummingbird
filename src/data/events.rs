@@ -29,6 +29,7 @@ pub enum DataCommand {
     DecodeImage(Box<[u8]>, ImageType, ImageLayout, bool),
     /// Requests that the data processing thread perform cache maintenance.
     EvictQueueCache,
+    /// Requests that the specified file is opened and metadata is read.
     ReadMetadata(String),
 }
 
@@ -42,6 +43,9 @@ pub enum DataEvent {
     /// Indicates that the data processing thread has encountered an error while decoding the
     /// specified image.
     DecodeError(ImageType),
+    /// Indicates that new metadata is available for the specified file.
     MetadataRead(String, QueueItemUIData),
+    /// Indicates that the data processing thread has evicted the specified images from the cache,
+    /// and they should be removed from the sprite atlas.
     CacheDrops(Vec<Arc<RenderImage>>),
 }
