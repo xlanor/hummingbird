@@ -19,6 +19,7 @@ pub struct SearchView {
     input: Entity<TextInput>,
     search: Entity<SearchModel>,
     view_switcher: Entity<VecDeque<ViewSwitchMessage>>,
+    handle: FocusHandle,
 }
 
 impl SearchView {
@@ -34,13 +35,13 @@ impl SearchView {
                     cx.emit(action);
                 })
             };
-            let input = TextInput::new(cx, handle, None, None, Some(Box::new(handler)));
+            let input = TextInput::new(cx, handle.clone(), None, None, Some(Box::new(handler)));
 
             App::on_action(cx, move |_: &Search, cx| {
                 show_clone.update(cx, |m, cx| {
                     *m = true;
                     cx.notify();
-                })
+                });
             });
 
             cx.subscribe(&input, |this: &mut SearchView, _, ev, cx| {
@@ -73,6 +74,7 @@ impl SearchView {
                 show,
                 input,
                 search,
+                handle,
             }
         })
     }
@@ -94,13 +96,17 @@ impl SearchView {
 }
 
 impl Render for SearchView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let show = self.show.clone();
         let show_read = show.read(cx);
         let theme = cx.global::<Theme>();
         let weak = cx.weak_entity();
 
         if *show_read {
+            if !self.handle.is_focused(window) {
+                self.handle.focus(window);
+            }
+
             modal()
                 .on_exit(move |_, cx| {
                     weak.update(cx, |this, cx| {
