@@ -356,9 +356,7 @@ impl ScanThread {
     async fn insert_artist(&self, metadata: &Metadata) -> Option<i64> {
         let artist = metadata.album_artist.clone().or(metadata.artist.clone());
 
-        let Some(artist) = artist else {
-            return None;
-        };
+        let artist = artist?;
         let result: Result<(i64,), sqlx::Error> =
             sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
                 .bind(&artist)

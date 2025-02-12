@@ -10,7 +10,6 @@ use crate::{
 
 use super::{
     constants::{APP_ROUNDING, FONT_AWESOME},
-    global_actions::Quit,
     models::Models,
     theme::Theme,
 };

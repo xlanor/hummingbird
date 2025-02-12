@@ -1,4 +1,4 @@
-mod model;
+pub mod model;
 
 use std::collections::VecDeque;
 
@@ -27,8 +27,14 @@ impl SearchView {
             let show = cx.new(|_| false);
             let show_clone = show.clone();
             let handle = cx.focus_handle();
-            let input = TextInput::new(cx, handle, None, None);
             let search = SearchModel::new(cx);
+            let search_clone = search.clone();
+            let handler = move |action, _: &mut Window, cx: &mut App| {
+                cx.update_entity(&search_clone, move |_, cx| {
+                    cx.emit(action);
+                })
+            };
+            let input = TextInput::new(cx, handle, None, None, Some(Box::new(handler)));
 
             App::on_action(cx, move |_: &Search, cx| {
                 show_clone.update(cx, |m, cx| {
@@ -77,7 +83,7 @@ impl SearchView {
             cx.notify();
         });
         cx.update_entity(&self.search, |search, cx| {
-            search.set_query("".to_string());
+            search.set_query("".to_string(), cx);
             cx.notify();
         });
         self.show.update(cx, |m, cx| {

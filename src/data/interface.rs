@@ -3,12 +3,11 @@ use std::{
     time::Duration,
 };
 
-use gpui::{App, AppContext, Entity};
+use gpui::{App, Entity};
 
 use crate::ui::{
     app::DropImageDummyModel,
     models::{ImageTransfer, Models},
-    util::drop_image_from_app,
 };
 
 use super::events::{DataCommand, DataEvent, ImageLayout, ImageType};

@@ -20,7 +20,7 @@ pub fn create_settings(path: &PathBuf) -> Settings {
     let reader = std::io::BufReader::new(file);
 
     if let Ok(settings) = serde_json::from_reader(reader) {
-        return settings;
+        settings
     } else {
         warn!("Failed to parse settings file, using default settings");
         Settings::default()

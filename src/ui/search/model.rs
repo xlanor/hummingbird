@@ -1,4 +1,5 @@
 use std::{
+    ops::{AddAssign, SubAssign},
     rc::Rc,
     sync::{mpsc::channel, Arc},
     time::Duration,
@@ -19,6 +20,7 @@ use crate::{
         types::Album,
     },
     ui::{
+        components::input::EnrichedInputAction,
         library::ViewSwitchMessage,
         theme::Theme,
         util::{create_or_retrieve_view, drop_image_from_app, prune_views},
@@ -32,6 +34,7 @@ pub struct SearchModel {
     views_model: Entity<AHashMap<usize, Entity<AlbumSearchResult>>>,
     last_match: Vec<(u32, String)>,
     render_counter: Entity<usize>,
+    current_selection: Entity<usize>,
 }
 
 impl SearchModel {
@@ -88,7 +91,44 @@ impl SearchModel {
             .detach();
 
             cx.subscribe(&cx.entity(), |this, _, ev: &String, cx| {
-                this.set_query(ev.clone());
+                this.set_query(ev.clone(), cx);
+            })
+            .detach();
+
+            cx.subscribe(&cx.entity(), |this, _, ev: &EnrichedInputAction, cx| {
+                match ev {
+                    EnrichedInputAction::Previous => {
+                        this.current_selection.update(cx, |this, cx| {
+                            if *this != 0 {
+                                // kinda wacky but the only way I could find to do this
+                                this.sub_assign(1);
+                            }
+                            cx.notify();
+                        });
+
+                        let idx = this.current_selection.read(cx);
+                        this.list_state.scroll_to_reveal_item(*idx);
+                    }
+                    EnrichedInputAction::Next => {
+                        let len = this.list_state.item_count();
+                        this.current_selection.update(cx, |this, cx| {
+                            if *this < len - 1 {
+                                this.add_assign(1);
+                            }
+                            cx.notify();
+                        });
+
+                        let idx = this.current_selection.read(cx);
+                        this.list_state.scroll_to_reveal_item(*idx);
+                    }
+                    EnrichedInputAction::Accept => {
+                        let idx = this.current_selection.read(cx);
+                        let id = this.last_match.get(*idx).unwrap().0;
+                        let ev = ViewSwitchMessage::Release(id as i64);
+
+                        cx.emit(ev);
+                    }
+                }
             })
             .detach();
 
@@ -101,6 +141,8 @@ impl SearchModel {
                 });
             }
 
+            let current_selection = cx.new(|_| 0);
+
             SearchModel {
                 query: String::new(),
                 matcher,
@@ -111,13 +153,15 @@ impl SearchModel {
                     None,
                     views_model,
                     render_counter,
+                    current_selection.clone(),
                 ),
                 last_match: Vec::new(),
+                current_selection,
             }
         })
     }
 
-    pub fn set_query(&mut self, query: String) {
+    pub fn set_query(&mut self, query: String, cx: &mut Context<Self>) {
         self.query = query;
         self.matcher.pattern.reparse(
             0,
@@ -126,6 +170,8 @@ impl SearchModel {
             Normalization::Smart,
             false,
         );
+        self.current_selection = cx.new(|_| 0);
+        self.list_state.scroll_to_reveal_item(0);
     }
 
     fn tick(&mut self) {
@@ -153,6 +199,7 @@ impl SearchModel {
             Some(album_ids),
             self.views_model.clone(),
             self.render_counter.clone(),
+            self.current_selection.clone(),
         );
 
         self.list_state.scroll_to(curr_scroll);
@@ -165,6 +212,7 @@ impl SearchModel {
         album_ids: Option<Vec<(u32, String)>>,
         views_model: Entity<AHashMap<usize, Entity<AlbumSearchResult>>>,
         render_counter: Entity<usize>,
+        current_selection: Entity<usize>,
     ) -> ListState {
         match album_ids {
             Some(album_ids) => {
@@ -178,6 +226,7 @@ impl SearchModel {
                     move |idx, _, cx| {
                         let album_ids = album_ids_copy.clone();
                         let weak_self = weak_self_copy.clone();
+                        let selection_clone = current_selection.clone();
 
                         prune_views(views_model.clone(), render_counter.clone(), idx, cx);
                         // TODO: error handling
@@ -187,7 +236,13 @@ impl SearchModel {
                                 views_model.clone(),
                                 idx,
                                 move |cx| {
-                                    AlbumSearchResult::new(cx, album_ids[idx].0 as i64, weak_self)
+                                    AlbumSearchResult::new(
+                                        cx,
+                                        album_ids[idx].0 as i64,
+                                        weak_self,
+                                        &selection_clone,
+                                        idx,
+                                    )
                                 },
                                 cx,
                             ))
@@ -203,14 +258,15 @@ impl SearchModel {
 }
 
 impl EventEmitter<String> for SearchModel {}
-
 impl EventEmitter<ViewSwitchMessage> for SearchModel {}
+impl EventEmitter<EnrichedInputAction> for SearchModel {}
 
 impl Render for SearchModel {
     fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         div()
             .w_full()
             .h_full()
+            .id("search-model")
             .flex()
             .p(px(3.0))
             .child(list(self.list_state.clone()).gap(px(5.0)).w_full().h_full())
@@ -221,6 +277,8 @@ struct AlbumSearchResult {
     album: Option<Arc<Album>>,
     artist: Option<Arc<String>>,
     weak_parent: WeakEntity<SearchModel>,
+    current_selection: usize,
+    idx: usize,
 }
 
 impl AlbumSearchResult {
@@ -228,6 +286,8 @@ impl AlbumSearchResult {
         cx: &mut App,
         id: i64,
         weak_parent: WeakEntity<SearchModel>,
+        current_selection: &Entity<usize>,
+        idx: usize,
     ) -> Entity<AlbumSearchResult> {
         cx.new(|cx| {
             let album = cx.get_album_by_id(id, AlbumMethod::UncachedThumb).ok();
@@ -247,17 +307,28 @@ impl AlbumSearchResult {
             })
             .detach();
 
+            cx.observe(
+                current_selection,
+                |this: &mut Self, m, cx: &mut Context<Self>| {
+                    this.current_selection = *m.read(cx);
+                    cx.notify();
+                },
+            )
+            .detach();
+
             AlbumSearchResult {
                 album,
                 artist,
                 weak_parent,
+                current_selection: *current_selection.read(cx),
+                idx,
             }
         })
     }
 }
 
 impl Render for AlbumSearchResult {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         if let Some(album) = self.album.as_ref() {
@@ -268,6 +339,9 @@ impl Render for AlbumSearchResult {
                 .id(("searchresult", album.id as u64))
                 .hover(|this| this.bg(theme.palette_item_hover))
                 .active(|this| this.bg(theme.palette_item_active))
+                .when(self.current_selection == self.idx, |this| {
+                    this.bg(theme.palette_item_hover)
+                })
                 .rounded(px(4.0))
                 .on_click(cx.listener(|this, _, _, cx| {
                     let id = this.album.as_ref().unwrap().id;

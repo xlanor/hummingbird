@@ -24,8 +24,18 @@ actions!(
         Paste,
         Cut,
         Copy,
+        Next,
+        Previous,
+        Accept
     ]
 );
+
+#[derive(Copy, Clone)]
+pub enum EnrichedInputAction {
+    Next,
+    Previous,
+    Accept,
+}
 
 pub fn bind_actions(cx: &mut App) {
     cx.bind_keys([
@@ -37,6 +47,9 @@ pub fn bind_actions(cx: &mut App) {
         KeyBinding::new("shift-right", SelectRight, None),
         KeyBinding::new("home", Home, None),
         KeyBinding::new("end", End, None),
+        KeyBinding::new("enter", Accept, None),
+        KeyBinding::new("down", Next, None),
+        KeyBinding::new("up", Previous, None),
     ]);
 
     if cfg!(target_os = "macos") {
@@ -59,6 +72,8 @@ pub fn bind_actions(cx: &mut App) {
     }
 }
 
+type EnrichedInputHandler = Box<dyn Fn(EnrichedInputAction, &mut Window, &mut App)>;
+
 pub struct TextInput {
     focus_handle: FocusHandle,
     content: SharedString,
@@ -69,6 +84,7 @@ pub struct TextInput {
     last_layout: Option<ShapedLine>,
     last_bounds: Option<Bounds<Pixels>>,
     is_selecting: bool,
+    enriched_input_handler: Option<EnrichedInputHandler>,
 }
 
 impl EventEmitter<String> for TextInput {}
@@ -290,6 +306,27 @@ impl TextInput {
         self.last_layout = None;
         self.last_bounds = None;
         self.is_selecting = false;
+    }
+
+    pub fn next(&mut self, _: &Next, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(handler) = self.enriched_input_handler.as_mut() else {
+            return;
+        };
+        handler(EnrichedInputAction::Next, window, cx);
+    }
+
+    pub fn previous(&mut self, _: &Previous, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(handler) = self.enriched_input_handler.as_mut() else {
+            return;
+        };
+        handler(EnrichedInputAction::Previous, window, cx);
+    }
+
+    pub fn accept(&mut self, _: &Accept, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(handler) = self.enriched_input_handler.as_mut() else {
+            return;
+        };
+        handler(EnrichedInputAction::Accept, window, cx);
     }
 }
 
@@ -600,6 +637,7 @@ impl TextInput {
         focus_handle: FocusHandle,
         content: Option<SharedString>,
         placeholder: Option<SharedString>,
+        enriched_input_handler: Option<EnrichedInputHandler>,
     ) -> Entity<TextInput> {
         cx.new(|_| TextInput {
             focus_handle,
@@ -611,6 +649,7 @@ impl TextInput {
             last_layout: None,
             last_bounds: None,
             is_selecting: false,
+            enriched_input_handler,
         })
     }
 }
@@ -636,6 +675,9 @@ impl Render for TextInput {
             .on_action(cx.listener(Self::cut))
             .on_action(cx.listener(Self::copy))
             .on_action(cx.listener(Self::space))
+            .on_action(cx.listener(Self::next))
+            .on_action(cx.listener(Self::previous))
+            .on_action(cx.listener(Self::accept))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
