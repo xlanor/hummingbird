@@ -21,6 +21,7 @@ pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Err
     debug!("Creating database pool at {:?}", path.as_ref());
     let options = SqliteConnectOptions::new()
         .filename(path)
+        .statement_cache_capacity(0)
         .create_if_missing(true);
     let pool = SqlitePool::connect_with(options).await?;
 
