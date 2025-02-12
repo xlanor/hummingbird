@@ -13,7 +13,7 @@ use tracing::{debug, error};
 use crate::{
     data::{interface::GPUIDataInterface, thread::DataThread},
     library::{
-        db::{create_cache, create_pool},
+        db::create_pool,
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
@@ -331,7 +331,6 @@ pub async fn run() {
 
             cx.set_global(playback_interface);
             cx.set_global(data_interface);
-            cx.set_global(create_cache());
 
             cx.activate(true);
 

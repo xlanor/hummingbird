@@ -60,7 +60,7 @@ impl QueueItemData {
 
             if let (Some(track_id), Some(album_id)) = (track_id, album_id) {
                 let album =
-                    cx.get_album_by_id(album_id, crate::library::db::AlbumMethod::UncachedThumb);
+                    cx.get_album_by_id(album_id, crate::library::db::AlbumMethod::Thumbnail);
                 let track = cx.get_track_by_id(track_id);
 
                 if let (Ok(track), Ok(album)) = (track, album) {

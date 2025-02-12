@@ -290,7 +290,7 @@ impl AlbumSearchResult {
         idx: usize,
     ) -> Entity<AlbumSearchResult> {
         cx.new(|cx| {
-            let album = cx.get_album_by_id(id, AlbumMethod::UncachedThumb).ok();
+            let album = cx.get_album_by_id(id, AlbumMethod::Thumbnail).ok();
 
             let artist = album
                 .as_ref()

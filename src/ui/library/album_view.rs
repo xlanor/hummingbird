@@ -208,9 +208,7 @@ impl AlbumItem {
     ) -> Entity<Self> {
         debug!("Creating AlbumItem view for album ID: {}", album_id);
 
-        let album = cx
-            .get_album_by_id(album_id, AlbumMethod::UncachedThumb)
-            .ok();
+        let album = cx.get_album_by_id(album_id, AlbumMethod::Thumbnail).ok();
 
         let artist = album
             .as_ref()
