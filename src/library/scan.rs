@@ -9,7 +9,7 @@ use std::{
 use ahash::AHashMap;
 use async_std::task;
 use gpui::{App, Global};
-use image::imageops::thumbnail;
+use image::{codecs::jpeg::JpegEncoder, imageops::thumbnail, EncodableLayout};
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
 
@@ -408,7 +408,7 @@ impl ScanThread {
             Err(sqlx::Error::RowNotFound) => {
                 let thumb = match image {
                     Some(image) => {
-                        let decoded = image::ImageReader::new(Cursor::new(&image))
+                        let mut decoded = image::ImageReader::new(Cursor::new(&image))
                             .with_guessed_format()
                             .ok()?
                             .decode()
@@ -429,12 +429,49 @@ impl ScanThread {
                     None => None,
                 };
 
+                let resized_image = match image {
+                    Some(image) => {
+                        let mut decoded = image::ImageReader::new(Cursor::new(&image))
+                            .with_guessed_format()
+                            .ok()?
+                            .decode()
+                            .ok()?
+                            .into_rgb8();
+
+                        if decoded.dimensions().0 <= 1024 || decoded.dimensions().1 <= 1024 {
+                            Some(image.clone().to_vec())
+                        } else {
+                            decoded = image::imageops::resize(
+                                &decoded,
+                                1024,
+                                1024,
+                                image::imageops::FilterType::Lanczos3,
+                            );
+                            let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+                            let mut encoder = JpegEncoder::new_with_quality(&mut buf, 70);
+
+                            encoder
+                                .encode(
+                                    decoded.as_bytes(),
+                                    decoded.width(),
+                                    decoded.height(),
+                                    image::ExtendedColorType::Rgb8,
+                                )
+                                .expect("could not encode image");
+                            buf.flush().expect("could not flush buffer");
+
+                            Some(buf.get_mut().clone())
+                        }
+                    }
+                    None => None,
+                };
+
                 let result: Result<(i64,), sqlx::Error> =
                     sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
                         .bind(album)
                         .bind(metadata.sort_album.as_ref().unwrap_or(album))
                         .bind(artist_id)
-                        .bind(image)
+                        .bind(resized_image)
                         .bind(thumb)
                         .bind(metadata.date)
                         .bind(&metadata.label)
