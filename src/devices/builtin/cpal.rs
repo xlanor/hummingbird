@@ -226,6 +226,8 @@ impl Device for CpalDevice {
                 cpal::SupportedBufferSize::Unknown => BufferSize::Unknown,
             },
             channels: ChannelSpec::Count(format.channels()),
+            rate_channel_ratio: format.channels(),
+            rate_channel_ratio_fixed: false,
         })
     }
 

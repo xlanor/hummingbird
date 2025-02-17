@@ -182,12 +182,15 @@ impl Device for PulseDevice {
     }
 
     fn get_default_format(&self) -> Result<FormatInfo, InfoError> {
+        let channels = channel_spec(self.info.channel_map);
         Ok(FormatInfo {
             originating_provider: "pulse",
             sample_type: get_sample_format(self.info.sample_spec.format),
             sample_rate: self.info.sample_spec.rate,
             buffer_size: BufferSize::Unknown,
-            channels: channel_spec(self.info.channel_map),
+            rate_channel_ratio: channels.count(),
+            rate_channel_ratio_fixed: true,
+            channels,
         })
     }
 

@@ -51,6 +51,13 @@ pub struct FormatInfo {
     pub sample_rate: u32,
     pub buffer_size: BufferSize,
     pub channels: ChannelSpec,
+    /// The number of channels for the sample rate.
+    ///
+    /// On some implementations the sample rate is the device's fixed sample rate; on others it is
+    /// the sample rate of the current stream. `rate_channel_ratio` is used to determine the number
+    /// of channels for the current sample rate, if the number of channels is fixed.
+    pub rate_channel_ratio: u16,
+    pub rate_channel_ratio_fixed: bool,
 }
 pub struct SupportedFormat {
     pub originating_provider: &'static str,
