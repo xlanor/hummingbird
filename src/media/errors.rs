@@ -61,5 +61,13 @@ pub enum TrackDurationError {
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SeekError {
     NothingOpen,
+    OutOfBounds,
+    Unknown,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum ChannelRetrievalError {
+    NothingOpen,
+    NothingToPlay,
     Unknown,
 }

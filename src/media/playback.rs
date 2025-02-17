@@ -4,6 +4,7 @@ use intx::{I24, U24};
 
 use crate::devices::format::SampleFormat;
 
+#[derive(Clone)]
 pub enum Samples {
     Float64(Vec<Vec<f64>>),
     Float32(Vec<Vec<f32>>),
@@ -237,6 +238,7 @@ impl TryFrom<Samples> for Vec<Vec<bool>> {
     }
 }
 
+#[derive(Clone)]
 pub struct PlaybackFrame {
     pub samples: Samples,
     pub rate: u32, // god forbid someone invents a PCM format that samples faster than 4 billion Hz

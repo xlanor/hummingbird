@@ -8,7 +8,7 @@ use std::{
 };
 
 use rand::{seq::SliceRandom, thread_rng};
-use tracing::{debug, info};
+use tracing::{debug, error, info, warn};
 
 #[cfg(target_os = "linux")]
 use crate::devices::builtin::pulse::PulseProvider;
@@ -113,19 +113,9 @@ impl PlaybackThread {
                 .unwrap(),
         );
 
-        // TODO: proper error handling
         // TODO: allow the user to pick a format on supported platforms
         let format = self.device.as_ref().unwrap().get_default_format().unwrap();
-        self.stream = Some(self.device.as_mut().unwrap().open_device(format).unwrap());
-
-        let format = self.device.as_ref().unwrap().get_default_format().unwrap();
-
-        info!(
-            "Opened device: {:?}, format: {:?}, rate: {}",
-            self.device.as_ref().unwrap().get_name(),
-            format.sample_type,
-            format.sample_rate
-        );
+        self.recreate_stream(true, Some(format));
 
         loop {
             self.main_loop();
@@ -192,6 +182,8 @@ impl PlaybackThread {
 
         if self.state == PlaybackState::Playing {
             if let Some(stream) = &mut self.stream {
+                // stream is being played right now which means it has to be valid
+                // this is fine
                 stream.pause().expect("unable to pause stream");
             }
 
@@ -209,13 +201,41 @@ impl PlaybackThread {
         }
 
         if self.state == PlaybackState::Paused {
-            if let Some(stream) = &mut self.stream {
+            if self.stream.is_some() {
                 if self.pending_reset {
-                    stream.reset().expect("unable to reset stream");
+                    // we have to do .as_mut.unwrap() because we need self later
+                    let result = self.stream.as_mut().unwrap().reset();
+
+                    if let Err(err) = result {
+                        let format = self.format.clone();
+                        warn!(
+                            "Failed to reset stream, recreating device instead... {:?}",
+                            err
+                        );
+                        self.recreate_stream(true, format);
+                    }
+
                     self.pending_reset = false;
                 }
 
-                stream.play().expect("unable to play stream");
+                let result = self.stream.as_mut().unwrap().play();
+                if let Err(err) = result {
+                    let format = self.format.clone();
+                    warn!(
+                        "Failed to restart playback, recreating device and retrying... {:?}",
+                        err
+                    );
+                    self.recreate_stream(true, format);
+                    let final_result = self.stream.as_mut().unwrap().play();
+
+                    if final_result.is_err() {
+                        error!("Failed to start playback after recreation");
+                        error!("This likely indicates a problem with the audio device or driver");
+                        error!("(or an underlying issue in the used DeviceProvider)");
+                        error!("Please check your audio setup and try again.");
+                        panic!("Failed to submit frame after recreation");
+                    }
+                }
             }
 
             self.state = PlaybackState::Playing;
@@ -244,11 +264,12 @@ impl PlaybackThread {
         info!("Opening: {}", path);
 
         if self.state == PlaybackState::Paused {
-            self.stream
-                .as_mut()
-                .unwrap()
-                .reset()
-                .expect("unable to reset device");
+            let result = self.stream.as_mut().unwrap().reset();
+
+            if let Err(err) = result {
+                warn!("Failed to reset device, recreating instead: {:?}", err);
+                self.recreate_stream(true, None);
+            }
         }
 
         self.stream
@@ -552,7 +573,66 @@ impl PlaybackThread {
         }
     }
 
+    fn recreate_stream(&mut self, force: bool, format: Option<FormatInfo>) {
+        if let Some(mut stream) = self.stream.take() {
+            stream.close_stream().expect("failed to close stream");
+        }
+
+        let Some(device_provider) = self.device_provider.as_mut() else {
+            panic!("playback thread incorrectly initialized")
+        };
+
+        let Ok(mut device) = device_provider.get_default_device() else {
+            error!("No playback device found, audio will not play");
+            return;
+        };
+
+        if self.device.as_ref().and_then(|v| v.get_uid().ok()) == device.get_uid().ok() && !force {
+            return;
+        }
+
+        let stream = if let Some(format) = format {
+            let result = device.open_device(format.clone());
+            match result {
+                Ok(stream) => stream,
+                Err(err) => {
+                    warn!(
+                        "Failed to open device with requested format {:?}, error: {:?}",
+                        format, err
+                    );
+                    warn!("Falling back to default format");
+                    let format = device
+                        .get_default_format()
+                        .expect("failed to get device format");
+                    device
+                        .open_device(format)
+                        .expect("failed to open device with default format")
+                }
+            }
+        } else {
+            let format = device
+                .get_default_format()
+                .expect("failed to get device format");
+
+            device
+                .open_device(format)
+                .expect("failed to open device with default format")
+        };
+
+        self.stream = Some(stream);
+
+        let format = self.stream.as_mut().unwrap().get_current_format().unwrap();
+
+        info!(
+            "Opened device: {:?}, format: {:?}, rate: {}",
+            self.device.as_ref().unwrap().get_name(),
+            format.sample_type,
+            format.sample_rate
+        );
+    }
+
     fn play_audio(&mut self) {
+        debug!("Playing audio");
         let Some(stream) = &mut self.stream else {
             return;
         };
@@ -600,12 +680,29 @@ impl PlaybackThread {
                 .unwrap()
                 .convert_formats(first_samples, self.format.as_ref().unwrap());
 
-            stream
-                .submit_frame(converted)
-                .expect("failed to submit frames to stream");
+            let submit_frame = stream.submit_frame(converted.clone());
+
+            if submit_frame.is_err() {
+                let format = self.format.clone();
+                warn!(
+                    "Failed to submit frame, recreating device and retrying... {:?}",
+                    submit_frame.err().unwrap()
+                );
+                self.recreate_stream(true, format);
+                let final_result = self.stream.as_mut().unwrap().submit_frame(converted);
+
+                if final_result.is_err() {
+                    error!("Failed to submit frame after recreation");
+                    error!("This likely indicates a problem with the audio device or driver");
+                    error!("(or an underlying issue in the used DeviceProvider)");
+                    error!("Please check your audio setup and try again.");
+                    panic!("Failed to submit frame after recreation");
+                }
+            }
 
             self.update_ts();
         } else {
+            debug!("Reading");
             let samples = match provider.read_samples() {
                 Ok(samples) => samples,
                 Err(e) => match e {
@@ -630,9 +727,28 @@ impl PlaybackThread {
                 .unwrap()
                 .convert_formats(samples, self.format.as_ref().unwrap());
 
-            stream
-                .submit_frame(converted)
-                .expect("failed to submit frames to stream");
+            debug!("Submitting frame");
+            let submit_frame = stream.submit_frame(converted.clone());
+            debug!("Finished submitting frame");
+
+            if submit_frame.is_err() {
+                debug!("Submission error");
+                let format = self.format.clone();
+                warn!(
+                    "Failed to submit frame, recreating device and retrying... {:?}",
+                    submit_frame.err().unwrap()
+                );
+                self.recreate_stream(true, format);
+                let final_result = self.stream.as_mut().unwrap().submit_frame(converted);
+
+                if final_result.is_err() {
+                    error!("Failed to submit frame after recreation");
+                    error!("This likely indicates a problem with the audio device or driver");
+                    error!("(or an underlying issue in the used DeviceProvider)");
+                    error!("Please check your audio setup and try again.");
+                    panic!("Failed to submit frame after recreation");
+                }
+            }
 
             self.update_ts();
         }

@@ -1,9 +1,11 @@
 use std::fs::File;
 
+use crate::devices::format::{ChannelSpec, FormatInfo};
+
 use super::{
     errors::{
-        CloseError, FrameDurationError, MetadataError, OpenError, PlaybackReadError,
-        PlaybackStartError, PlaybackStopError, SeekError, TrackDurationError,
+        ChannelRetrievalError, CloseError, FrameDurationError, MetadataError, OpenError,
+        PlaybackReadError, PlaybackStartError, PlaybackStopError, SeekError, TrackDurationError,
     },
     metadata::Metadata,
     playback::PlaybackFrame,
@@ -100,7 +102,15 @@ pub trait MediaProvider {
     fn duration_secs(&self) -> Result<u64, TrackDurationError>;
 
     /// Returns the current playback position in seconds. If no file is opened, or playback has not
-    /// started, this function should return an error. This function should be available immediately
-    /// after playback has started, and should not require reading any samples.
+    /// started, this function should return an error. This function should be available
+    /// immediately after playback has started, and should not require reading any samples.
     fn position_secs(&self) -> Result<u64, TrackDurationError>;
+
+    /// Returns the chnanel specification used by the track being decoded. This function should be
+    /// available immediately after playback has started, and should not require reading any
+    /// samples.
+    ///
+    /// This function is used by the playback thread to determine whether or not the track's
+    /// channel count can be handled by the current device, and if it is, change the channel count.
+    fn channels(&self) -> Result<ChannelSpec, ChannelRetrievalError>;
 }

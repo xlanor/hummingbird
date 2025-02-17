@@ -15,14 +15,18 @@ use symphonia::{
     default::get_codecs,
 };
 
-use crate::media::{
-    errors::{
-        CloseError, FrameDurationError, MetadataError, OpenError, PlaybackReadError,
-        PlaybackStartError, PlaybackStopError, SeekError, TrackDurationError,
+use crate::{
+    devices::format::ChannelSpec,
+    media::{
+        errors::{
+            ChannelRetrievalError, CloseError, FrameDurationError, MetadataError, OpenError,
+            PlaybackReadError, PlaybackStartError, PlaybackStopError, SeekError,
+            TrackDurationError,
+        },
+        metadata::Metadata,
+        playback::{PlaybackFrame, Samples},
+        traits::{MediaPlugin, MediaProvider},
     },
-    metadata::Metadata,
-    playback::{PlaybackFrame, Samples},
-    traits::{MediaPlugin, MediaProvider},
 };
 
 #[derive(Default)]
@@ -516,6 +520,22 @@ impl MediaProvider for SymphoniaProvider {
         }
 
         Ok(())
+    }
+
+    fn channels(&self) -> Result<ChannelSpec, ChannelRetrievalError> {
+        let Some(format) = &self.format else {
+            return Err(ChannelRetrievalError::NothingOpen);
+        };
+
+        let track = format
+            .tracks()
+            .iter()
+            .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+            .ok_or(ChannelRetrievalError::NothingToPlay)?;
+
+        Ok(ChannelSpec::Count(
+            track.codec_params.channels.unwrap().count() as u16,
+        ))
     }
 }
 
