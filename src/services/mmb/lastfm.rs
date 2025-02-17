@@ -102,7 +102,7 @@ impl MediaMetadataBroadcastService for LastFM {
     }
 
     async fn position_changed(&mut self, position: u64) {
-        if position < self.last_postion + 2 {
+        if position < self.last_postion + 2 && position > self.last_postion {
             self.accumulated_time += position - self.last_postion;
         }
 
