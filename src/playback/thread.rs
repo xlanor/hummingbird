@@ -115,7 +115,7 @@ impl PlaybackThread {
 
         // TODO: allow the user to pick a format on supported platforms
         let format = self.device.as_ref().unwrap().get_default_format().unwrap();
-        self.recreate_stream(true, Some(format));
+        self.recreate_stream(true, Some(format.channels));
 
         loop {
             self.main_loop();
@@ -212,7 +212,7 @@ impl PlaybackThread {
                             "Failed to reset stream, recreating device instead... {:?}",
                             err
                         );
-                        self.recreate_stream(true, format);
+                        self.recreate_stream(true, format.map(|v| v.channels));
                     }
 
                     self.pending_reset = false;
@@ -225,7 +225,7 @@ impl PlaybackThread {
                         "Failed to restart playback, recreating device and retrying... {:?}",
                         err
                     );
-                    self.recreate_stream(true, format);
+                    self.recreate_stream(true, format.map(|v| v.channels));
                     let final_result = self.stream.as_mut().unwrap().play();
 
                     if final_result.is_err() {
@@ -263,20 +263,26 @@ impl PlaybackThread {
     fn open(&mut self, path: &String) {
         info!("Opening: {}", path);
 
+        let mut recreation_required = false;
+
         if self.state == PlaybackState::Paused {
             let result = self.stream.as_mut().unwrap().reset();
 
             if let Err(err) = result {
-                warn!("Failed to reset device, recreating instead: {:?}", err);
-                self.recreate_stream(true, None);
+                warn!("Failed to reset device, forcing recreation: {:?}", err);
+                recreation_required = true;
             }
         }
 
-        self.stream
-            .as_mut()
-            .unwrap()
-            .play()
-            .expect("unable to play stream");
+        let play_result = self.stream.as_mut().unwrap().play();
+
+        if play_result.is_err() {
+            warn!(
+                "Failed to start playback, forcing recreation: {:?}",
+                play_result.err().unwrap()
+            );
+            recreation_required = true;
+        }
 
         // TODO: handle multiple media providers
         let Some(provider) = &mut self.media_provider else {
@@ -288,7 +294,28 @@ impl PlaybackThread {
         provider.open(src, None).expect("unable to open file");
         provider.start_playback().expect("unable to start playback");
 
-        self.state = PlaybackState::Playing;
+        let channels = provider.channels().expect("unable to get channels");
+        let stream_channels = self
+            .stream
+            .as_ref()
+            .unwrap()
+            .get_current_format()
+            .unwrap()
+            .channels
+            .clone();
+
+        if channels.count() != stream_channels.count() {
+            info!(
+                "Channel count mismatch, re-opening with the correct channel count (if supported)"
+            );
+            info!(
+                "Decoder wanted {}, stream had {}",
+                channels.count(),
+                stream_channels.count()
+            );
+            recreation_required = true;
+        }
+
         self.events_tx
             .send(PlaybackEvent::SongChanged(path.clone()))
             .expect("unable to send event");
@@ -302,6 +329,12 @@ impl PlaybackThread {
                 .send(PlaybackEvent::DurationChanged(0))
                 .expect("unable to send event");
         }
+
+        if recreation_required {
+            self.recreate_stream(true, Some(channels));
+        }
+
+        self.state = PlaybackState::Playing;
 
         self.update_ts();
 
@@ -573,7 +606,7 @@ impl PlaybackThread {
         }
     }
 
-    fn recreate_stream(&mut self, force: bool, format: Option<FormatInfo>) {
+    fn recreate_stream(&mut self, force: bool, channels: Option<ChannelSpec>) {
         if let Some(mut stream) = self.stream.take() {
             stream.close_stream().expect("failed to close stream");
         }
@@ -591,7 +624,13 @@ impl PlaybackThread {
             return;
         }
 
-        let stream = if let Some(format) = format {
+        let stream = if let Some(channels) = channels {
+            let mut format = device
+                .get_default_format()
+                .expect("failed to get device format");
+
+            format.channels = channels;
+
             let result = device.open_device(format.clone());
             match result {
                 Ok(stream) => stream,
@@ -624,10 +663,11 @@ impl PlaybackThread {
         let format = self.stream.as_mut().unwrap().get_current_format().unwrap();
 
         info!(
-            "Opened device: {:?}, format: {:?}, rate: {}",
+            "Opened device: {:?}, format: {:?}, rate: {}, channel_count: {}",
             self.device.as_ref().unwrap().get_name(),
             format.sample_type,
-            format.sample_rate
+            format.sample_rate,
+            format.channels.count()
         );
     }
 
@@ -666,11 +706,7 @@ impl PlaybackThread {
                 first_samples.rate,
                 device_format.sample_rate,
                 duration,
-                // TODO: support getting channels from the bitmask
-                match device_format.channels {
-                    ChannelSpec::Count(v) => v,
-                    _ => 2,
-                },
+                device_format.channels.count(),
             ));
             self.format = Some(device_format.clone());
 
@@ -688,7 +724,7 @@ impl PlaybackThread {
                     "Failed to submit frame, recreating device and retrying... {:?}",
                     submit_frame.err().unwrap()
                 );
-                self.recreate_stream(true, format);
+                self.recreate_stream(true, format.map(|v| v.channels));
                 let final_result = self.stream.as_mut().unwrap().submit_frame(converted);
 
                 if final_result.is_err() {
@@ -738,7 +774,7 @@ impl PlaybackThread {
                     "Failed to submit frame, recreating device and retrying... {:?}",
                     submit_frame.err().unwrap()
                 );
-                self.recreate_stream(true, format);
+                self.recreate_stream(true, format.map(|v| v.channels));
                 let final_result = self.stream.as_mut().unwrap().submit_frame(converted);
 
                 if final_result.is_err() {

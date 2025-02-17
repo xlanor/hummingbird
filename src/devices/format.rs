@@ -28,6 +28,15 @@ pub enum ChannelSpec {
     Count(u16),
 }
 
+impl ChannelSpec {
+    pub fn count(&self) -> u16 {
+        match self {
+            ChannelSpec::Bitmask(channels) => channels.count() as u16,
+            ChannelSpec::Count(count) => *count,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum BufferSize {
     Range(Range<u32>),
@@ -72,6 +81,12 @@ bitflags! {
         const TOP_BACK_LEFT         = 0x8000;
         const TOP_BACK_CENTER       = 0x10000;
         const TOP_BACK_RIGHT        = 0x20000;
+    }
+}
+
+impl Channels {
+    pub fn count(&self) -> u32 {
+        self.bits().count_ones()
     }
 }
 
