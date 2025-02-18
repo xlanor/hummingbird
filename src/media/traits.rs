@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use crate::devices::format::{ChannelSpec, FormatInfo};
+use crate::devices::format::ChannelSpec;
 
 use super::{
     errors::{

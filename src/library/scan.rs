@@ -408,7 +408,7 @@ impl ScanThread {
             Err(sqlx::Error::RowNotFound) => {
                 let thumb = match image {
                     Some(image) => {
-                        let mut decoded = image::ImageReader::new(Cursor::new(&image))
+                        let decoded = image::ImageReader::new(Cursor::new(&image))
                             .with_guessed_format()
                             .ok()?
                             .decode()

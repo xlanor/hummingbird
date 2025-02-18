@@ -16,7 +16,7 @@ use crate::devices::builtin::pulse::PulseProvider;
 #[cfg(target_os = "windows")]
 use crate::devices::builtin::win_audiograph::AudioGraphProvider;
 
-#[cfg(all(not(target_os = "linux")))]
+#[cfg(not(target_os = "linux"))]
 use crate::devices::builtin::cpal::CpalProvider;
 
 use crate::{
@@ -337,7 +337,7 @@ impl PlaybackThread {
             self.recreate_stream(true, Some(channels));
             let play_result = self.stream.as_mut().unwrap().play();
 
-            if (play_result.is_err()) {
+            if play_result.is_err() {
                 error!("Device was recreated and we still can't play");
                 panic!("couldn't play device")
             }

@@ -233,11 +233,7 @@ impl Device for CpalDevice {
             } else {
                 format.channels()
             },
-            rate_channel_ratio_fixed: if cfg!(target_os = "windows") {
-                true
-            } else {
-                false
-            },
+            rate_channel_ratio_fixed: cfg!(target_os = "windows"),
         })
     }
 
