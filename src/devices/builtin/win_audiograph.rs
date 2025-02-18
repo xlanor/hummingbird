@@ -318,7 +318,7 @@ impl Device for AudioGraphDevice {
         let device = self
             .graph
             .PrimaryRenderDevice()
-            .map_err(|_| InfoError::Unknown)?;
+            .map_err(|_| InfoError::DeviceIsDefaultAlways)?;
 
         device
             .Name()
@@ -330,7 +330,7 @@ impl Device for AudioGraphDevice {
         let device = self
             .graph
             .PrimaryRenderDevice()
-            .map_err(|_| InfoError::Unknown)?;
+            .map_err(|_| InfoError::DeviceIsDefaultAlways)?;
 
         device
             .Id()

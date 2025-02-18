@@ -25,6 +25,7 @@ pub enum FindError {
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum InfoError {
     RequiresOpenDevice,
+    DeviceIsDefaultAlways,
     Unknown,
 }
 
