@@ -104,10 +104,10 @@ impl PlaybackThread {
         }
         #[cfg(target_os = "windows")]
         {
-            if option_env!("USE_AUDIO_GRAPH").is_some() {
-                self.device_provider = Some(Box::new(AudioGraphProvider::default()));
-            } else {
+            if option_env!("USE_CPAL_WASAPI").is_some() {
                 self.device_provider = Some(Box::new(CpalProvider::default()));
+            } else {
+                self.device_provider = Some(Box::new(AudioGraphProvider::default()));
             }
         }
         #[cfg(all(not(target_os = "windows"), not(target_os = "linux")))]

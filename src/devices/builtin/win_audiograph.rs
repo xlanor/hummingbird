@@ -187,7 +187,10 @@ impl Device for AudioGraphDevice {
             _ => panic!("invalid buffer_size (wrong provider?)"),
         };
 
-        let rb: SpscRb<u8> = SpscRb::new(buffer_size as usize * 4);
+        let rb_size =
+            buffer_size as usize * size_of::<f32>() * format.channels.count() as usize * 3;
+
+        let rb: SpscRb<u8> = SpscRb::new(rb_size);
         let cons = rb.consumer();
         let prod = rb.producer();
 
@@ -200,38 +203,56 @@ impl Device for AudioGraphDevice {
                         return windows_result::Result::Ok(());
                     }
 
-                    let required_capacity = (samples as u32) * size_of::<f32>() as u32;
+                    let channel_count = sender
+                        .as_ref()
+                        .unwrap()
+                        .EncodingProperties()?
+                        .ChannelCount()?;
+                    let required_capacity =
+                        (samples as u32) * size_of::<f32>() as u32 * channel_count;
 
                     let frame = AudioFrame::Create(required_capacity)?;
-                    let lock = frame.LockBuffer(AudioBufferAccessMode::Write)?;
-                    let reference = lock.CreateReference()?;
 
-                    // why?
-                    let write = reference.cast::<IMemoryBufferByteAccess>()?;
+                    // this is all in a seperate scope so it all drops before we submit
+                    {
+                        let lock = frame.LockBuffer(AudioBufferAccessMode::Write)?;
+                        let reference = lock.CreateReference()?;
 
-                    let slice;
+                        // why?
+                        let write = reference.cast::<IMemoryBufferByteAccess>()?;
 
-                    unsafe {
-                        // what the fuck?
-                        let mut value = std::ptr::null_mut();
-                        let mut capacity = 0;
-                        write
-                            .GetBuffer(&mut value, &mut capacity)
-                            .expect("this must work or memory will be corrupted");
+                        let slice;
 
-                        slice = from_raw_parts_mut(value, capacity as usize);
+                        unsafe {
+                            // what the fuck?
+                            let mut value = std::ptr::null_mut();
+                            let mut capacity = 0;
+                            write
+                                .GetBuffer(&mut value, &mut capacity)
+                                .expect("this must work or memory will be corrupted");
+
+                            slice = from_raw_parts_mut(value, capacity as usize);
+                        }
+
+                        let read = cons.read(slice).unwrap_or(0);
+                        // should be fine? IEEE says that 0.0 is 0x00000000...
+                        slice[read..].iter_mut().for_each(|v| *v = 0);
+
+                        let lock_result = lock.Close();
+
+                        if let Err(err) = lock_result {
+                            error!("Error closing frame lock: {}", err);
+                            return Err(err);
+                        }
                     }
 
-                    let read = cons.read(slice).unwrap_or(0);
-                    // should be fine? IEEE says that 0.0 is 0x00000000...
-                    slice[read..].iter_mut().for_each(|v| *v = 0);
+                    let add_result = sender.as_ref().unwrap().AddFrame(&frame);
 
-                    //info!("read {:?} bytes (out of {:?})", read, required_capacity);
+                    if let Err(err) = add_result {
+                        error!("Error adding frame: {}", err);
+                        return Err(err);
+                    }
 
-                    //info!("adding");
-                    sender.as_ref().unwrap().AddFrame(&frame)?;
-
-                    //info!("done");
                     windows_result::Result::Ok(())
                 },
             );
@@ -332,7 +353,6 @@ impl OutputStream for AudioGraphStream {
     fn submit_frame(&mut self, frame: PlaybackFrame) -> Result<(), SubmissionError> {
         self.node.Start().expect("couldn't start");
 
-        info!("submitting samples");
         let samples = f32::inner(frame.samples);
         let packed = interleave(samples).pack();
         let mut slice: &[u8] = &packed;
@@ -357,7 +377,6 @@ impl OutputStream for AudioGraphStream {
     }
 
     fn play(&mut self) -> Result<(), StateError> {
-        info!("Playing");
         self.node.Start().map_err(|_| StateError::Unknown)
     }
 
