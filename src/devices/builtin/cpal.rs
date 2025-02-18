@@ -17,6 +17,7 @@ use cpal::{
     Host, SizedSample,
 };
 use rb::{Producer, RbConsumer, RbProducer, SpscRb, RB};
+use tracing::debug;
 
 pub struct CpalProvider {
     host: Host,
@@ -113,6 +114,7 @@ fn create_stream_internal<
         .build_output_stream(
             config,
             move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
+                debug!("Asked for data by CPAL!");
                 let written = cons.read(data).unwrap_or(0);
 
                 data[written..].iter_mut().for_each(|v| *v = T::muted())

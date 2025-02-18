@@ -13,7 +13,10 @@ use tracing::{debug, error, info, warn};
 #[cfg(target_os = "linux")]
 use crate::devices::builtin::pulse::PulseProvider;
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "windows")]
+use crate::devices::builtin::win_audiograph::AudioGraphProvider;
+
+#[cfg(all(not(target_os = "linux")))]
 use crate::devices::builtin::cpal::CpalProvider;
 
 use crate::{
@@ -99,23 +102,23 @@ impl PlaybackThread {
         {
             self.device_provider = Some(Box::new(PulseProvider::default()));
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(target_os = "windows")]
+        {
+            if option_env!("USE_AUDIO_GRAPH").is_some() {
+                self.device_provider = Some(Box::new(AudioGraphProvider::default()));
+            } else {
+                self.device_provider = Some(Box::new(CpalProvider::default()));
+            }
+        }
+        #[cfg(all(not(target_os = "windows"), not(target_os = "linux")))]
         {
             self.device_provider = Some(Box::new(CpalProvider::default()));
         }
 
         self.media_provider = Some(Box::new(SymphoniaProvider::default()));
-        self.device = Some(
-            self.device_provider
-                .as_mut()
-                .unwrap()
-                .get_default_device()
-                .unwrap(),
-        );
 
         // TODO: allow the user to pick a format on supported platforms
-        let format = self.device.as_ref().unwrap().get_default_format().unwrap();
-        self.recreate_stream(true, Some(format.channels));
+        self.recreate_stream(true, None);
 
         loop {
             self.main_loop();
@@ -332,6 +335,12 @@ impl PlaybackThread {
 
         if recreation_required {
             self.recreate_stream(true, Some(channels));
+            let play_result = self.stream.as_mut().unwrap().play();
+
+            if (play_result.is_err()) {
+                error!("Device was recreated and we still can't play");
+                panic!("couldn't play device")
+            }
         }
 
         self.state = PlaybackState::Playing;
@@ -665,6 +674,7 @@ impl PlaybackThread {
                 .expect("failed to open device with default format")
         };
 
+        self.device = Some(device);
         self.stream = Some(stream);
 
         let format = self.stream.as_mut().unwrap().get_current_format().unwrap();
