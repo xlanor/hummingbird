@@ -44,20 +44,62 @@ pub enum PlaybackState {
 }
 
 pub struct PlaybackThread {
+    /// The command receiver.
     commands_rx: Receiver<PlaybackCommand>,
+
+    /// The event sender.
     events_tx: Sender<PlaybackEvent>,
+
+    /// The current media provider.
+    ///
+    /// In the future this will be a hash map of media providers,
+    /// allowing for multiple media providers to be used simultaneously.
     media_provider: Option<Box<dyn MediaProvider>>,
+
+    /// The current device provider.
     device_provider: Option<Box<dyn DeviceProvider>>,
+
+    /// The current device.
     device: Option<Box<dyn Device>>,
+
+    /// The current stream.
+    ///
+    /// Note: This stream may become invalid (depending on the device provider). It is the
+    /// responsibility of the playback thread to handle this, so you should handle errors
+    /// gracefully.
     stream: Option<Box<dyn OutputStream>>,
+
+    /// The current playback state (playing, paused, stopped).
     state: PlaybackState,
+
+    /// The current resampler, if one exists. This is used to convert the audio format of the media
+    /// to the format supported by the device. Note that the resampler should always be called
+    /// before writing to the device, even if the device uses the same format as the media, as the
+    /// resampler will not perform any operations if the formats are the same.
     resampler: Option<Resampler>,
+
+    /// The current format of the media.
     format: Option<FormatInfo>,
+
+    /// The current queue. Do not hold an indefinite lock on this queue - it is read by the
+    /// UI thread.
     queue: Arc<RwLock<Vec<QueueItemData>>>,
+
+    /// If the queue is shuffled, this is a copy of the original (unshuffled) queue.
     original_queue: Vec<QueueItemData>,
+
+    /// Whether or not the queue is shuffled.
     shuffle: bool,
+
+    /// The index after the current item in the queue. This can be out of bounds if the current
+    /// track is the last track in the queue.
     queue_next: usize,
+
+    /// The last timestamp of the current track. This is used to determine if the position has
+    /// changed since the last update.
     last_timestamp: u64,
+
+    /// Whether or not the stream should be reset before playback is continued.
     pending_reset: bool,
 }
 
@@ -95,6 +137,7 @@ impl PlaybackThread {
         T::new(commands_tx, events_rx)
     }
 
+    /// Creates the initial stream and starts the main loop.
     pub fn run(&mut self) {
         // for now just throw in the default Providers and pick the default Device
         // TODO: Add a way to select the Device and MediaProvider
@@ -125,6 +168,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Start command intake and audio playback loop.
     pub fn main_loop(&mut self) {
         self.command_intake();
 
@@ -137,6 +181,7 @@ impl PlaybackThread {
         self.broadcast_events();
     }
 
+    /// Check for updated metadata and album art, and broadcast it to the UI.
     pub fn broadcast_events(&mut self) {
         let Some(provider) = &mut self.media_provider else {
             return;
@@ -156,6 +201,7 @@ impl PlaybackThread {
             .expect("unable to send event");
     }
 
+    /// Read incoming commands from the command channel, and process them.
     pub fn command_intake(&mut self) {
         while let Ok(command) = self.commands_rx.try_recv() {
             match command {
@@ -178,6 +224,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Pause playback.
     pub fn pause(&mut self) {
         if self.state == PlaybackState::Paused {
             return;
@@ -198,6 +245,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Resume playback. If the last track was the end of the queue, the queue will be restarted.
     pub fn play(&mut self) {
         if self.state == PlaybackState::Playing {
             return;
@@ -263,6 +311,7 @@ impl PlaybackThread {
         // nothing to play, womp womp
     }
 
+    /// Open a new track.
     fn open(&mut self, path: &String) {
         info!("Opening: {}", path);
 
@@ -352,6 +401,7 @@ impl PlaybackThread {
             .expect("unable to send event");
     }
 
+    /// Skip to the next track in the queue.
     fn next(&mut self, user_initiated: bool) {
         let queue = self.queue.read().expect("couldn't get the queue");
 
@@ -371,6 +421,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Skip to the previous track in the queue.
     fn previous(&mut self) {
         let queue = self.queue.read().expect("couldn't get the queue");
 
@@ -395,6 +446,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Add a new QueueItemData to the queue. If nothing is playing, start playing it.
     fn queue(&mut self, item: QueueItemData) {
         info!("Adding file to queue: {}", item);
 
@@ -422,6 +474,8 @@ impl PlaybackThread {
             .expect("unable to send event");
     }
 
+    /// Add a list of QueueItemData to the queue. If nothing is playing, start playing the first
+    /// track.
     fn queue_list(&mut self, mut paths: Vec<QueueItemData>) {
         info!("Adding files to queue: {:?}", paths);
 
@@ -458,6 +512,7 @@ impl PlaybackThread {
             .expect("unable to send event");
     }
 
+    /// Emit a PositionChanged event if the timestamp has changed.
     fn update_ts(&mut self) {
         if let Some(provider) = &self.media_provider {
             if let Ok(timestamp) = provider.position_secs() {
@@ -474,6 +529,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Seek to the specified timestamp (in seconds).
     fn seek(&mut self, timestamp: f64) {
         if let Some(provider) = &mut self.media_provider {
             provider.seek(timestamp).expect("unable to seek");
@@ -482,6 +538,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Jump to the specified index in the queue.
     fn jump(&mut self, index: usize) {
         let queue = self.queue.read().expect("couldn't get the queue");
 
@@ -496,6 +553,8 @@ impl PlaybackThread {
         }
     }
 
+    /// Jump to the specified index in the queue, disregarding shuffling. This means that the
+    /// original queue item at the specified index will be played, rather than the shuffled item.
     fn jump_unshuffled(&mut self, index: usize) {
         if !self.shuffle {
             self.jump(index);
@@ -512,6 +571,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Replace the current queue with the given paths.
     fn replace_queue(&mut self, paths: Vec<QueueItemData>) {
         info!("Replacing queue with: {:?}", paths);
 
@@ -538,6 +598,7 @@ impl PlaybackThread {
             .expect("unable to send event");
     }
 
+    /// Clear the current queue.
     fn clear_queue(&mut self) {
         let mut queue = self.queue.write().expect("couldn't get the queue");
         *queue = Vec::new();
@@ -551,6 +612,7 @@ impl PlaybackThread {
             .expect("unable to send event");
     }
 
+    /// Stop the current playback.
     fn stop(&mut self) {
         if let Some(provider) = &mut self.media_provider {
             provider.stop_playback().expect("unable to stop playback");
@@ -562,6 +624,7 @@ impl PlaybackThread {
             .expect("unable to send event");
     }
 
+    /// Toggle shuffle mode. This will result in the queue being duplicated and shuffled.
     fn toggle_shuffle(&mut self) {
         let mut queue = self.queue.write().expect("couldn't get the queue");
 
@@ -605,6 +668,7 @@ impl PlaybackThread {
         }
     }
 
+    /// Sets the volume of the playback stream.
     fn set_volume(&mut self, volume: f64) {
         if let Some(stream) = self.stream.as_mut() {
             stream.set_volume(volume).expect("failed to set volume");
@@ -615,6 +679,8 @@ impl PlaybackThread {
         }
     }
 
+    /// Recreates the playback stream with the given channels if any are provided, otherwise uses
+    /// the device's default channel layout.
     fn recreate_stream(&mut self, force: bool, channels: Option<ChannelSpec>) {
         if let Some(mut stream) = self.stream.take() {
             stream.close_stream().expect("failed to close stream");
@@ -688,8 +754,9 @@ impl PlaybackThread {
         );
     }
 
+    /// Uses the current media provider to decode audio samples and sends them to the current
+    /// playback stream.
     fn play_audio(&mut self) {
-        debug!("Playing audio");
         let Some(stream) = &mut self.stream else {
             return;
         };
@@ -698,6 +765,7 @@ impl PlaybackThread {
         };
         if self.resampler.is_none() {
             // TODO: proper error handling
+            // Read the first samples ahead of time to determine the format.
             let first_samples = match provider.read_samples() {
                 Ok(samples) => samples,
                 Err(e) => match e {
@@ -716,6 +784,8 @@ impl PlaybackThread {
                     PlaybackReadError::DecodeFatal => panic!("fatal decoding error"),
                 },
             };
+
+            // Set up the resampler
             let duration = provider.frame_duration().expect("can't get duration");
             let device_format = stream.get_current_format().unwrap();
 
@@ -730,14 +800,17 @@ impl PlaybackThread {
             ));
             self.format = Some(device_format.clone());
 
+            // Convert the first samples to the device format
             let converted = self
                 .resampler
                 .as_mut()
                 .unwrap()
                 .convert_formats(first_samples, self.format.as_ref().unwrap());
 
+            // Submit the converted samples to the stream
             let submit_frame = stream.submit_frame(converted.clone());
 
+            // If we get an error, recreate the stream and retry
             if submit_frame.is_err() {
                 let format = self.format.clone();
                 warn!(
@@ -758,7 +831,7 @@ impl PlaybackThread {
 
             self.update_ts();
         } else {
-            debug!("Reading");
+            // Ditto above but without creating the resampler
             let samples = match provider.read_samples() {
                 Ok(samples) => samples,
                 Err(e) => match e {
@@ -787,6 +860,7 @@ impl PlaybackThread {
             let submit_frame = stream.submit_frame(converted.clone());
             debug!("Finished submitting frame");
 
+            // If we get an error, recreate the stream and retry
             if submit_frame.is_err() {
                 debug!("Submission error");
                 let format = self.format.clone();

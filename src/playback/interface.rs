@@ -36,6 +36,8 @@ pub trait PlaybackInterface {
 /// function that reads events less frequently, depending on the current workload. Because of this,
 /// event handling should not perform any heavy operations, which should be instead sent to the
 /// data thread for any required additional processing.
+///
+/// For the functions provided by this interface, see the documentation for the playback thread.
 pub struct GPUIPlaybackInterface {
     commands_tx: Sender<PlaybackCommand>,
     events_rx: Option<Receiver<PlaybackEvent>>,
@@ -147,6 +149,8 @@ impl GPUIPlaybackInterface {
     /// models accordingly. This function should be called once, and will panic if called more than
     /// once.
     pub fn start_broadcast(&mut self, app: &mut App) {
+        // This function's sole responsibility is to read events from the playback thread and update
+        // data models accordingly.
         let mut events_rx = None;
         std::mem::swap(&mut self.events_rx, &mut events_rx);
 
@@ -301,6 +305,7 @@ impl GPUIPlaybackInterface {
 }
 
 // TODO: this should be in a trait for AppContext
+/// Replace the current queue with the given items.
 pub fn replace_queue(items: Vec<QueueItemData>, app: &mut App) {
     let playback_interface = app.global::<GPUIPlaybackInterface>();
     playback_interface.replace_queue(items);
