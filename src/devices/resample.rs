@@ -48,7 +48,7 @@ impl SampleInto<f64> for U24 {
 
 impl SampleInto<f64> for I24 {
     fn sample_into(self) -> f64 {
-        f64::from(i32::from(self)) / f64::from(i32::from(I24::MAX)) - 1.0
+        f64::from(i32::from(self)) / f64::from(i32::from(I24::MAX))
     }
 }
 
