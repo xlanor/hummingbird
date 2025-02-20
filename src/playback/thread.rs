@@ -1,4 +1,5 @@
 use std::{
+    env::{consts::OS, Vars},
     mem::swap,
     sync::{
         mpsc::{Receiver, Sender},
@@ -10,14 +11,12 @@ use std::{
 use rand::{seq::SliceRandom, thread_rng};
 use tracing::{debug, error, info, warn};
 
+use crate::devices::builtin::cpal::CpalProvider;
+use crate::devices::builtin::dummy::DummyDeviceProvider;
 #[cfg(target_os = "linux")]
 use crate::devices::builtin::pulse::PulseProvider;
-
 #[cfg(target_os = "windows")]
 use crate::devices::builtin::win_audiograph::AudioGraphProvider;
-
-#[cfg(not(target_os = "linux"))]
-use crate::devices::builtin::cpal::CpalProvider;
 
 use crate::{
     devices::{
@@ -140,22 +139,69 @@ impl PlaybackThread {
     /// Creates the initial stream and starts the main loop.
     pub fn run(&mut self) {
         // for now just throw in the default Providers and pick the default Device
-        // TODO: Add a way to select the Device and MediaProvider
-        #[cfg(target_os = "linux")]
-        {
-            self.device_provider = Some(Box::new(PulseProvider::default()));
-        }
-        #[cfg(target_os = "windows")]
-        {
-            if option_env!("USE_CPAL_WASAPI").is_some() {
-                self.device_provider = Some(Box::new(CpalProvider::default()));
-            } else {
-                self.device_provider = Some(Box::new(AudioGraphProvider::default()));
+        // TODO: Add a way to select the output device
+        // #[cfg(target_os = "linux")]
+        // {
+        //     self.device_provider = Some(Box::new(PulseProvider::default()));
+        // }
+        // #[cfg(target_os = "windows")]
+        // {
+        //     if option_env!("USE_CPAL_WASAPI").is_some() {
+        //         self.device_provider = Some(Box::new(CpalProvider::default()));
+        //     } else {
+        //         self.device_provider = Some(Box::new(AudioGraphProvider::default()));
+        //     }
+        // }
+        // #[cfg(all(not(target_os = "windows"), not(target_os = "linux")))]
+        // {
+        //     self.device_provider = Some(Box::new(CpalProvider::default()));
+        // }
+
+        let default_device_provider = match OS {
+            "linux" => "pulse",
+            "windows" => "win_audiograph",
+            _ => "cpal",
+        };
+
+        let requested_device_provider = std::env::var("DEVICE_PROVIDER")
+            .unwrap_or_else(|_| default_device_provider.to_string());
+
+        match requested_device_provider.as_str() {
+            "pulse" => {
+                #[cfg(target_os = "linux")]
+                {
+                    self.device_provider = Some(Box::new(PulseProvider::default()));
+                }
+                #[cfg(not(target_os = "linux"))]
+                {
+                    warn!("pulse is not supported on this platform");
+                    warn!("Falling back to CPAL");
+                    self.device_provider = Some(Box::new(CpalProvider::default()));
+                }
             }
-        }
-        #[cfg(all(not(target_os = "windows"), not(target_os = "linux")))]
-        {
-            self.device_provider = Some(Box::new(CpalProvider::default()));
+            "win_audiograph" => {
+                #[cfg(target_os = "windows")]
+                {
+                    self.device_provider = Some(Box::new(AudioGraphProvider::default()));
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    warn!("win_audiograph is not supported on this platform");
+                    warn!("Falling back to CPAL");
+                    self.device_provider = Some(Box::new(CpalProvider::default()));
+                }
+            }
+            "cpal" => {
+                self.device_provider = Some(Box::new(CpalProvider::default()));
+            }
+            "dummy" => {
+                self.device_provider = Some(Box::new(DummyDeviceProvider::new()));
+            }
+            _ => {
+                warn!("Unknown device provider: {}", requested_device_provider);
+                warn!("Falling back to CPAL");
+                self.device_provider = Some(Box::new(CpalProvider::default()));
+            }
         }
 
         self.media_provider = Some(Box::new(SymphoniaProvider::default()));
