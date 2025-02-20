@@ -67,7 +67,8 @@ where
         self.iter()
             .map(|v| {
                 v.iter()
-                    .map(|v| T::sample_from(v.sample_into() * factor))
+                    // anything over 1.0 or under -1.0 will be clamped since it's out of bounds
+                    .map(|v| T::sample_from(f64::clamp(v.sample_into() * factor, -1.0, 1.0)))
                     .collect()
             })
             .collect()
@@ -77,7 +78,12 @@ where
 impl Scale for Vec<Vec<f64>> {
     fn scale(self, factor: f64) -> Vec<Vec<f64>> {
         self.iter()
-            .map(|v| v.iter().map(|v| v * factor).collect())
+            .map(|v| {
+                v.iter()
+                    // anything over 1.0 or under -1.0 will be clamped since it's out of bounds
+                    .map(|v| f64::clamp(v * factor, -1.0, 1.0))
+                    .collect()
+            })
             .collect()
     }
 }
