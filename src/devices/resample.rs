@@ -81,15 +81,14 @@ pub trait SampleFrom<T> {
 
 impl SampleFrom<f64> for U24 {
     fn sample_from(value: f64) -> Self {
-        U24::try_from(((value + 1.0) * f64::from(i32::from(I24::MAX) - 1)) as u32)
+        U24::try_from(((value + 1.0) * f64::from(i32::from(I24::MAX))) as u32)
             .expect("out of U24 bounds")
     }
 }
 
 impl SampleFrom<f64> for I24 {
     fn sample_from(value: f64) -> Self {
-        I24::try_from((value * f64::from(i32::from(I24::MAX) - 1)) as i32)
-            .expect("out of I24 bounds")
+        I24::try_from((value * f64::from(i32::from(I24::MAX))) as i32).expect("out of I24 bounds")
     }
 }
 

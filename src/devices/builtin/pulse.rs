@@ -240,7 +240,13 @@ where
         &mut self,
         frame: crate::media::playback::PlaybackFrame,
     ) -> Result<(), crate::devices::errors::SubmissionError> {
-        let samples = T::inner(frame.samples).scale(self.volume);
+        let samples = if self.volume > 0.98 {
+            // don't scale if the volume is close to 1, it could lead to (negligable) quality loss
+            T::inner(frame.samples)
+        } else {
+            T::inner(frame.samples).scale(self.volume)
+        };
+
         let interleaved = interleave(samples);
         let packed = if self.format.sample_type == SampleFormat::Signed24 {
             interleaved
