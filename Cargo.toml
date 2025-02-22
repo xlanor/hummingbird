@@ -59,11 +59,15 @@ windows = { version = "0.60", features = [
 ] }
 windows-result = "0.3"
 
+[profile.release]
+lto = "thin"
+strip = "symbols"
+
 [profile.release-distro]
 inherits = "release"
-lto = true
-strip = true
-panic = "abort"
+codegen-units = 1
+lto = "fat"
+opt-level = "s"
 
 [package.metadata.bundle]
 name = "Muzak"
