@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use gpui::{IntoElement, RenderImage, SharedString};
 use image::Frame;
 use smallvec::SmallVec;
-use sqlx::{Database, Decode, Sqlite, Type};
+use sqlx::{encode::IsNull, error::BoxDynError, Database, Decode, Sqlite, Type};
 
 use crate::util::rgb_to_bgr;
 
@@ -55,9 +55,7 @@ impl<'r, DB: Database> Decode<'r, DB> for Thumbnail
 where
     Box<[u8]>: Decode<'r, DB>,
 {
-    fn decode(
-        value: <DB as sqlx::database::HasValueRef<'r>>::ValueRef,
-    ) -> Result<Self, sqlx::error::BoxDynError> {
+    fn decode(value: <DB as Database>::ValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
         let data = <Box<[u8]>>::decode(value)?;
         Ok(Self::from(data))
     }
@@ -69,8 +67,8 @@ where
 {
     fn encode_by_ref(
         &self,
-        _: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
+        _: &mut <DB as Database>::ArgumentBuffer<'q>,
+    ) -> Result<IsNull, BoxDynError> {
         panic!("Thumbnail is write-only")
     }
 }
@@ -158,8 +156,8 @@ where
 {
     fn encode_by_ref(
         &self,
-        out: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
+        out: &mut <DB as Database>::ArgumentBuffer<'q>,
+    ) -> Result<IsNull, BoxDynError> {
         let string = self.0.to_string();
         <String>::encode_by_ref(&string, out)
     }
@@ -169,9 +167,7 @@ impl<'r, DB: Database> Decode<'r, DB> for DBString
 where
     String: Decode<'r, DB>,
 {
-    fn decode(
-        value: <DB as sqlx::database::HasValueRef<'r>>::ValueRef,
-    ) -> Result<Self, sqlx::error::BoxDynError> {
+    fn decode(value: <DB as Database>::ValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
         let data = String::decode(value)?;
         Ok(Self::from(data))
     }
