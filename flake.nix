@@ -86,7 +86,7 @@
           ];
           craneDevShell = craneLib.devShell.override {
             mkShell = pkgs.mkShell.override {
-              stdenv = builtins.foldl' (acc: adapter: adapter acc) stdenv adapters;
+              stdenv = builtins.foldl' (acc: adapter: adapter acc) pkgs.llvmPackages_latest.stdenv adapters;
             };
           };
         in
