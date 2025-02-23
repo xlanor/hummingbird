@@ -3406,6 +3406,7 @@ dependencies = [
  "smallvec",
  "sqlx",
  "symphonia",
+ "thiserror 2.0.11",
  "tracing",
  "tracing-subscriber",
  "unicode-segmentation",

@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use intx::I24;
 use libpulse_binding::{
     channelmap::Map,
+    error::PAErr,
     sample::{Format, Spec},
     stream::Direction,
 };
@@ -11,12 +12,16 @@ use pulsectl::controllers::{types::DeviceInfo, DeviceControl, SinkController};
 
 use crate::{
     devices::{
-        errors::{FindError, InfoError, InitializationError, ListError, OpenError},
+        errors::{
+            FindError, InfoError, InitializationError, ListError, OpenError, ResetError,
+            SubmissionError,
+        },
         format::{BufferSize, ChannelSpec, FormatInfo, SampleFormat, SupportedFormat},
         traits::{Device, DeviceProvider, OutputStream},
         util::{interleave, Packed, Scale},
     },
     media::playback::GetInnerSamples,
+    util::make_unknown_error_unwrap,
 };
 
 // The code for this is absolutely awful because PulseAudio is awful. I'm sorry.
@@ -45,7 +50,7 @@ impl DeviceProvider for PulseProvider {
         Ok(self
             .controller
             .list_devices()
-            .map_err(|_| ListError::Unknown)?
+            .map_err(|e| ListError::Unknown(e.to_string()))?
             .into_iter()
             .map(|d| Box::new(PulseDevice::from(d)) as Box<dyn Device>)
             .collect())
@@ -55,7 +60,7 @@ impl DeviceProvider for PulseProvider {
         Ok(Box::new(PulseDevice::from(
             self.controller
                 .get_default_device()
-                .map_err(|_| FindError::Unknown)?,
+                .map_err(|e| FindError::Unknown(e.to_string()))?,
         )) as Box<dyn Device>)
     }
 
@@ -63,7 +68,7 @@ impl DeviceProvider for PulseProvider {
         Ok(Box::new(PulseDevice::from(
             self.controller
                 .get_device_by_name(id)
-                .map_err(|_| FindError::Unknown)?,
+                .map_err(|e| FindError::Unknown(e.to_string()))?,
         )) as Box<dyn Device>)
     }
 }
@@ -142,8 +147,7 @@ impl Device for PulseDevice {
             &spec,
             None,
             None,
-        )
-        .map_err(|_| OpenError::Unknown)?;
+        )?;
 
         let sample_type = format.sample_type.clone();
 
@@ -195,11 +199,11 @@ impl Device for PulseDevice {
     }
 
     fn get_name(&self) -> Result<String, InfoError> {
-        self.info.description.clone().ok_or(InfoError::Unknown)
+        self.info.description.clone().ok_or(InfoError::None)
     }
 
     fn get_uid(&self) -> Result<String, InfoError> {
-        self.info.name.clone().ok_or(InfoError::Unknown)
+        self.info.name.clone().ok_or(InfoError::None)
     }
 
     fn requires_matching_format(&self) -> bool {
@@ -260,9 +264,7 @@ where
         };
         let slice = packed.as_slice();
 
-        self.stream
-            .write(slice)
-            .map_err(|_| crate::devices::errors::SubmissionError::Unknown)
+        self.stream.write(slice).map_err(|e| e.into())
     }
 
     fn close_stream(&mut self) -> Result<(), crate::devices::errors::CloseError> {
@@ -285,10 +287,8 @@ where
         Ok(())
     }
 
-    fn reset(&mut self) -> Result<(), crate::devices::errors::ResetError> {
-        self.stream
-            .flush()
-            .map_err(|_| crate::devices::errors::ResetError::Unknown)
+    fn reset(&mut self) -> Result<(), ResetError> {
+        self.stream.flush().map_err(|e| e.into())
     }
 
     fn set_volume(&mut self, volume: f64) -> Result<(), crate::devices::errors::StateError> {
@@ -324,3 +324,7 @@ impl FromWrapper<f32> for i32 {
         f32::round(source) as i32
     }
 }
+
+make_unknown_error_unwrap!(PAErr, ResetError);
+make_unknown_error_unwrap!(PAErr, SubmissionError);
+make_unknown_error_unwrap!(PAErr, OpenError);

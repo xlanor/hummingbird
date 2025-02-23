@@ -432,8 +432,8 @@ impl MediaProvider for SymphoniaProvider {
                 Err(Error::IoError(_)) | Err(Error::DecodeError(_)) => {
                     continue;
                 }
-                Err(_) => {
-                    return Err(PlaybackReadError::DecodeFatal);
+                Err(e) => {
+                    return Err(PlaybackReadError::DecodeFatal(e.to_string()));
                 }
             }
         }
@@ -513,7 +513,7 @@ impl MediaProvider for SymphoniaProvider {
                     track_id: None,
                 },
             )
-            .map_err(|_| SeekError::Unknown)?;
+            .map_err(|e| SeekError::Unknown(e.to_string()))?;
 
         if let Some(timebase) = timebase {
             self.current_position = timebase.calc_time(seek.actual_ts).seconds;

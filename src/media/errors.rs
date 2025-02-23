@@ -1,73 +1,107 @@
 #![allow(dead_code)]
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+use thiserror::Error;
+
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum OpenError {
+    #[error("File is corrupt")]
     FileCorrupt,
+    #[error("Format not supported by decoder")]
     UnsupportedFormat,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum CloseError {
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum PlaybackStartError {
+    #[error("No media is open")]
     NothingOpen,
+    #[error("Media is open but has no audio")]
     NothingToPlay,
+    #[error("Media is undecodable")]
     Undecodable,
+    #[error("Media container is broken")]
     BrokenContainer,
+    #[error("Container is supported but not codec")]
     ContainerSupportedButNotCodec,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum PlaybackStopError {
+    #[error("No media is open")]
     NothingOpen,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum PlaybackReadError {
+    #[error("No media is open")]
     NothingOpen,
+    #[error("Media is open but was never started")]
     NeverStarted,
+    #[error("End of file reached")]
     Eof,
-    Unknown,
-    DecodeFatal,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
+    #[error("Decode error: `{0}`")]
+    DecodeFatal(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum MetadataError {
+    #[error("No media is open")]
     NothingOpen,
+    #[error("The selected MediaProvider does not support metadata")]
     OperationUnsupported,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum FrameDurationError {
+    #[error("No media is open")]
     NothingOpen,
+    #[error("Frame length requested before decoding")]
     NeverDecoded,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum TrackDurationError {
+    #[error("No media is open")]
     NothingOpen,
+    #[error("Media is open but was never started")]
     NeverStarted,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum SeekError {
+    #[error("No media is open")]
     NothingOpen,
+    #[error("Seek position out of bounds")]
     OutOfBounds,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Error)]
 pub enum ChannelRetrievalError {
+    #[error("No media is open")]
     NothingOpen,
+    #[error("Media is open but has no audio")]
     NothingToPlay,
-    Unknown,
+    #[error("Unknown media provider error: `{0}`")]
+    Unknown(String),
 }

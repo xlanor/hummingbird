@@ -1,9 +1,9 @@
-use std::{ptr::null, slice::from_raw_parts_mut};
+use std::slice::from_raw_parts_mut;
 
 use rb::{Producer, RbConsumer, RbProducer, SpscRb, RB};
-use tracing::{error, info};
+use tracing::error;
 use windows::{
-    core::{IUnknown, Interface, HSTRING},
+    core::Interface,
     Devices::Enumeration::{DeviceClass, DeviceInformation},
     Foundation::TypedEventHandler,
     Media::{
@@ -27,7 +27,8 @@ use crate::{
         traits::{Device, DeviceProvider, OutputStream},
         util::{interleave, Packed},
     },
-    media::playback::{GetInnerSamples, Mute, PlaybackFrame},
+    media::playback::{GetInnerSamples, PlaybackFrame},
+    util::make_unknown_error,
 };
 
 /// Windows Audio Graph backend
@@ -52,8 +53,7 @@ impl DeviceProvider for AudioGraphProvider {
         let devices = DeviceInformation::FindAllAsyncDeviceClass(DeviceClass::AudioRender);
 
         Ok(devices
-            .and_then(|v| v.get())
-            .map_err(|_| ListError::Unknown)?
+            .and_then(|v| v.get())?
             .into_iter()
             .map(|device| Box::new(AudioGraphDevice::from(device)) as Box<dyn Device>)
             .collect())
@@ -67,7 +67,7 @@ impl DeviceProvider for AudioGraphProvider {
         let devices_result = DeviceInformation::FindAllAsyncDeviceClass(DeviceClass::AudioRender);
 
         let Ok(devices) = devices_result.and_then(|v| v.get()) else {
-            return Err(FindError::Unknown);
+            return Err(FindError::Unknown("couldn't get device".to_string()));
         };
 
         devices
@@ -159,28 +159,20 @@ impl From<DeviceInformation> for AudioGraphDevice {
 
 impl Device for AudioGraphDevice {
     fn open_device(&mut self, format: FormatInfo) -> Result<Box<dyn OutputStream>, OpenError> {
-        self.graph.Start().map_err(|_| OpenError::Unknown)?;
-        self.device_out.Start().map_err(|_| OpenError::Unknown)?;
+        self.graph.Start()?;
+        self.device_out.Start()?;
 
-        let properties = self
-            .graph
-            .EncodingProperties()
-            .map_err(|_| OpenError::Unknown)?;
+        let properties = self.graph.EncodingProperties()?;
 
         properties
             .SetChannelCount(format.channels.count() as u32)
             .map_err(|_| OpenError::InvalidSampleFormat)?;
 
-        let input_node = self
-            .graph
-            .CreateFrameInputNodeWithFormat(&properties)
-            .map_err(|_| OpenError::Unknown)?;
+        let input_node = self.graph.CreateFrameInputNodeWithFormat(&properties)?;
 
-        input_node
-            .AddOutgoingConnection(&self.device_out)
-            .map_err(|_| OpenError::Unknown)?;
+        input_node.AddOutgoingConnection(&self.device_out)?;
 
-        input_node.Stop().map_err(|_| OpenError::Unknown)?;
+        input_node.Stop()?;
 
         let buffer_size = match format.buffer_size {
             BufferSize::Fixed(v) => v,
@@ -257,9 +249,7 @@ impl Device for AudioGraphDevice {
                 },
             );
 
-        input_node
-            .QuantumStarted(&handler)
-            .map_err(|_| OpenError::Unknown)?;
+        input_node.QuantumStarted(&handler)?;
 
         let stream = AudioGraphStream {
             node: input_node,
@@ -271,16 +261,10 @@ impl Device for AudioGraphDevice {
     }
 
     fn get_supported_formats(&self) -> Result<Vec<SupportedFormat>, InfoError> {
-        let properties = self
-            .graph
-            .EncodingProperties()
-            .map_err(|_| InfoError::Unknown)?;
-        let sample_rate = properties.SampleRate().map_err(|_| InfoError::Unknown)?;
-        let buffer_size = self
-            .graph
-            .SamplesPerQuantum()
-            .map_err(|_| InfoError::Unknown)?;
-        let channels = properties.ChannelCount().map_err(|_| InfoError::Unknown)?;
+        let properties = self.graph.EncodingProperties()?;
+        let sample_rate = properties.SampleRate()?;
+        let buffer_size = self.graph.SamplesPerQuantum()?;
+        let channels = properties.ChannelCount()?;
 
         Ok(vec![SupportedFormat {
             originating_provider: "win_audiograph",
@@ -292,16 +276,10 @@ impl Device for AudioGraphDevice {
     }
 
     fn get_default_format(&self) -> Result<FormatInfo, InfoError> {
-        let properties = self
-            .graph
-            .EncodingProperties()
-            .map_err(|_| InfoError::Unknown)?;
-        let sample_rate = properties.SampleRate().map_err(|_| InfoError::Unknown)?;
-        let buffer_size = self
-            .graph
-            .SamplesPerQuantum()
-            .map_err(|_| InfoError::Unknown)?;
-        let channels = properties.ChannelCount().map_err(|_| InfoError::Unknown)?;
+        let properties = self.graph.EncodingProperties()?;
+        let sample_rate = properties.SampleRate()?;
+        let buffer_size = self.graph.SamplesPerQuantum()?;
+        let channels = properties.ChannelCount()?;
 
         Ok(FormatInfo {
             originating_provider: "win_audiograph",
@@ -320,10 +298,7 @@ impl Device for AudioGraphDevice {
             .PrimaryRenderDevice()
             .map_err(|_| InfoError::DeviceIsDefaultAlways)?;
 
-        device
-            .Name()
-            .map_err(|_| InfoError::Unknown)
-            .map(|v| v.to_string())
+        device.Name().map_err(|e| e.into()).map(|v| v.to_string())
     }
 
     fn get_uid(&self) -> Result<String, InfoError> {
@@ -332,10 +307,7 @@ impl Device for AudioGraphDevice {
             .PrimaryRenderDevice()
             .map_err(|_| InfoError::DeviceIsDefaultAlways)?;
 
-        device
-            .Id()
-            .map_err(|_| InfoError::Unknown)
-            .map(|v| v.to_string())
+        device.Id().map_err(|e| e.into()).map(|v| v.to_string())
     }
 
     fn requires_matching_format(&self) -> bool {
@@ -365,7 +337,7 @@ impl OutputStream for AudioGraphStream {
     }
 
     fn close_stream(&mut self) -> Result<(), CloseError> {
-        self.node.Close().map_err(|_| CloseError::Unknown)
+        self.node.Close().map_err(|e| e.into())
     }
 
     fn needs_input(&self) -> bool {
@@ -377,20 +349,25 @@ impl OutputStream for AudioGraphStream {
     }
 
     fn play(&mut self) -> Result<(), StateError> {
-        self.node.Start().map_err(|_| StateError::Unknown)
+        self.node.Start().map_err(|e| e.into())
     }
 
     fn pause(&mut self) -> Result<(), StateError> {
-        self.node.Stop().map_err(|_| StateError::Unknown)
+        self.node.Stop().map_err(|e| e.into())
     }
 
     fn reset(&mut self) -> Result<(), ResetError> {
-        self.node.Reset().map_err(|_| ResetError::Unknown)
+        self.node.Reset().map_err(|e| e.into())
     }
 
     fn set_volume(&mut self, volume: f64) -> Result<(), StateError> {
-        self.node
-            .SetOutgoingGain(volume)
-            .map_err(|_| StateError::Unknown)
+        self.node.SetOutgoingGain(volume).map_err(|e| e.into())
     }
 }
+
+make_unknown_error!(windows_result::Error, StateError);
+make_unknown_error!(windows_result::Error, ResetError);
+make_unknown_error!(windows_result::Error, CloseError);
+make_unknown_error!(windows_result::Error, InfoError);
+make_unknown_error!(windows_result::Error, OpenError);
+make_unknown_error!(windows_result::Error, ListError);

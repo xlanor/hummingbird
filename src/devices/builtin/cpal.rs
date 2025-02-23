@@ -11,6 +11,7 @@ use crate::{
         util::{interleave, Scale},
     },
     media::playback::{GetInnerSamples, Mute, PlaybackFrame},
+    util::make_unknown_error,
 };
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -40,8 +41,7 @@ impl DeviceProvider for CpalProvider {
     fn get_devices(&mut self) -> Result<Vec<Box<dyn Device>>, ListError> {
         Ok(self
             .host
-            .devices()
-            .map_err(|_| ListError::Unknown)? // TODO: Requires platform-specific error handling
+            .devices()?
             .map(|dev| Box::new(CpalDevice::from(dev)) as Box<dyn Device>)
             .collect())
     }
@@ -55,8 +55,7 @@ impl DeviceProvider for CpalProvider {
 
     fn get_device_by_uid(&mut self, id: &str) -> Result<Box<dyn Device>, FindError> {
         self.host
-            .devices()
-            .map_err(|_| FindError::Unknown)?
+            .devices()?
             .find(|dev| dev.name().unwrap_or("NULL".into()) == *id)
             .ok_or(FindError::DeviceDoesNotExist)
             .map(|dev| Box::new(CpalDevice::from(dev)) as Box<dyn Device>)
@@ -110,19 +109,17 @@ fn create_stream_internal<
     let cons = rb.consumer();
     let prod = rb.producer();
 
-    let stream = device
-        .build_output_stream(
-            config,
-            move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-                debug!("Asked for data by CPAL!");
-                let written = cons.read(data).unwrap_or(0);
+    let stream = device.build_output_stream(
+        config,
+        move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
+            debug!("Asked for data by CPAL!");
+            let written = cons.read(data).unwrap_or(0);
 
-                data[written..].iter_mut().for_each(|v| *v = T::muted())
-            },
-            move |_| {},
-            None,
-        )
-        .map_err(|_| OpenError::Unknown)?;
+            data[written..].iter_mut().for_each(|v| *v = T::muted())
+        },
+        move |_| {},
+        None,
+    )?;
 
     Ok((stream, prod))
 }
@@ -186,8 +183,7 @@ impl Device for CpalDevice {
     fn get_supported_formats(&self) -> Result<Vec<SupportedFormat>, InfoError> {
         Ok(self
             .device
-            .supported_output_configs()
-            .map_err(|_| InfoError::Unknown)?
+            .supported_output_configs()?
             .filter(|c| {
                 let format = c.sample_format();
                 format != cpal::SampleFormat::I64 && format != cpal::SampleFormat::U64
@@ -212,10 +208,7 @@ impl Device for CpalDevice {
     }
 
     fn get_default_format(&self) -> Result<FormatInfo, InfoError> {
-        let format = self
-            .device
-            .default_output_config()
-            .map_err(|_| InfoError::Unknown)?;
+        let format = self.device.default_output_config()?;
         Ok(FormatInfo {
             originating_provider: "cpal",
             sample_type: format_from_cpal(&format.sample_format()),
@@ -238,11 +231,11 @@ impl Device for CpalDevice {
     }
 
     fn get_name(&self) -> Result<String, InfoError> {
-        self.device.name().map_err(|_| InfoError::Unknown)
+        self.device.name().map_err(|v| v.into())
     }
 
     fn get_uid(&self) -> Result<String, InfoError> {
-        self.device.name().map_err(|_| InfoError::Unknown)
+        self.device.name().map_err(|v| v.into())
     }
 
     fn requires_matching_format(&self) -> bool {
@@ -299,17 +292,16 @@ where
     }
 
     fn play(&mut self) -> Result<(), StateError> {
-        self.stream.play().map_err(|_| StateError::Unknown)
+        self.stream.play().map_err(|v| v.into())
     }
 
     fn pause(&mut self) -> Result<(), StateError> {
-        self.stream.pause().map_err(|_| StateError::Unknown)
+        self.stream.pause().map_err(|v| v.into())
     }
 
     fn reset(&mut self) -> Result<(), ResetError> {
         let (stream, prod) =
-            create_stream_internal::<T>(&self.device, &self.config, self.buffer_size)
-                .map_err(|_| ResetError::Unknown)?;
+            create_stream_internal::<T>(&self.device, &self.config, self.buffer_size)?;
 
         self.stream = stream;
         self.ring_buf = prod;
@@ -322,3 +314,13 @@ where
         Ok(())
     }
 }
+
+make_unknown_error!(OpenError, ResetError);
+make_unknown_error!(cpal::PlayStreamError, StateError);
+make_unknown_error!(cpal::PauseStreamError, StateError);
+make_unknown_error!(cpal::DeviceNameError, InfoError);
+make_unknown_error!(cpal::DefaultStreamConfigError, InfoError);
+make_unknown_error!(cpal::SupportedStreamConfigsError, InfoError);
+make_unknown_error!(cpal::BuildStreamError, OpenError);
+make_unknown_error!(cpal::DevicesError, ListError);
+make_unknown_error!(cpal::DevicesError, FindError);

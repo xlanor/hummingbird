@@ -826,9 +826,13 @@ impl PlaybackThread {
                         self.next(false);
                         return;
                     }
-                    PlaybackReadError::Unknown => return,
-                    PlaybackReadError::DecodeFatal => {
-                        warn!("fatal decoding error, moving to next song");
+                    PlaybackReadError::Unknown(s) => {
+                        error!("unknown decode error: {}", s);
+                        warn!("samples may be skipped");
+                        return;
+                    }
+                    PlaybackReadError::DecodeFatal(s) => {
+                        error!("fatal decoding error: {}, moving to next song", s);
                         self.next(false);
                         return;
                     }
@@ -896,9 +900,13 @@ impl PlaybackThread {
                         self.next(false);
                         return;
                     }
-                    PlaybackReadError::Unknown => return,
-                    PlaybackReadError::DecodeFatal => {
-                        warn!("fatal decoding error, moving to next song");
+                    PlaybackReadError::Unknown(s) => {
+                        error!("unknown decode error: {}", s);
+                        warn!("samples may be skipped");
+                        return;
+                    }
+                    PlaybackReadError::DecodeFatal(s) => {
+                        error!("fatal decoding error: {}, moving to next song", s);
                         self.next(false);
                         return;
                     }
