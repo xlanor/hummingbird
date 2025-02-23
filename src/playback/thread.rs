@@ -8,7 +8,7 @@ use std::{
     thread::sleep,
 };
 
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{rng, seq::SliceRandom, thread_rng};
 use tracing::{debug, error, info, warn};
 
 use crate::devices::builtin::cpal::CpalProvider;
@@ -625,7 +625,7 @@ impl PlaybackThread {
 
         if self.shuffle {
             let mut shuffled_paths = paths.clone();
-            shuffled_paths.shuffle(&mut thread_rng());
+            shuffled_paths.shuffle(&mut rng());
 
             *queue = shuffled_paths;
 
@@ -702,7 +702,7 @@ impl PlaybackThread {
         } else {
             self.original_queue = queue.clone();
             let length = queue.len();
-            queue[self.queue_next..length].shuffle(&mut thread_rng());
+            queue[self.queue_next..length].shuffle(&mut rng());
             self.shuffle = true;
 
             self.events_tx
@@ -827,7 +827,11 @@ impl PlaybackThread {
                         return;
                     }
                     PlaybackReadError::Unknown => return,
-                    PlaybackReadError::DecodeFatal => panic!("fatal decoding error"),
+                    PlaybackReadError::DecodeFatal => {
+                        warn!("fatal decoding error, moving to next song");
+                        self.next(false);
+                        return;
+                    }
                 },
             };
 
@@ -893,7 +897,11 @@ impl PlaybackThread {
                         return;
                     }
                     PlaybackReadError::Unknown => return,
-                    PlaybackReadError::DecodeFatal => panic!("fatal decoding error"),
+                    PlaybackReadError::DecodeFatal => {
+                        warn!("fatal decoding error, moving to next song");
+                        self.next(false);
+                        return;
+                    }
                 },
             };
             let converted = self
