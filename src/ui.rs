@@ -1,7 +1,7 @@
 pub mod app;
 mod arguments;
 mod assets;
-mod components;
+pub mod components;
 mod constants;
 mod controls;
 mod global_actions;

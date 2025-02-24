@@ -26,6 +26,14 @@ pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Err
 pub enum AlbumSortMethod {
     TitleAsc,
     TitleDesc,
+    ArtistAsc,
+    ArtistDesc,
+    ReleaseAsc,
+    ReleaseDesc,
+    LabelAsc,
+    LabelDesc,
+    CatalogAsc,
+    CatalogDesc,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -44,6 +52,30 @@ pub async fn list_albums(
         }
         AlbumSortMethod::TitleDesc => {
             include_str!("../../queries/library/find_albums_title_desc.sql")
+        }
+        AlbumSortMethod::ArtistAsc => {
+            include_str!("../../queries/library/find_albums_artist_asc.sql")
+        }
+        AlbumSortMethod::ArtistDesc => {
+            include_str!("../../queries/library/find_albums_artist_desc.sql")
+        }
+        AlbumSortMethod::ReleaseAsc => {
+            include_str!("../../queries/library/find_albums_release_asc.sql")
+        }
+        AlbumSortMethod::ReleaseDesc => {
+            include_str!("../../queries/library/find_albums_release_desc.sql")
+        }
+        AlbumSortMethod::LabelAsc => {
+            include_str!("../../queries/library/find_albums_label_asc.sql")
+        }
+        AlbumSortMethod::LabelDesc => {
+            include_str!("../../queries/library/find_albums_label_desc.sql")
+        }
+        AlbumSortMethod::CatalogAsc => {
+            include_str!("../../queries/library/find_albums_catnum_asc.sql")
+        }
+        AlbumSortMethod::CatalogDesc => {
+            include_str!("../../queries/library/find_albums_catnum_desc.sql")
         }
     };
 

@@ -5,3 +5,4 @@ pub mod menu;
 pub mod modal;
 pub mod slider;
 pub mod styling;
+pub mod table;
