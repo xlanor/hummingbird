@@ -12,6 +12,7 @@ use crate::{
         types::Album,
     },
     ui::{
+        components::table::Table,
         models::Models,
         theme::Theme,
         util::{create_or_retrieve_view, drop_image_from_app, prune_views},
@@ -26,6 +27,7 @@ pub struct AlbumView {
     render_counter: Entity<usize>,
     list_state: ListState,
     view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
+    table: Entity<Table<Album>>,
 }
 
 impl AlbumView {
@@ -65,11 +67,14 @@ impl AlbumView {
             })
             .detach();
 
+            let table = Table::new(cx);
+
             AlbumView {
                 views_model,
                 render_counter,
                 list_state,
                 view_switch_model,
+                table,
             }
         })
     }
@@ -148,48 +153,49 @@ impl Render for AlbumView {
             .mx_auto()
             .pt(px(24.0))
             .pb(px(0.0))
-            .child(
-                div()
-                    .w_full()
-                    .pb(px(11.0))
-                    .px(px(24.0))
-                    .line_height(px(26.0))
-                    .font_weight(FontWeight::BOLD)
-                    .text_size(px(26.0))
-                    .child("Albums"),
-            )
-            .child(
-                div()
-                    .flex()
-                    .w_full()
-                    .border_color(theme.border_color)
-                    .border_b_1()
-                    .child(div().w(px(22.0 + 23.0 + 6.0)).flex_shrink_0())
-                    .child(
-                        div()
-                            .w(px(294.0))
-                            .pt(px(6.0))
-                            .px(px(6.0))
-                            .pb(px(7.0))
-                            .w(px(300.0))
-                            .min_w(px(300.0))
-                            .max_w(px(300.0))
-                            .flex_shrink()
-                            .text_sm()
-                            .font_weight(FontWeight::BOLD)
-                            .child("Title"),
-                    )
-                    .child(
-                        div()
-                            .pt(px(6.0))
-                            .px(px(6.0))
-                            .pb(px(7.0))
-                            .text_sm()
-                            .font_weight(FontWeight::BOLD)
-                            .child("Artist"),
-                    ),
-            )
-            .child(list(self.list_state.clone()).w_full().h_full())
+            .child(self.table.clone())
+        // .child(
+        //     div()
+        //         .w_full()
+        //         .pb(px(11.0))
+        //         .px(px(24.0))
+        //         .line_height(px(26.0))
+        //         .font_weight(FontWeight::BOLD)
+        //         .text_size(px(26.0))
+        //         .child("Albums"),
+        // )
+        // .child(
+        //     div()
+        //         .flex()
+        //         .w_full()
+        //         .border_color(theme.border_color)
+        //         .border_b_1()
+        //         .child(div().w(px(22.0 + 23.0 + 6.0)).flex_shrink_0())
+        //         .child(
+        //             div()
+        //                 .w(px(294.0))
+        //                 .pt(px(6.0))
+        //                 .px(px(6.0))
+        //                 .pb(px(7.0))
+        //                 .w(px(300.0))
+        //                 .min_w(px(300.0))
+        //                 .max_w(px(300.0))
+        //                 .flex_shrink()
+        //                 .text_sm()
+        //                 .font_weight(FontWeight::BOLD)
+        //                 .child("Title"),
+        //         )
+        //         .child(
+        //             div()
+        //                 .pt(px(6.0))
+        //                 .px(px(6.0))
+        //                 .pb(px(7.0))
+        //                 .text_sm()
+        //                 .font_weight(FontWeight::BOLD)
+        //                 .child("Artist"),
+        //         ),
+        // )
+        // .child(list(self.list_state.clone()).w_full().h_full())
     }
 }
 

@@ -93,4 +93,12 @@ impl TableData for Album {
     fn get_image(&self) -> Option<Arc<RenderImage>> {
         self.thumb.as_ref().map(|thumb| thumb.0.clone())
     }
+
+    fn default_column_widths() -> Vec<f32> {
+        vec![300.0, 200.0, 125.0, 150.0, 200.0]
+    }
+
+    fn has_images() -> bool {
+        true
+    }
 }
