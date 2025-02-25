@@ -41,6 +41,12 @@ where
     on_select: Option<OnSelectHandler<T>>,
 }
 
+pub enum TableEvent {
+    NewRows,
+}
+
+impl<T> EventEmitter<TableEvent> for Table<T> where T: TableData {}
+
 impl<T> Table<T>
 where
     T: TableData + 'static,
@@ -64,6 +70,11 @@ where
             cx.observe(&sort_method, |this, _, cx| {
                 this.regenerate_list_state(cx);
                 cx.notify();
+            })
+            .detach();
+
+            cx.subscribe(&cx.entity(), |this, _, event, cx| match event {
+                TableEvent::NewRows => this.regenerate_list_state(cx),
             })
             .detach();
 

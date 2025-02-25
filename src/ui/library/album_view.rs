@@ -12,7 +12,7 @@ use crate::{
         types::Album,
     },
     ui::{
-        components::table::{table_data::TableData, Table},
+        components::table::{table_data::TableData, Table, TableEvent},
         models::Models,
         theme::Theme,
         util::{create_or_retrieve_view, drop_image_from_app, prune_views},
@@ -51,22 +51,6 @@ impl AlbumView {
 
             let state = cx.global::<Models>().scan_state.clone();
 
-            cx.observe(&state, move |this: &mut AlbumView, e, cx| {
-                let value = e.read(cx);
-                match value {
-                    ScanEvent::ScanCompleteIdle => {
-                        this.regenerate_list_state(cx);
-                    }
-                    ScanEvent::ScanProgress { current, .. } => {
-                        if current % 50 == 0 {
-                            this.regenerate_list_state(cx);
-                        }
-                    }
-                    _ => {}
-                }
-            })
-            .detach();
-
             let view_switcher = view_switch_model.clone();
 
             let handler = Rc::new(move |cx: &mut App, id: &(u32, String)| {
@@ -74,6 +58,24 @@ impl AlbumView {
             });
 
             let table = Table::new(cx, Some(handler));
+
+            let table_clone = table.clone();
+
+            cx.observe(&state, move |this: &mut AlbumView, e, cx| {
+                let value = e.read(cx);
+                match value {
+                    ScanEvent::ScanCompleteIdle => {
+                        table_clone.update(cx, |_, cx| cx.emit(TableEvent::NewRows));
+                    }
+                    ScanEvent::ScanProgress { current, .. } => {
+                        if current % 100 == 0 {
+                            table_clone.update(cx, |_, cx| cx.emit(TableEvent::NewRows));
+                        }
+                    }
+                    _ => {}
+                }
+            })
+            .detach();
 
             AlbumView {
                 views_model,
