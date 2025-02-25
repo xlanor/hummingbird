@@ -105,4 +105,12 @@ impl TableData for Album {
     fn column_monospace() -> &'static [bool] {
         &[false, false, true, false, false]
     }
+
+    fn get_element_id(&self) -> impl Into<gpui::ElementId> {
+        ("album", self.id as u32)
+    }
+
+    fn get_table_id(&self) -> Self::Identifier {
+        (self.id as u32, self.title.0.clone().into())
+    }
 }

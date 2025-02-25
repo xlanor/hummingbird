@@ -12,7 +12,7 @@ use crate::{
         types::Album,
     },
     ui::{
-        components::table::Table,
+        components::table::{table_data::TableData, Table},
         models::Models,
         theme::Theme,
         util::{create_or_retrieve_view, drop_image_from_app, prune_views},
@@ -67,7 +67,13 @@ impl AlbumView {
             })
             .detach();
 
-            let table = Table::new(cx, view_switch_model.clone());
+            let view_switcher = view_switch_model.clone();
+
+            let handler = Rc::new(move |cx: &mut App, id: &(u32, String)| {
+                view_switcher.update(cx, |_, cx| cx.emit(ViewSwitchMessage::Release(id.0 as i64)))
+            });
+
+            let table = Table::new(cx, Some(handler));
 
             AlbumView {
                 views_model,

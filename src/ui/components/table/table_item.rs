@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::ui::{theme::Theme, util::drop_image_from_app};
 
-use super::table_data::TableData;
+use super::{table_data::TableData, OnSelectHandler};
 
 #[derive(Clone)]
 pub struct TableItem<T>
@@ -15,17 +15,24 @@ where
     data: Option<Vec<Option<SharedString>>>,
     image: Option<Arc<RenderImage>>,
     widths: Entity<Vec<f32>>,
-    phantom: PhantomData<T>,
+    on_select: Option<OnSelectHandler<T>>,
+    row: Option<Arc<T>>,
+    id: ElementId,
 }
 
 impl<T> TableItem<T>
 where
     T: TableData + 'static,
 {
-    pub fn new(cx: &mut App, id: T::Identifier, widths: Entity<Vec<f32>>) -> Entity<Self> {
-        info!("hi from {:?}", id);
-
+    pub fn new(
+        cx: &mut App,
+        id: T::Identifier,
+        widths: Entity<Vec<f32>>,
+        on_select: Option<OnSelectHandler<T>>,
+    ) -> Entity<Self> {
         let row = T::get_row(cx, id).ok().flatten();
+
+        let id = row.as_ref().map(|row| row.get_element_id()).unwrap().into();
 
         let data = row.as_ref().map(|row| {
             T::get_column_names()
@@ -50,7 +57,9 @@ where
                 data,
                 image,
                 widths,
-                phantom: PhantomData,
+                on_select,
+                id,
+                row,
             }
         })
     }
@@ -62,7 +71,18 @@ where
 {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
-        let mut row = div().w_full().flex();
+        let row_data = self.row.clone();
+        let mut row = div().w_full().flex().id(self.id.clone()).when_some(
+            self.on_select.clone(),
+            move |div, on_select| {
+                div.on_click(move |_, _, cx| {
+                    let id = row_data.as_ref().unwrap().get_table_id();
+                    on_select(cx, &id)
+                })
+                .hover(|this| this.bg(theme.nav_button_hover))
+                .active(|this| this.bg(theme.nav_button_active))
+            },
+        );
 
         if T::has_images() {
             row = row.child(

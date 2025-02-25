@@ -20,6 +20,12 @@ use crate::{
 
 type RowMap<T> = AHashMap<usize, Entity<TableItem<T>>>;
 
+#[allow(type_alias_bounds)]
+pub type OnSelectHandler<T>
+where
+    T: TableData,
+= Rc<dyn Fn(&mut App, &T::Identifier) + 'static>;
+
 #[derive(Clone)]
 pub struct Table<T>
 where
@@ -31,14 +37,14 @@ where
     render_counter: Entity<usize>,
     list_state: ListState,
     search_method: Entity<Option<TableSort>>,
-    view_switcher: Entity<VecDeque<ViewSwitchMessage>>,
+    on_select: Option<OnSelectHandler<T>>,
 }
 
 impl<T> Table<T>
 where
     T: TableData + 'static,
 {
-    pub fn new(cx: &mut App, view_switcher: Entity<VecDeque<ViewSwitchMessage>>) -> Entity<Self> {
+    pub fn new(cx: &mut App, on_select: Option<OnSelectHandler<T>>) -> Entity<Self> {
         cx.new(|cx| {
             let widths = cx.new(|_| T::default_column_widths());
             let views = cx.new(|_| AHashMap::new());
@@ -49,9 +55,9 @@ where
                 cx,
                 views.clone(),
                 render_counter.clone(),
-                view_switcher.clone(),
                 &search_method,
                 widths.clone(),
+                on_select.clone(),
             );
 
             Self {
@@ -61,7 +67,7 @@ where
                 render_counter,
                 list_state,
                 search_method,
-                view_switcher,
+                on_select,
             }
         })
     }
@@ -75,9 +81,9 @@ where
             cx,
             self.views.clone(),
             self.render_counter.clone(),
-            self.view_switcher.clone(),
             &self.search_method,
             self.widths.clone(),
+            self.on_select.clone(),
         );
 
         self.list_state.scroll_to(curr_scroll);
@@ -89,9 +95,9 @@ where
         cx: &mut Context<'_, Self>,
         views: Entity<RowMap<T>>,
         render_counter: Entity<usize>,
-        view_switcher: Entity<VecDeque<ViewSwitchMessage>>,
         search_method: &Entity<Option<TableSort>>,
         widths: Entity<Vec<f32>>,
+        handler: Option<OnSelectHandler<T>>,
     ) -> ListState {
         let sort_method = *search_method.read(cx);
         let Ok(rows) = T::get_rows(cx, sort_method) else {
@@ -100,8 +106,6 @@ where
                 div().into_any_element()
             });
         };
-
-        info!("got {} rows", rows.len());
 
         let idents_rc = Rc::new(rows);
 
@@ -118,7 +122,14 @@ where
                     .child(create_or_retrieve_view(
                         &views,
                         idx,
-                        |cx| TableItem::new(cx, idents_rc[idx].clone(), widths.clone()),
+                        |cx| {
+                            TableItem::new(
+                                cx,
+                                idents_rc[idx].clone(),
+                                widths.clone(),
+                                handler.clone(),
+                            )
+                        },
                         cx,
                     ))
                     .into_any_element()

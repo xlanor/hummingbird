@@ -1,6 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
-use gpui::{App, RenderImage, SharedString};
+use gpui::{App, ElementId, RenderImage, SharedString};
 
 use crate::library::types::Thumbnail;
 
@@ -24,4 +24,6 @@ pub trait TableData: Sized {
     fn get_image(&self) -> Option<Arc<RenderImage>>;
     fn default_column_widths() -> Vec<f32>;
     fn column_monospace() -> &'static [bool];
+    fn get_element_id(&self) -> impl Into<ElementId>;
+    fn get_table_id(&self) -> Self::Identifier;
 }
