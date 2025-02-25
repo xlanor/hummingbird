@@ -12,6 +12,7 @@ use tracing::{info, warn};
 use crate::{
     library::db::LibraryAccess,
     ui::{
+        constants::FONT_AWESOME,
         library::ViewSwitchMessage,
         theme::Theme,
         util::{create_or_retrieve_view, prune_views},
@@ -36,7 +37,7 @@ where
     views: Entity<RowMap<T>>,
     render_counter: Entity<usize>,
     list_state: ListState,
-    search_method: Entity<Option<TableSort>>,
+    sort_method: Entity<Option<TableSort>>,
     on_select: Option<OnSelectHandler<T>>,
 }
 
@@ -49,16 +50,22 @@ where
             let widths = cx.new(|_| T::default_column_widths());
             let views = cx.new(|_| AHashMap::new());
             let render_counter = cx.new(|_| 0);
-            let search_method = cx.new(|_| None);
+            let sort_method = cx.new(|_| None);
 
             let list_state = Self::make_list_state(
                 cx,
                 views.clone(),
                 render_counter.clone(),
-                &search_method,
+                &sort_method,
                 widths.clone(),
                 on_select.clone(),
             );
+
+            cx.observe(&sort_method, |this, _, cx| {
+                this.regenerate_list_state(cx);
+                cx.notify();
+            })
+            .detach();
 
             Self {
                 columns: T::get_column_names(),
@@ -66,7 +73,7 @@ where
                 views,
                 render_counter,
                 list_state,
-                search_method,
+                sort_method,
                 on_select,
             }
         })
@@ -81,7 +88,7 @@ where
             cx,
             self.views.clone(),
             self.render_counter.clone(),
-            &self.search_method,
+            &self.sort_method,
             self.widths.clone(),
             self.on_select.clone(),
         );
@@ -95,11 +102,11 @@ where
         cx: &mut Context<'_, Self>,
         views: Entity<RowMap<T>>,
         render_counter: Entity<usize>,
-        search_method: &Entity<Option<TableSort>>,
+        sort_method_entity: &Entity<Option<TableSort>>,
         widths: Entity<Vec<f32>>,
         handler: Option<OnSelectHandler<T>>,
     ) -> ListState {
-        let sort_method = *search_method.read(cx);
+        let sort_method = *sort_method_entity.read(cx);
         let Ok(rows) = T::get_rows(cx, sort_method) else {
             warn!("Failed to get rows");
             return ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {
@@ -142,9 +149,10 @@ impl<T> Render for Table<T>
 where
     T: TableData + 'static,
 {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let mut header = div().w_full().flex();
         let theme = cx.global::<Theme>();
+        let sort_method = self.sort_method.read(cx);
 
         if T::has_images() {
             header = header.child(
@@ -168,6 +176,7 @@ where
             let width = self.widths.read(cx)[i];
             header = header.child(
                 div()
+                    .flex()
                     .w(px(width))
                     .when(T::has_images(), |div| {
                         div.h(px(36.0)).px(px(12.0)).py(px(5.0))
@@ -186,7 +195,42 @@ where
                     .border_b_1()
                     .border_color(theme.border_color)
                     .font_weight(FontWeight::BOLD)
-                    .child(SharedString::new_static(column)),
+                    .child(SharedString::new_static(column))
+                    .when_some(sort_method.as_ref(), |this, method| {
+                        this.when(method.column == *column, |this| {
+                            this.child(
+                                div()
+                                    .ml(px(7.0))
+                                    .text_size(px(10.0))
+                                    .my_auto()
+                                    .font_family(FONT_AWESOME)
+                                    .when(method.ascending, |div| div.child(""))
+                                    .when(!method.ascending, |div| div.child("")),
+                            )
+                        })
+                    })
+                    .id(*column)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.sort_method.update(cx, |this, cx| {
+                            if let Some(method) = this.as_mut() {
+                                if method.column == *column {
+                                    method.ascending = !method.ascending;
+                                } else {
+                                    *this = Some(TableSort {
+                                        column: *column,
+                                        ascending: true,
+                                    });
+                                }
+                            } else {
+                                *this = Some(TableSort {
+                                    column: *column,
+                                    ascending: true,
+                                });
+                            }
+
+                            cx.notify();
+                        })
+                    })),
             );
         }
 
