@@ -67,7 +67,7 @@ impl AlbumView {
             })
             .detach();
 
-            let table = Table::new(cx);
+            let table = Table::new(cx, view_switch_model.clone());
 
             AlbumView {
                 views_model,
@@ -117,12 +117,12 @@ impl AlbumView {
                         let album_ids = album_ids_copy.clone();
                         let view_switch_model = view_switch_model.clone();
 
-                        prune_views(views_model.clone(), render_counter.clone(), idx, cx);
+                        prune_views(&views_model, &render_counter, idx, cx);
                         // TODO: error handling
                         div()
                             .w_full()
                             .child(create_or_retrieve_view(
-                                views_model.clone(),
+                                &views_model,
                                 idx,
                                 move |cx| {
                                     AlbumItem::new(cx, album_ids[idx].0 as i64, view_switch_model)

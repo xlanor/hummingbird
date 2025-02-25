@@ -1,9 +1,10 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use gpui::{App, RenderImage, SharedString};
 
 use crate::library::types::Thumbnail;
 
+#[derive(Copy, Clone)]
 pub struct TableSort {
     pub column: &'static str,
     pub ascending: bool,
@@ -12,7 +13,7 @@ pub struct TableSort {
 // The TableData trait defines the interface for retrieving, sorting, and listing data for a table.
 // Implementing this trait allows a table to display data in a structured manner.
 pub trait TableData: Sized {
-    type Identifier;
+    type Identifier: Clone + Debug;
 
     fn get_table_name() -> &'static str;
     fn get_column_names() -> &'static [&'static str];

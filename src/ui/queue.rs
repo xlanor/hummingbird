@@ -188,8 +188,7 @@ impl Queue {
                             .expect("couldn't read queue")
                             .get(idx)
                             .cloned();
-                        let was_removed =
-                            prune_views(views_model.clone(), render_counter.clone(), idx, cx);
+                        let was_removed = prune_views(&views_model, &render_counter, idx, cx);
 
                         if was_removed {
                             cx.global::<GPUIDataInterface>().evict_cache();
@@ -197,7 +196,7 @@ impl Queue {
 
                         div()
                             .child(create_or_retrieve_view(
-                                views_model.clone(),
+                                &views_model,
                                 idx,
                                 move |cx| QueueItem::new(cx, item, idx),
                                 cx,

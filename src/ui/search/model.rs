@@ -228,12 +228,12 @@ impl SearchModel {
                         let weak_self = weak_self_copy.clone();
                         let selection_clone = current_selection.clone();
 
-                        prune_views(views_model.clone(), render_counter.clone(), idx, cx);
+                        prune_views(&views_model, &render_counter, idx, cx);
                         // TODO: error handling
                         div()
                             .w_full()
                             .child(create_or_retrieve_view(
-                                views_model.clone(),
+                                &views_model,
                                 idx,
                                 move |cx| {
                                     AlbumSearchResult::new(
