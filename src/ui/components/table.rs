@@ -135,14 +135,38 @@ where
         let mut header = div().w_full().flex();
         let theme = cx.global::<Theme>();
 
+        if T::has_images() {
+            header = header.child(
+                div()
+                    .w(px(53.0))
+                    .h(px(36.0))
+                    .pl(px(27.0))
+                    .pr(px(10.0))
+                    .py(px(2.0))
+                    .text_sm()
+                    .flex_shrink_0()
+                    .text_ellipsis()
+                    .border_r_1()
+                    .border_color(theme.border_color)
+                    .border_b_1()
+                    .border_color(theme.border_color),
+            );
+        }
+
         for (i, column) in self.columns.iter().enumerate() {
             let width = self.widths.read(cx)[i];
             header = header.child(
                 div()
                     .w(px(width))
-                    .h(px(30.0))
-                    .px(px(10.0))
-                    .py(px(2.0))
+                    .when(T::has_images(), |div| {
+                        div.h(px(36.0)).px(px(12.0)).py(px(5.0))
+                    })
+                    .when(!T::has_images(), |div| {
+                        div.h(px(30.0))
+                            .px(px(10.0))
+                            .py(px(2.0))
+                            .when(i == 0, |div| div.pl(px(27.0)))
+                    })
                     .text_sm()
                     .flex_shrink_0()
                     .when(i != self.columns.len() - 1, |div| {
@@ -160,6 +184,16 @@ where
             .overflow_x_scroll()
             .w_full()
             .h_full()
+            .child(
+                div()
+                    .w_full()
+                    .pb(px(11.0))
+                    .px(px(24.0))
+                    .line_height(px(26.0))
+                    .font_weight(FontWeight::BOLD)
+                    .text_size(px(26.0))
+                    .child(T::get_table_name()),
+            )
             .child(header)
             .child(list(self.list_state.clone()).w_full().h_full())
     }

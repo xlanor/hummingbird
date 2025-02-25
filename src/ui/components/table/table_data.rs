@@ -23,4 +23,5 @@ pub trait TableData: Sized {
     fn has_images() -> bool;
     fn get_image(&self) -> Option<Arc<RenderImage>>;
     fn default_column_widths() -> Vec<f32>;
+    fn column_monospace() -> &'static [bool];
 }
