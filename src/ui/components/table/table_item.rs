@@ -93,7 +93,7 @@ where
                     .pl(px(17.0))
                     .flex_shrink_0()
                     .text_ellipsis()
-                    .border_r_1()
+                    //.border_r_1()
                     .border_color(theme.border_color)
                     .border_b_1()
                     .border_color(theme.border_color)
@@ -119,7 +119,7 @@ where
                 let column = div()
                     .w(px(width))
                     .when(T::has_images(), |div| {
-                        div.h(px(36.0)).px(px(12.0)).py(px(5.0))
+                        div.h(px(36.0)).px(px(12.0)).py(px(6.0))
                     })
                     .when(!T::has_images(), |div| {
                         div.h(px(30.0))
@@ -132,9 +132,9 @@ where
                     .flex_shrink_0()
                     .overflow_hidden()
                     .text_ellipsis()
-                    .when(i != data.len() - 1, |div| {
-                        div.border_r_1().border_color(theme.border_color)
-                    })
+                    // .when(i != data.len() - 1, |div| {
+                    //     div.border_r_1().border_color(theme.border_color)
+                    // })
                     .border_b_1()
                     .border_color(theme.border_color)
                     .when_some(column.clone(), |div, string| div.child(string));
