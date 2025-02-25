@@ -1,5 +1,5 @@
 use std::{
-    env::{consts::OS, Vars},
+    env::consts::OS,
     mem::swap,
     sync::{
         mpsc::{Receiver, Sender},
@@ -8,7 +8,7 @@ use std::{
     thread::sleep,
 };
 
-use rand::{rng, seq::SliceRandom, thread_rng};
+use rand::{rng, seq::SliceRandom};
 use tracing::{debug, error, info, warn};
 
 use crate::devices::builtin::cpal::CpalProvider;
@@ -532,7 +532,7 @@ impl PlaybackThread {
 
         if self.shuffle {
             let mut shuffled_paths = paths.clone();
-            shuffled_paths.shuffle(&mut thread_rng());
+            shuffled_paths.shuffle(&mut rng());
 
             queue.append(&mut shuffled_paths);
             drop(queue);

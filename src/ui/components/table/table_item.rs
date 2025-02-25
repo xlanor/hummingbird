@@ -1,7 +1,6 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 use gpui::{prelude::FluentBuilder, *};
-use tracing::info;
 
 use crate::ui::{theme::Theme, util::drop_image_from_app};
 
@@ -69,7 +68,7 @@ impl<T> Render for TableItem<T>
 where
     T: TableData + 'static,
 {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let row_data = self.row.clone();
         let mut row = div()

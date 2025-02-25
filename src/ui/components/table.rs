@@ -1,22 +1,18 @@
 pub mod table_data;
 mod table_item;
 
-use std::{collections::VecDeque, marker::PhantomData, rc::Rc, sync::Arc};
+use std::rc::Rc;
 
 use ahash::AHashMap;
 use gpui::{prelude::FluentBuilder, *};
 use table_data::{TableData, TableSort};
 use table_item::TableItem;
-use tracing::{info, warn};
+use tracing::warn;
 
-use crate::{
-    library::db::LibraryAccess,
-    ui::{
-        constants::FONT_AWESOME,
-        library::ViewSwitchMessage,
-        theme::Theme,
-        util::{create_or_retrieve_view, prune_views},
-    },
+use crate::ui::{
+    constants::FONT_AWESOME,
+    theme::Theme,
+    util::{create_or_retrieve_view, prune_views},
 };
 
 type RowMap<T> = AHashMap<usize, Entity<TableItem<T>>>;
