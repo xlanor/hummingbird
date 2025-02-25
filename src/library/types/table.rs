@@ -16,7 +16,7 @@ impl TableData for Album {
     }
 
     fn get_column_names() -> &'static [&'static str] {
-        &["Title", "Artist", "Release Date", "Label", "Catalog Number"]
+        &["Title", "Artist", "Date", "Label", "Catalog Number"]
     }
 
     fn get_rows(
@@ -41,11 +41,11 @@ impl TableData for Album {
                 ascending: false,
             }) => AlbumSortMethod::ArtistDesc,
             Some(TableSort {
-                column: "Release Date",
+                column: "Date",
                 ascending: true,
             }) => AlbumSortMethod::ReleaseAsc,
             Some(TableSort {
-                column: "Release Date",
+                column: "Date",
                 ascending: false,
             }) => AlbumSortMethod::ReleaseDesc,
             Some(TableSort {
@@ -81,7 +81,7 @@ impl TableData for Album {
                 .get_artist_name_by_id(self.artist_id)
                 .ok()
                 .map(|v| (*v).clone().into()),
-            "Release Date" => self
+            "Date" => self
                 .release_date
                 .map(|date| date.format("%x").to_string().into()),
             "Label" => self.label.as_ref().map(|v| v.0.clone()),
@@ -92,5 +92,25 @@ impl TableData for Album {
 
     fn get_image(&self) -> Option<Arc<RenderImage>> {
         self.thumb.as_ref().map(|thumb| thumb.0.clone())
+    }
+
+    fn default_column_widths() -> Vec<f32> {
+        vec![300.0, 200.0, 100.0, 150.0, 200.0]
+    }
+
+    fn has_images() -> bool {
+        true
+    }
+
+    fn column_monospace() -> &'static [bool] {
+        &[false, false, true, false, false]
+    }
+
+    fn get_element_id(&self) -> impl Into<gpui::ElementId> {
+        ("album", self.id as u32)
+    }
+
+    fn get_table_id(&self) -> Self::Identifier {
+        (self.id as u32, self.title.0.clone().into())
     }
 }

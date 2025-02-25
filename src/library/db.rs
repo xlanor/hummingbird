@@ -17,6 +17,10 @@ pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Err
         .create_if_missing(true);
     let pool = SqlitePool::connect_with(options).await?;
 
+    sqlx::query("PRAGMA journal_mode = WAL")
+        .execute(&pool)
+        .await?;
+
     sqlx::migrate!("./migrations").run(&pool).await?;
 
     Ok(pool)

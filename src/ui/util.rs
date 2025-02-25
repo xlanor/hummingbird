@@ -5,8 +5,8 @@ use gpui::{App, Entity, Render, RenderImage};
 use tracing::debug;
 
 pub fn prune_views<T>(
-    views_model: Entity<AHashMap<usize, Entity<T>>>,
-    render_counter: Entity<usize>,
+    views_model: &Entity<AHashMap<usize, Entity<T>>>,
+    render_counter: &Entity<usize>,
     current: usize,
     cx: &mut App,
 ) -> bool
@@ -45,7 +45,7 @@ where
 }
 
 pub fn create_or_retrieve_view<T>(
-    views_model: Entity<AHashMap<usize, Entity<T>>>,
+    views_model: &Entity<AHashMap<usize, Entity<T>>>,
     idx: usize,
     creation_fn: impl FnOnce(&mut App) -> Entity<T>,
     cx: &mut App,
