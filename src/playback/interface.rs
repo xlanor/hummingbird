@@ -279,13 +279,29 @@ impl GPUIPlaybackInterface {
                                 })
                                 .expect("failed to update shuffle state");
                         }
-                        PlaybackEvent::VolumeChanged(v) => playback_info
-                            .volume
-                            .update(&mut cx, |m, cx| {
-                                *m = v;
-                                cx.notify()
-                            })
-                            .expect("failed to update volume model"),
+                        PlaybackEvent::VolumeChanged(v) => {
+                            playback_info
+                                .volume
+                                .update(&mut cx, |m, cx| {
+                                    *m = v;
+                                    cx.notify()
+                                })
+                                .expect("failed to update volume model");
+
+                            // Note: `prev_volume` should not be to small.
+                            // Its value needs to be visible in UI
+                            // while toggling volume `on` / `off` and even
+                            // an user used a slider to move volume to `0`
+                            if v > 0.05 {
+                                playback_info
+                                    .prev_volume
+                                    .update(&mut cx, |m, cx| {
+                                        *m = v;
+                                        cx.notify()
+                                    })
+                                    .expect("failed to update volume model");
+                            }
+                        }
                         PlaybackEvent::QueuePositionChanged(v) => queue_model
                             .update(&mut cx, |m, cx| {
                                 m.position = v;

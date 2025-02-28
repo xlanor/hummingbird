@@ -1,7 +1,6 @@
+use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 use gpui::*;
 use prelude::FluentBuilder;
-
-use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 
 use super::{
     components::slider::slider,
@@ -457,7 +456,8 @@ impl SecondaryControls {
 impl Render for SecondaryControls {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
-        let volume = self.info.volume.read(cx);
+        let volume = *self.info.volume.read(cx);
+        let prev_volume = *self.info.prev_volume.read(cx);
         let show_queue = self.show_queue.clone();
 
         div().px(px(18.0)).flex().child(
@@ -482,7 +482,20 @@ impl Render for SecondaryControls {
                         .bg(theme.playback_button)
                         .hover(|this| this.bg(theme.playback_button_hover))
                         .active(|this| this.bg(theme.playback_button_active))
-                        .child(""),
+                        .when(volume <= 0.0, |div| {
+                            // icon: `volume-xmark`
+                            // https://fontawesome.com/icons/volume-xmark?f=classic&s=solid
+                            div.child("\u{f6a9}").on_click(move |_, _, cx| {
+                                cx.global::<GPUIPlaybackInterface>().set_volume(prev_volume);
+                            })
+                        })
+                        .when(volume > 0.0, |div| {
+                            // icon: `volume-high`
+                            // https://fontawesome.com/icons/volume-high?f=classic&s=solid
+                            div.child("").on_click(move |_, _, cx| {
+                                cx.global::<GPUIPlaybackInterface>().set_volume(0 as f64);
+                            })
+                        }),
                 )
                 .child(
                     slider()
@@ -491,7 +504,7 @@ impl Render for SecondaryControls {
                         .mt(px(11.0))
                         .rounded(px(3.0))
                         .id("volume")
-                        .value((*volume) as f32)
+                        .value((volume) as f32)
                         .on_change(move |v, _, cx| {
                             cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
                         }),

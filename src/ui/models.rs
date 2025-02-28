@@ -65,6 +65,7 @@ pub struct PlaybackInfo {
     pub current_track: Entity<Option<String>>,
     pub shuffling: Entity<bool>,
     pub volume: Entity<f64>,
+    pub prev_volume: Entity<f64>,
 }
 
 impl Global for PlaybackInfo {}
@@ -208,12 +209,15 @@ pub fn build_models(cx: &mut App, queue: Queue) {
         switcher_model,
     });
 
+    const DEFAULT_VOLUME: f64 = 1.0;
+
     let position: Entity<u64> = cx.new(|_| 0);
     let duration: Entity<u64> = cx.new(|_| 0);
     let playback_state: Entity<PlaybackState> = cx.new(|_| PlaybackState::Stopped);
     let current_track: Entity<Option<String>> = cx.new(|_| None);
     let shuffling: Entity<bool> = cx.new(|_| false);
-    let volume: Entity<f64> = cx.new(|_| 1.0);
+    let volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
+    let prev_volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
 
     cx.set_global(PlaybackInfo {
         position,
@@ -222,6 +226,7 @@ pub fn build_models(cx: &mut App, queue: Queue) {
         current_track,
         shuffling,
         volume,
+        prev_volume,
     });
 }
 
