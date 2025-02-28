@@ -11,10 +11,7 @@ use std::{
 
 use gpui::App;
 
-use crate::{
-    data::interface::GPUIDataInterface,
-    ui::models::{CurrentTrack, ImageEvent, MMBSEvent, Models, PlaybackInfo},
-};
+use crate::ui::models::{CurrentTrack, ImageEvent, MMBSEvent, Models, PlaybackInfo};
 
 use super::{
     events::{PlaybackCommand, PlaybackEvent},
@@ -326,7 +323,7 @@ pub fn replace_queue(items: Vec<QueueItemData>, app: &mut App) {
     let playback_interface = app.global::<GPUIPlaybackInterface>();
     playback_interface.replace_queue(items);
 
-    let data_interface = app.global::<GPUIDataInterface>();
+    // let data_interface = app.global::<GPUIDataInterface>();
 
-    data_interface.evict_cache();
+    // data_interface.evict_cache();
 }

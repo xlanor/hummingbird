@@ -3,7 +3,7 @@ use std::{fmt::Display, sync::Arc};
 use gpui::{App, AppContext, Entity, RenderImage, SharedString};
 use std::path::PathBuf;
 
-use crate::{data::interface::GPUIDataInterface, library::db::LibraryAccess, ui::models::Models};
+use crate::{library::db::LibraryAccess, ui::data::Decode};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueueItemData {
@@ -94,24 +94,13 @@ impl QueueItemData {
             if m.as_ref().unwrap().artist_name.is_some() {
                 return;
             }
+
             // vital information left blank, try retriving the metadata from disk
             // much slower, especially on windows
-            let queue_model = cx.global::<Models>().queue.clone();
             let path_clone = path.clone();
 
-            // subscribe for updates to the metadata
-            cx.subscribe(
-                &queue_model,
-                move |m, _, ev: &(PathBuf, QueueItemUIData), cx| {
-                    if ev.0 == path_clone {
-                        *m = Some(ev.1.clone());
-                    }
-                    cx.notify();
-                },
-            )
-            .detach();
-
-            cx.global::<GPUIDataInterface>().get_metadata(path);
+            cx.read_metadata(path_clone.to_string_lossy().to_string(), cx.entity())
+                .detach();
         });
 
         model

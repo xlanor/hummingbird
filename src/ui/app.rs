@@ -11,7 +11,6 @@ use sqlx::SqlitePool;
 use tracing::{debug, error};
 
 use crate::{
-    data::{interface::GPUIDataInterface, thread::DataThread},
     library::{
         db::create_pool,
         scan::{ScanInterface, ScanThread},
@@ -329,9 +328,8 @@ pub async fn run() {
             .detach();
 
             let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start(queue);
-            let mut data_interface: GPUIDataInterface = DataThread::start();
-
             playback_interface.start_broadcast(cx);
+
             if let Some(track) = storage_data.current_track {
                 // open current track,
                 playback_interface.open(track.get_path().clone());
@@ -339,12 +337,8 @@ pub async fn run() {
                 playback_interface.pause();
             }
 
-            data_interface.start_broadcast(cx, drop_model);
-
             parse_args_and_prepare(cx, &playback_interface);
-
             cx.set_global(playback_interface);
-            cx.set_global(data_interface);
 
             cx.activate(true);
 
