@@ -15,7 +15,7 @@ pub enum PlaybackCommand {
     /// Requests that the playback thread pause playback.
     Pause,
     /// Requests that the playback thread open the specified file for immediate playback.
-    Open(String),
+    Open(String, i64),
     /// Requests that the playback thread queue the specified file for playback after the current
     /// file. If there is no current file, the specified file will be played immediately.
     Queue(QueueItemData),
@@ -55,8 +55,8 @@ pub enum PlaybackCommand {
 pub enum PlaybackEvent {
     /// Indicates that the playback state has changed.
     StateChanged(PlaybackState),
-    /// Indicates that the current file has changed. The string is the path to the new file.
-    SongChanged(String),
+    /// Indicates that the current file has changed. The i64 is the id of the track.
+    SongChanged(i64),
     /// Indicates that the duration of the current file has changed. The f64 is the new duration,
     /// in seconds.
     DurationChanged(u64),

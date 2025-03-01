@@ -21,7 +21,7 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait MediaMetadataBroadcastService {
     /// Called when a new track is played.
-    async fn new_track(&mut self, file_path: String);
+    async fn new_track(&mut self, track_id: i64);
     /// Called when new metadata is recieved from the codec.
     async fn metadata_recieved(&mut self, info: Arc<Metadata>);
     /// Called when the playback state changes. This includes pausing, unpausing, and stopping.

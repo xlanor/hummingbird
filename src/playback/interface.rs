@@ -67,9 +67,9 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn open(&self, path: &str) {
+    pub fn open(&self, track_id: i64, path: String) {
         self.commands_tx
-            .send(PlaybackCommand::Open(path.to_string()))
+            .send(PlaybackCommand::Open(path, track_id))
             .expect("could not send tx");
     }
 
@@ -208,7 +208,7 @@ impl GPUIPlaybackInterface {
 
                             if v == PlaybackState::Stopped {
                                 playback_info
-                                    .current_track
+                                    .current_track_id
                                     .update(&mut cx, |m, cx| {
                                         *m = None;
                                         cx.notify()
@@ -250,18 +250,17 @@ impl GPUIPlaybackInterface {
                                 })
                                 .expect("failed to broadcast MMBS event DurationChanged");
                         }
-                        PlaybackEvent::SongChanged(v) => {
-                            let clone = v.clone();
+                        PlaybackEvent::SongChanged(track_id) => {
                             playback_info
-                                .current_track
+                                .current_track_id
                                 .update(&mut cx, |m, cx| {
-                                    *m = Some(clone);
+                                    *m = Some(track_id);
                                     cx.notify()
                                 })
                                 .expect("failed to update current track");
                             mmbs_model
                                 .update(&mut cx, |_, cx| {
-                                    cx.emit(MMBSEvent::NewTrack(v));
+                                    cx.emit(MMBSEvent::NewTrack(track_id));
                                 })
                                 .expect("failed to broadcast MMBS event NewTrack");
                         }
