@@ -12,12 +12,12 @@ use std::{
 use rand::{rng, seq::SliceRandom};
 use tracing::{debug, error, info, warn};
 
+use crate::devices::builtin::cpal::CpalProvider;
 use crate::devices::builtin::dummy::DummyDeviceProvider;
 #[cfg(target_os = "linux")]
 use crate::devices::builtin::pulse::PulseProvider;
 #[cfg(target_os = "windows")]
 use crate::devices::builtin::win_audiograph::AudioGraphProvider;
-use crate::{devices::builtin::cpal::CpalProvider, ui::models::CurrentTrack};
 
 use crate::{
     devices::{
@@ -416,7 +416,7 @@ impl PlaybackThread {
         }
 
         self.events_tx
-            .send(PlaybackEvent::SongChanged(CurrentTrack::new(path.clone())))
+            .send(PlaybackEvent::SongChanged(path.clone()))
             .expect("unable to send event");
 
         if let Ok(duration) = provider.duration_secs() {

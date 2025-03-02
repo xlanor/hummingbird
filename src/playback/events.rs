@@ -3,7 +3,6 @@
 use crate::media::metadata::Metadata;
 
 use super::{queue::QueueItemData, thread::PlaybackState};
-use crate::ui::models::CurrentTrack;
 use std::path::PathBuf;
 
 /// A command to the playback thread. This is used to control the playback thread from other
@@ -57,8 +56,8 @@ pub enum PlaybackCommand {
 pub enum PlaybackEvent {
     /// Indicates that the playback state has changed.
     StateChanged(PlaybackState),
-    /// Indicates that the current track has changed providing a new `CurrentTrack`.
-    SongChanged(CurrentTrack),
+    /// Indicates that the current file has changed providing the path to the new file.
+    SongChanged(PathBuf),
     /// Indicates that the duration of the current file has changed. The f64 is the new duration,
     /// in seconds.
     DurationChanged(u64),

@@ -13,7 +13,7 @@ use gpui::App;
 
 use crate::{
     data::interface::GPUIDataInterface,
-    ui::models::{ImageEvent, MMBSEvent, Models, PlaybackInfo},
+    ui::models::{CurrentTrack, ImageEvent, MMBSEvent, Models, PlaybackInfo},
 };
 
 use super::{
@@ -251,12 +251,12 @@ impl GPUIPlaybackInterface {
                                 })
                                 .expect("failed to broadcast MMBS event DurationChanged");
                         }
-                        PlaybackEvent::SongChanged(v) => {
-                            let path = v.get_path().clone();
+                        PlaybackEvent::SongChanged(path) => {
+                            let current_track = CurrentTrack::new(path.clone());
                             playback_info
                                 .current_track
                                 .update(&mut cx, |m, cx| {
-                                    *m = Some(v);
+                                    *m = Some(current_track.clone());
                                     cx.notify()
                                 })
                                 .expect("failed to update current track");

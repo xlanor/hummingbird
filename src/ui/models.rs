@@ -65,9 +65,6 @@ impl CurrentTrack {
     pub fn new(path: PathBuf) -> Self {
         CurrentTrack(path)
     }
-    pub fn get_path(&self) -> &PathBuf {
-        &self.0
-    }
 }
 
 #[derive(Clone)]
