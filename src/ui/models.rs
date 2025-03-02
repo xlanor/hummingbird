@@ -67,6 +67,12 @@ impl CurrentTrack {
     }
 }
 
+impl PartialEq<std::path::PathBuf> for CurrentTrack {
+    fn eq(&self, other: &std::path::PathBuf) -> bool {
+        &self.0 == other
+    }
+}
+
 #[derive(Clone)]
 pub struct PlaybackInfo {
     pub position: Entity<u64>,

@@ -157,7 +157,7 @@ impl Render for ReleaseView {
             .map_or(false, |current_track| {
                 self.tracks
                     .iter()
-                    .any(|track| track.location == current_track)
+                    .any(|track| current_track == track.location)
             });
 
         div()
@@ -441,7 +441,7 @@ impl RenderOnce for TrackItem {
                             .hover(|this| this.bg(theme.nav_button_hover))
                             .active(|this| this.bg(theme.nav_button_active))
                             .when_some(current_track, |this, track| {
-                                this.bg(if self.track.location == track {
+                                this.bg(if track == self.track.location {
                                     theme.queue_item_current
                                 } else {
                                     theme.background_primary
