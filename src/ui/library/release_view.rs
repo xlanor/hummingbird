@@ -16,6 +16,7 @@ use crate::{
     playback::{
         interface::{replace_queue, GPUIPlaybackInterface},
         queue::QueueItemData,
+        thread::PlaybackState,
     },
     ui::{
         components::{
@@ -24,6 +25,7 @@ use crate::{
             menu::{menu, menu_item},
         },
         constants::FONT_AWESOME,
+        global_actions::PlayPause,
         models::{Models, PlaybackInfo},
         theme::Theme,
         util::drop_image_from_app,
@@ -101,7 +103,6 @@ impl ReleaseView {
                         } else {
                             true
                         },
-                        tracks: tracks_clone.clone(),
                     }
                     .into_any_element()
                 },
@@ -144,6 +145,20 @@ impl ReleaseView {
 impl Render for ReleaseView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+
+        let is_playing =
+            cx.global::<PlaybackInfo>().playback_state.read(cx) == &PlaybackState::Playing;
+        // flag whether current track is part of the album
+        let current_track_in_album = cx
+            .global::<PlaybackInfo>()
+            .current_track
+            .read(cx)
+            .clone()
+            .map_or(false, |current_track| {
+                self.tracks
+                    .iter()
+                    .any(|track| track.location == current_track)
+            });
 
         div()
             .mt(px(24.0))
@@ -223,26 +238,45 @@ impl Render for ReleaseView {
                                             .size(ButtonSize::Large)
                                             .font_weight(FontWeight::BOLD)
                                             .intent(ButtonIntent::Primary)
-                                            .on_click(cx.listener(
-                                                |this: &mut ReleaseView, _, _, cx| {
-                                                    let paths = this
-                                                        .tracks
-                                                        .iter()
-                                                        .map(|track| {
-                                                            QueueItemData::new(
-                                                                cx,
-                                                                track.location.clone(),
-                                                                Some(track.id),
-                                                                track.album_id,
-                                                            )
-                                                        })
-                                                        .collect();
+                                            .when(!current_track_in_album, |this| {
+                                                this.on_click(cx.listener(
+                                                    |this: &mut ReleaseView, _, _, cx| {
+                                                        let paths = this
+                                                            .tracks
+                                                            .iter()
+                                                            .map(|track| {
+                                                                QueueItemData::new(
+                                                                    cx,
+                                                                    track.location.clone(),
+                                                                    Some(track.id),
+                                                                    track.album_id,
+                                                                )
+                                                            })
+                                                            .collect();
 
-                                                    replace_queue(paths, cx)
+                                                        replace_queue(paths, cx)
+                                                    },
+                                                ))
+                                            })
+                                            .when(current_track_in_album, |button| {
+                                                button.on_click(|_, window, cx| {
+                                                    window.dispatch_action(Box::new(PlayPause), cx);
+                                                })
+                                            })
+                                            .child(div().font_family(FONT_AWESOME).child(
+                                                if current_track_in_album && is_playing {
+                                                    ""
+                                                } else {
+                                                    ""
                                                 },
                                             ))
-                                            .child(div().font_family(FONT_AWESOME).child(""))
-                                            .child(div().child("Play")),
+                                            .child(div().child(
+                                                if current_track_in_album && is_playing {
+                                                    "Pause"
+                                                } else {
+                                                    "Play"
+                                                },
+                                            )),
                                     )
                                     .child(
                                         button()
@@ -344,17 +378,15 @@ impl Render for ReleaseView {
 struct TrackItem {
     pub track: Track,
     pub is_start: bool,
-    pub tracks: Arc<Vec<Track>>,
 }
 
 impl RenderOnce for TrackItem {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let current_track = cx.global::<PlaybackInfo>().current_track.read(cx).clone();
 
-        let tracks = self.tracks.clone();
-        let tracks_2 = self.tracks.clone();
         let track_location = self.track.location.clone();
-        let track_location_2 = self.track.location;
+        let track_location_2 = self.track.location.clone();
         let track_id = self.track.id;
         let album_id = self.track.album_id;
         context(("context", self.track.id as usize))
@@ -364,7 +396,10 @@ impl RenderOnce for TrackItem {
                     .flex_col()
                     .w_full()
                     .id(self.track.id as usize)
-                    .on_click(move |_, _, cx| play_from_track(cx, &tracks, track_id))
+                    .on_click({
+                        let track = self.track.clone();
+                        move |_, _, cx| play_from_track(cx, &track)
+                    })
                     .when(self.is_start, |this| {
                         this.child(
                             div()
@@ -396,6 +431,13 @@ impl RenderOnce for TrackItem {
                             .py(px(6.0))
                             .hover(|this| this.bg(theme.nav_button_hover))
                             .active(|this| this.bg(theme.nav_button_active))
+                            .when_some(current_track, |this, track| {
+                                this.bg(if self.track.location == track {
+                                    theme.queue_item_current
+                                } else {
+                                    theme.background_primary
+                                })
+                            })
                             .max_w_full()
                             .child(
                                 div()
@@ -412,7 +454,7 @@ impl RenderOnce for TrackItem {
                                     .font_weight(FontWeight::BOLD)
                                     .overflow_x_hidden()
                                     .text_ellipsis()
-                                    .child(self.track.title),
+                                    .child(self.track.title.clone()),
                             )
                             .child(
                                 div()
@@ -458,7 +500,7 @@ impl RenderOnce for TrackItem {
                             "track_play_from_here",
                             Some(""),
                             "Play from here",
-                            move |_, _, cx| play_from_track(cx, &tracks_2, track_id),
+                            move |_, _, cx| play_from_track(cx, &self.track),
                         ))
                         .item(menu_item(
                             "track_add_to_queue",
@@ -480,14 +522,31 @@ impl RenderOnce for TrackItem {
     }
 }
 
-fn play_from_track(cx: &mut App, tracks: &Arc<Vec<Track>>, id: i64) {
-    let paths = tracks
-        .iter()
-        .map(|track| QueueItemData::new(cx, track.location.clone(), Some(track.id), track.album_id))
-        .collect();
+fn play_from_track(cx: &mut App, track: &Track) {
+    let queue_items = if let Some(album_id) = track.album_id {
+        cx.list_tracks_in_album(album_id)
+            .expect("Failed to retrieve tracks")
+            .iter()
+            .map(|track| {
+                QueueItemData::new(cx, track.location.clone(), Some(track.id), track.album_id)
+            })
+            .collect()
+    } else {
+        Vec::from([QueueItemData::new(
+            cx,
+            track.location.clone(),
+            Some(track.id),
+            track.album_id,
+        )])
+    };
 
-    replace_queue(paths, cx);
+    replace_queue(queue_items.clone(), cx);
 
     let playback_interface = cx.global::<GPUIPlaybackInterface>();
-    playback_interface.jump_unshuffled(tracks.iter().position(|t| t.id == id).unwrap())
+    playback_interface.jump_unshuffled(
+        queue_items
+            .iter()
+            .position(|t| t.get_path() == &track.location)
+            .unwrap(),
+    )
 }

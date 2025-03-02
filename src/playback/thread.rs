@@ -347,7 +347,7 @@ impl PlaybackThread {
         if self.state == PlaybackState::Stopped && !queue.is_empty() {
             let path = queue[0].get_path().clone();
             drop(queue);
-            self.open(&(path));
+            self.open(&path);
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(0))
                 .expect("unable to send event");
@@ -472,10 +472,10 @@ impl PlaybackThread {
         let queue = self.queue.read().expect("couldn't get the queue");
 
         if self.state == PlaybackState::Stopped && !queue.is_empty() {
-            let track = queue.last().unwrap().get_path().clone();
+            let path = queue.last().unwrap().get_path().clone();
             self.queue_next = queue.len();
             drop(queue);
-            self.open(&track);
+            self.open(&path);
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
                 .expect("unable to send event");
@@ -508,7 +508,8 @@ impl PlaybackThread {
         }
 
         if self.state == PlaybackState::Stopped {
-            self.open(item.get_path());
+            let path = item.get_path();
+            self.open(path);
             self.queue_next = pre_len + 1;
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(pre_len))
@@ -589,9 +590,9 @@ impl PlaybackThread {
         let queue = self.queue.read().expect("couldn't get the queue");
 
         if index < queue.len() {
-            let item = queue[index].get_path().clone();
+            let path = queue[index].get_path().clone();
             drop(queue);
-            self.open(&item);
+            self.open(&path);
             self.queue_next = index + 1;
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(index))
@@ -608,8 +609,8 @@ impl PlaybackThread {
         }
 
         let queue = self.queue.read().expect("couldn't get the queue");
-        let item = self.original_queue[index].get_path().clone();
-        let pos = queue.iter().position(|a| *a.get_path() == item);
+        let path = self.original_queue[index].get_path().clone();
+        let pos = queue.iter().position(|a| *a.get_path() == path);
         drop(queue);
 
         if let Some(pos) = pos {

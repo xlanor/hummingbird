@@ -67,9 +67,9 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn open(&self, path: &str) {
+    pub fn open(&self, path: String) {
         self.commands_tx
-            .send(PlaybackCommand::Open(path.to_string()))
+            .send(PlaybackCommand::Open(path))
             .expect("could not send tx");
     }
 
