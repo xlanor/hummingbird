@@ -283,7 +283,9 @@ impl Render for PlaybackSection {
                             .on_click(|_, window, cx| {
                                 window.dispatch_action(Box::new(Previous), cx);
                             })
-                            .child(""),
+                            // icon: `backward-step`
+                            // https://fontawesome.com/icons/backward-step?f=classic&s=solid
+                            .child("\u{f048}"),
                     )
                     .child(
                         div()
@@ -330,7 +332,9 @@ impl Render for PlaybackSection {
                             .on_click(|_, window, cx| {
                                 window.dispatch_action(Box::new(Next), cx);
                             })
-                            .child(""),
+                            // icon: `forward-step`
+                            // https://fontawesome.com/icons/forward-step?f=classic&s=solid
+                            .child("\u{f051}"),
                     ),
             )
     }
