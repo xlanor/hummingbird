@@ -3,6 +3,7 @@
 use crate::media::metadata::Metadata;
 
 use super::{queue::QueueItemData, thread::PlaybackState};
+use std::path::PathBuf;
 
 /// A command to the playback thread. This is used to control the playback thread from other
 /// threads. The playback thread recieves these commands from an MPSC channel, and processes them
@@ -15,7 +16,7 @@ pub enum PlaybackCommand {
     /// Requests that the playback thread pause playback.
     Pause,
     /// Requests that the playback thread open the specified file for immediate playback.
-    Open(String),
+    Open(PathBuf),
     /// Requests that the playback thread queue the specified file for playback after the current
     /// file. If there is no current file, the specified file will be played immediately.
     Queue(QueueItemData),
@@ -55,8 +56,8 @@ pub enum PlaybackCommand {
 pub enum PlaybackEvent {
     /// Indicates that the playback state has changed.
     StateChanged(PlaybackState),
-    /// Indicates that the current file has changed. The string is the path to the new file.
-    SongChanged(String),
+    /// Indicates that the current file has changed providing the path to the new file.
+    SongChanged(PathBuf),
     /// Indicates that the duration of the current file has changed. The f64 is the new duration,
     /// in seconds.
     DurationChanged(u64),

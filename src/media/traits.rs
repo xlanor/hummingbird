@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{ffi::OsStr, fs::File};
 
 use crate::devices::format::ChannelSpec;
 
@@ -57,7 +57,7 @@ pub trait MediaProvider {
     /// Requests the Provider open the specified file. The file is provided as a File object, and
     /// theextension is provided as an Option<String>. If the extension is not provided, the
     /// Provider attempts to determine the extension based off of the file's contents.
-    fn open(&mut self, file: File, ext: Option<String>) -> Result<(), OpenError>;
+    fn open(&mut self, file: File, ext: Option<&OsStr>) -> Result<(), OpenError>;
 
     /// Informs the Provider that the currently opened file is no longer needed. This function is
     /// not guaranteed to be called before open if a file is already opened.

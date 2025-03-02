@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use async_std::task;
 use async_trait::async_trait;
@@ -66,7 +66,7 @@ impl LastFM {
 
 #[async_trait]
 impl MediaMetadataBroadcastService for LastFM {
-    async fn new_track(&mut self, _: String) {
+    async fn new_track(&mut self, _: PathBuf) {
         if self.should_scrobble {
             debug!("attempting scrobble");
             self.scrobble().await;

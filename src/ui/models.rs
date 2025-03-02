@@ -1,6 +1,7 @@
 use std::{
     collections::VecDeque,
     fs::{File, OpenOptions},
+    path::PathBuf,
     sync::{Arc, RwLock},
 };
 
@@ -57,12 +58,21 @@ pub struct Models {
 
 impl Global for Models {}
 
+#[derive(Clone, PartialEq, Debug)]
+pub struct CurrentTrack(PathBuf);
+
+impl CurrentTrack {
+    pub fn new(path: PathBuf) -> Self {
+        CurrentTrack(path)
+    }
+}
+
 #[derive(Clone)]
 pub struct PlaybackInfo {
     pub position: Entity<u64>,
     pub duration: Entity<u64>,
     pub playback_state: Entity<PlaybackState>,
-    pub current_track: Entity<Option<String>>,
+    pub current_track: Entity<Option<CurrentTrack>>,
     pub shuffling: Entity<bool>,
     pub volume: Entity<f64>,
     pub prev_volume: Entity<f64>,
@@ -81,14 +91,14 @@ pub struct Queue {
     pub position: usize,
 }
 
-impl EventEmitter<(String, QueueItemUIData)> for Queue {}
+impl EventEmitter<(PathBuf, QueueItemUIData)> for Queue {}
 
 #[derive(Clone)]
 pub struct MMBSList(pub AHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService>>>);
 
 #[derive(Clone)]
 pub enum MMBSEvent {
-    NewTrack(String),
+    NewTrack(PathBuf),
     MetadataRecieved(Arc<Metadata>),
     StateChanged(PlaybackState),
     PositionChanged(u64),
@@ -214,7 +224,7 @@ pub fn build_models(cx: &mut App, queue: Queue) {
     let position: Entity<u64> = cx.new(|_| 0);
     let duration: Entity<u64> = cx.new(|_| 0);
     let playback_state: Entity<PlaybackState> = cx.new(|_| PlaybackState::Stopped);
-    let current_track: Entity<Option<String>> = cx.new(|_| None);
+    let current_track: Entity<Option<CurrentTrack>> = cx.new(|_| None);
     let shuffling: Entity<bool> = cx.new(|_| false);
     let volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
     let prev_volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);

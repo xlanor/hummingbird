@@ -22,13 +22,7 @@ pub fn parse_args_and_prepare(cx: &mut App, interface: &GPUIPlaybackInterface) {
         interface.queue_list(
             files
                 .iter()
-                .map(|v| {
-                    v.clone()
-                        .into_os_string()
-                        .into_string()
-                        .expect("Invalid path")
-                })
-                .map(|v| QueueItemData::new(cx, v, None, None))
+                .map(|path| QueueItemData::new(cx, path.clone(), None, None))
                 .collect(),
         );
     }

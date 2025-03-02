@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{ffi::OsStr, fs::File};
 
 use intx::{I24, U24};
 use symphonia::{
@@ -160,14 +160,15 @@ impl SymphoniaProvider {
 }
 
 impl MediaProvider for SymphoniaProvider {
-    fn open(&mut self, file: File, ext: Option<String>) -> Result<(), OpenError> {
+    fn open(&mut self, file: File, ext: Option<&OsStr>) -> Result<(), OpenError> {
         let mss = MediaSourceStream::new(Box::new(file), Default::default());
         let meta_opts: MetadataOptions = Default::default();
         let fmt_opts: FormatOptions = Default::default();
 
-        let mut probed = if let Some(ext) = ext {
+        let ext_as_str = ext.and_then(|e| e.to_str());
+        let mut probed = if let Some(ext) = ext_as_str {
             let mut hint = Hint::new();
-            hint.with_extension(&ext);
+            hint.with_extension(ext);
 
             symphonia::default::get_probe()
                 .format(&hint, mss, &fmt_opts, &meta_opts)
