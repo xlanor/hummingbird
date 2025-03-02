@@ -1,4 +1,5 @@
 use std::{
+    path::PathBuf,
     sync::mpsc::{Receiver, Sender},
     time::Duration,
 };
@@ -67,7 +68,7 @@ impl GPUIDataInterface {
             .expect("could not send tx");
     }
 
-    pub fn get_metadata(&self, path: String) {
+    pub fn get_metadata(&self, path: PathBuf) {
         self.commands_tx
             .send(DataCommand::ReadMetadata(path))
             .expect("could not send tx");

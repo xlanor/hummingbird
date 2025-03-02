@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 mod table;
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use gpui::{IntoElement, RenderImage, SharedString};
@@ -222,5 +222,6 @@ pub struct Track {
     pub genres: Option<Vec<DBString>>,
     #[sqlx(skip)]
     pub tags: Option<Vec<DBString>>,
-    pub location: String,
+    #[sqlx(try_from = "String")]
+    pub location: PathBuf,
 }

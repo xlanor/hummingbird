@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::{
+    path::PathBuf,
     sync::{
         mpsc::{Receiver, Sender},
         Arc,
@@ -67,9 +68,9 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn open(&self, path: &str) {
+    pub fn open(&self, path: PathBuf) {
         self.commands_tx
-            .send(PlaybackCommand::Open(path.to_string()))
+            .send(PlaybackCommand::Open(path))
             .expect("could not send tx");
     }
 
@@ -251,17 +252,17 @@ impl GPUIPlaybackInterface {
                                 .expect("failed to broadcast MMBS event DurationChanged");
                         }
                         PlaybackEvent::SongChanged(v) => {
-                            let clone = v.clone();
+                            let path = v.get_path().clone();
                             playback_info
                                 .current_track
                                 .update(&mut cx, |m, cx| {
-                                    *m = Some(clone);
+                                    *m = Some(v);
                                     cx.notify()
                                 })
                                 .expect("failed to update current track");
                             mmbs_model
                                 .update(&mut cx, |_, cx| {
-                                    cx.emit(MMBSEvent::NewTrack(v));
+                                    cx.emit(MMBSEvent::NewTrack(path));
                                 })
                                 .expect("failed to broadcast MMBS event NewTrack");
                         }

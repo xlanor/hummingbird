@@ -1,5 +1,7 @@
 use std::{
     io::Cursor,
+    path::Path,
+    path::PathBuf,
     sync::{
         mpsc::{Receiver, Sender},
         Arc,
@@ -24,15 +26,15 @@ use super::{
     interface::DataInterface,
 };
 
-fn create_generic_queue_item(path: String) -> QueueItemUIData {
+fn create_generic_queue_item(path: &Path) -> QueueItemUIData {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|str| SharedString::from(str.to_string()));
+
     QueueItemUIData {
         image: None,
-        name: Some(
-            path.split(std::path::MAIN_SEPARATOR_STR)
-                .last()
-                .map(|v| SharedString::from(v.to_string()))
-                .unwrap(),
-        ),
+        name,
         artist_name: Some(SharedString::from("Unknown Artist")),
         source: DataSource::Metadata,
     }
@@ -83,7 +85,7 @@ impl DataThread {
                 }
                 DataCommand::EvictQueueCache => self.evict_unneeded_data(),
                 DataCommand::ReadMetadata(path) => {
-                    let item = self.read_metadata(path.clone());
+                    let item = self.read_metadata(&path);
 
                     self.events_tx
                         .send(DataEvent::MetadataRead(path, item))
@@ -132,20 +134,16 @@ impl DataThread {
         Ok(())
     }
 
-    fn read_metadata(&mut self, path: String) -> QueueItemUIData {
-        let file = if let Ok(file) = std::fs::File::open(path.clone()) {
+    fn read_metadata(&mut self, path: &PathBuf) -> QueueItemUIData {
+        let file = if let Ok(file) = std::fs::File::open(path) {
             file
         } else {
-            warn!("Failed to open file {}, queue may be desynced", path);
+            warn!("Failed to open file {:?}, queue may be desynced", path);
             warn!("Ensure the file exists before placing it in the queue");
             return create_generic_queue_item(path);
         };
 
-        if self
-            .media_provider
-            .open(file, path.split(".").last().map(|v| v.to_string()))
-            .is_err()
-        {
+        if self.media_provider.open(file, path.extension()).is_err() {
             warn!("Media provider couldn't open file, creating generic queue item");
             return create_generic_queue_item(path);
         }

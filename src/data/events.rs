@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use gpui::RenderImage;
@@ -30,7 +31,7 @@ pub enum DataCommand {
     /// Requests that the data processing thread perform cache maintenance.
     EvictQueueCache,
     /// Requests that the specified file is opened and metadata is read.
-    ReadMetadata(String),
+    ReadMetadata(PathBuf),
 }
 
 /// An event from the data thread. This is used to communicate information from the data thread to
@@ -44,7 +45,7 @@ pub enum DataEvent {
     /// specified image.
     DecodeError(ImageType),
     /// Indicates that new metadata is available for the specified file.
-    MetadataRead(String, QueueItemUIData),
+    MetadataRead(PathBuf, QueueItemUIData),
     /// Indicates that the data processing thread has evicted the specified images from the cache,
     /// and they should be removed from the sprite atlas.
     CacheDrops(Vec<Arc<RenderImage>>),

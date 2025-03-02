@@ -1,6 +1,7 @@
 use std::{fmt::Display, sync::Arc};
 
 use gpui::{App, AppContext, Entity, RenderImage, SharedString};
+use std::path::PathBuf;
 
 use crate::{data::interface::GPUIDataInterface, library::db::LibraryAccess, ui::models::Models};
 
@@ -13,12 +14,12 @@ pub struct QueueItemData {
     /// The database ID of album the item is from, if it exists.
     db_album_id: Option<i64>,
     /// The path to the track file.
-    path: String,
+    path: PathBuf,
 }
 
 impl Display for QueueItemData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.path)
+        f.write_str(self.path.to_str().unwrap_or("invalid path"))
     }
 }
 
@@ -44,7 +45,7 @@ pub enum DataSource {
 
 impl QueueItemData {
     /// Creates a new `QueueItemData` instance with the given information.
-    pub fn new(cx: &mut App, path: String, db_id: Option<i64>, db_album_id: Option<i64>) -> Self {
+    pub fn new(cx: &mut App, path: PathBuf, db_id: Option<i64>, db_album_id: Option<i64>) -> Self {
         QueueItemData {
             path,
             db_id,
@@ -101,7 +102,7 @@ impl QueueItemData {
             // subscribe for updates to the metadata
             cx.subscribe(
                 &queue_model,
-                move |m, _, ev: &(String, QueueItemUIData), cx| {
+                move |m, _, ev: &(PathBuf, QueueItemUIData), cx| {
                     if ev.0 == path_clone {
                         *m = Some(ev.1.clone());
                     }
@@ -126,7 +127,7 @@ impl QueueItemData {
     }
 
     /// Returns the file path of the queue item.
-    pub fn get_path(&self) -> &String {
+    pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
 }

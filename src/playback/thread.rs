@@ -1,6 +1,7 @@
 use std::{
     env::consts::OS,
     mem::swap,
+    path::PathBuf,
     sync::{
         mpsc::{Receiver, Sender},
         Arc, RwLock,
@@ -11,12 +12,12 @@ use std::{
 use rand::{rng, seq::SliceRandom};
 use tracing::{debug, error, info, warn};
 
-use crate::devices::builtin::cpal::CpalProvider;
 use crate::devices::builtin::dummy::DummyDeviceProvider;
 #[cfg(target_os = "linux")]
 use crate::devices::builtin::pulse::PulseProvider;
 #[cfg(target_os = "windows")]
 use crate::devices::builtin::win_audiograph::AudioGraphProvider;
+use crate::{devices::builtin::cpal::CpalProvider, ui::models::CurrentTrack};
 
 use crate::{
     devices::{
@@ -253,7 +254,7 @@ impl PlaybackThread {
             match command {
                 PlaybackCommand::Play => self.play(),
                 PlaybackCommand::Pause => self.pause(),
-                PlaybackCommand::Open(v) => self.open(&v),
+                PlaybackCommand::Open(path) => self.open(&path),
                 PlaybackCommand::Queue(v) => self.queue(v),
                 PlaybackCommand::QueueList(v) => self.queue_list(v),
                 PlaybackCommand::Next => self.next(true),
@@ -347,7 +348,7 @@ impl PlaybackThread {
         if self.state == PlaybackState::Stopped && !queue.is_empty() {
             let path = queue[0].get_path().clone();
             drop(queue);
-            self.open(&(path));
+            self.open(&path);
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(0))
                 .expect("unable to send event");
@@ -357,9 +358,9 @@ impl PlaybackThread {
         // nothing to play, womp womp
     }
 
-    /// Open a new track.
-    fn open(&mut self, path: &String) {
-        info!("Opening: {}", path);
+    /// Open a new track by given path.
+    fn open(&mut self, path: &PathBuf) {
+        info!("Opening: {:?}", path);
 
         let mut recreation_required = false;
 
@@ -415,7 +416,7 @@ impl PlaybackThread {
         }
 
         self.events_tx
-            .send(PlaybackEvent::SongChanged(path.clone()))
+            .send(PlaybackEvent::SongChanged(CurrentTrack::new(path.clone())))
             .expect("unable to send event");
 
         if let Ok(duration) = provider.duration_secs() {
@@ -453,9 +454,9 @@ impl PlaybackThread {
 
         if self.queue_next < queue.len() {
             info!("Opening next file in queue");
-            let next_path = queue[self.queue_next].get_path().clone();
+            let path = queue[self.queue_next].get_path().clone();
             drop(queue);
-            self.open(&next_path);
+            self.open(&path);
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(self.queue_next))
                 .expect("unable to send event");
@@ -472,23 +473,23 @@ impl PlaybackThread {
         let queue = self.queue.read().expect("couldn't get the queue");
 
         if self.state == PlaybackState::Stopped && !queue.is_empty() {
-            let track = queue.last().unwrap().get_path().clone();
+            let path = queue.last().unwrap().get_path().clone();
             self.queue_next = queue.len();
             drop(queue);
-            self.open(&track);
+            self.open(&path);
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
                 .expect("unable to send event");
         } else if self.queue_next > 1 {
             info!("Opening previous file in queue");
-            let prev_path = queue[self.queue_next - 2].get_path().clone();
+            let path = queue[self.queue_next - 2].get_path().clone();
             drop(queue);
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 2))
                 .expect("unable to send event");
             self.queue_next -= 1;
             debug!("queue_next: {}", self.queue_next);
-            self.open(&prev_path);
+            self.open(&path);
         }
     }
 
@@ -508,7 +509,8 @@ impl PlaybackThread {
         }
 
         if self.state == PlaybackState::Stopped {
-            self.open(item.get_path());
+            let path = item.get_path();
+            self.open(&path);
             self.queue_next = pre_len + 1;
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(pre_len))
@@ -545,7 +547,8 @@ impl PlaybackThread {
 
         if self.state == PlaybackState::Stopped {
             if let Some(first) = first {
-                self.open(first.get_path());
+                let path = first.get_path();
+                self.open(path);
                 self.queue_next = pre_len + 1;
                 self.events_tx
                     .send(PlaybackEvent::QueuePositionChanged(pre_len))
@@ -589,9 +592,9 @@ impl PlaybackThread {
         let queue = self.queue.read().expect("couldn't get the queue");
 
         if index < queue.len() {
-            let item = queue[index].get_path().clone();
+            let path = queue[index].get_path().clone();
             drop(queue);
-            self.open(&item);
+            self.open(&path);
             self.queue_next = index + 1;
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(index))
@@ -608,8 +611,8 @@ impl PlaybackThread {
         }
 
         let queue = self.queue.read().expect("couldn't get the queue");
-        let item = self.original_queue[index].get_path().clone();
-        let pos = queue.iter().position(|a| *a.get_path() == item);
+        let path = self.original_queue[index].get_path();
+        let pos = queue.iter().position(|a| a.get_path() == path);
         drop(queue);
 
         if let Some(pos) = pos {
@@ -677,11 +680,11 @@ impl PlaybackThread {
         if self.shuffle {
             // find the current track in the unshuffled queue
             let index = if self.queue_next > 0 {
-                let current = queue[self.queue_next - 1].get_path().clone();
+                let path = queue[self.queue_next - 1].get_path();
                 let index = self
                     .original_queue
                     .iter()
-                    .position(|x| x.get_path() == &current)
+                    .position(|x| x.get_path() == path)
                     .unwrap();
                 self.queue_next = index + 1;
                 index
