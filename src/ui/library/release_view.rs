@@ -317,25 +317,34 @@ impl Render for ReleaseView {
                     .flex_col()
                     .mx_auto(),
             )
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .text_sm()
-                    .ml(px(24.0))
-                    .pt(px(12.0))
-                    .pb(px(24.0))
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .text_color(theme.text_secondary)
-                    .when_some(self.release_info.clone(), |this, release_info| {
-                        this.child(div().child(release_info))
-                    })
-                    .when_some(self.album.release_date, |this, date| {
-                        this.child(div().child(format!("Released {}", date.format("%B %-e, %Y"))))
-                    })
-                    .when_some(self.album.isrc.as_ref(), |this, isrc| {
-                        this.child(div().child(isrc.clone()))
-                    }),
+            .when(
+                self.release_info.is_some()
+                    || self.album.release_date.is_some()
+                    || self.album.isrc.is_some(),
+                |this| {
+                    this.child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .text_sm()
+                            .ml(px(24.0))
+                            .pt(px(12.0))
+                            .pb(px(24.0))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(theme.text_secondary)
+                            .when_some(self.release_info.clone(), |this, release_info| {
+                                this.child(div().child(release_info))
+                            })
+                            .when_some(self.album.release_date, |this, date| {
+                                this.child(
+                                    div().child(format!("Released {}", date.format("%B %-e, %Y"))),
+                                )
+                            })
+                            .when_some(self.album.isrc.as_ref(), |this, isrc| {
+                                this.child(div().child(isrc.clone()))
+                            }),
+                    )
+                },
             )
     }
 }
