@@ -252,11 +252,10 @@ impl GPUIPlaybackInterface {
                                 .expect("failed to broadcast MMBS event DurationChanged");
                         }
                         PlaybackEvent::SongChanged(path) => {
-                            let current_track = CurrentTrack::new(path.clone());
                             playback_info
                                 .current_track
                                 .update(&mut cx, |m, cx| {
-                                    *m = Some(current_track.clone());
+                                    *m = Some(CurrentTrack::new(path.clone()));
                                     cx.notify()
                                 })
                                 .expect("failed to update current track");
