@@ -66,7 +66,7 @@ impl LastFM {
 
 #[async_trait]
 impl MediaMetadataBroadcastService for LastFM {
-    async fn new_track(&mut self, _: i64) {
+    async fn new_track(&mut self, _: String) {
         if self.should_scrobble {
             debug!("attempting scrobble");
             self.scrobble().await;

@@ -28,9 +28,7 @@ pub fn parse_args_and_prepare(cx: &mut App, interface: &GPUIPlaybackInterface) {
                         .into_string()
                         .expect("Invalid path")
                 })
-                .enumerate()
-                // Fix: `idx` is passed as track id, which might not exist in db
-                .map(|(idx, v)| QueueItemData::new(cx, v, idx as i64, None))
+                .map(|v| QueueItemData::new(cx, v, None, None))
                 .collect(),
         );
     }

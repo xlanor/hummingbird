@@ -8,8 +8,8 @@ use crate::{data::interface::GPUIDataInterface, library::db::LibraryAccess, ui::
 pub struct QueueItemData {
     /// The UI data associated with the queue item.
     data: Entity<Option<QueueItemUIData>>,
-    /// The database ID of the track the item is from.
-    db_id: i64,
+    /// The database ID of track the item is from, if it exists.
+    db_id: Option<i64>,
     /// The database ID of album the item is from, if it exists.
     db_album_id: Option<i64>,
     /// The path to the track file.
@@ -44,7 +44,7 @@ pub enum DataSource {
 
 impl QueueItemData {
     /// Creates a new `QueueItemData` instance with the given information.
-    pub fn new(cx: &mut App, path: String, db_id: i64, db_album_id: Option<i64>) -> Self {
+    pub fn new(cx: &mut App, path: String, db_id: Option<i64>, db_album_id: Option<i64>) -> Self {
         QueueItemData {
             path,
             db_id,
@@ -73,7 +73,7 @@ impl QueueItemData {
             });
 
             // if the database ids are known we can get the data from the database
-            if let Some(album_id) = album_id {
+            if let (Some(track_id), Some(album_id)) = (track_id, album_id) {
                 let album =
                     cx.get_album_by_id(album_id, crate::library::db::AlbumMethod::Thumbnail);
                 let track = cx.get_track_by_id(track_id);
@@ -128,10 +128,5 @@ impl QueueItemData {
     /// Returns the file path of the queue item.
     pub fn get_path(&self) -> &String {
         &self.path
-    }
-
-    /// Returns the track id of the queue item.
-    pub fn get_id(&self) -> i64 {
-        self.db_id
     }
 }

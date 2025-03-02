@@ -62,7 +62,7 @@ pub struct PlaybackInfo {
     pub position: Entity<u64>,
     pub duration: Entity<u64>,
     pub playback_state: Entity<PlaybackState>,
-    pub current_track_id: Entity<Option<i64>>,
+    pub current_track: Entity<Option<String>>,
     pub shuffling: Entity<bool>,
     pub volume: Entity<f64>,
     pub prev_volume: Entity<f64>,
@@ -88,7 +88,7 @@ pub struct MMBSList(pub AHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastSer
 
 #[derive(Clone)]
 pub enum MMBSEvent {
-    NewTrack(i64),
+    NewTrack(String),
     MetadataRecieved(Arc<Metadata>),
     StateChanged(PlaybackState),
     PositionChanged(u64),
@@ -179,7 +179,7 @@ pub fn build_models(cx: &mut App, queue: Queue) {
             cx.spawn(|_| async move {
                 let mut borrow = mmbs.lock().await;
                 match ev {
-                    MMBSEvent::NewTrack(track_id) => borrow.new_track(track_id),
+                    MMBSEvent::NewTrack(path) => borrow.new_track(path),
                     MMBSEvent::MetadataRecieved(metadata) => borrow.metadata_recieved(metadata),
                     MMBSEvent::StateChanged(state) => borrow.state_changed(state),
                     MMBSEvent::PositionChanged(position) => borrow.position_changed(position),
@@ -214,7 +214,7 @@ pub fn build_models(cx: &mut App, queue: Queue) {
     let position: Entity<u64> = cx.new(|_| 0);
     let duration: Entity<u64> = cx.new(|_| 0);
     let playback_state: Entity<PlaybackState> = cx.new(|_| PlaybackState::Stopped);
-    let current_track_id: Entity<Option<i64>> = cx.new(|_| None);
+    let current_track: Entity<Option<String>> = cx.new(|_| None);
     let shuffling: Entity<bool> = cx.new(|_| false);
     let volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
     let prev_volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
@@ -223,7 +223,7 @@ pub fn build_models(cx: &mut App, queue: Queue) {
         position,
         duration,
         playback_state,
-        current_track_id,
+        current_track,
         shuffling,
         volume,
         prev_volume,

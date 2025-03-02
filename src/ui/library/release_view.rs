@@ -151,9 +151,14 @@ impl Render for ReleaseView {
         // flag whether current track is part of the album
         let current_track_in_album = cx
             .global::<PlaybackInfo>()
-            .current_track_id
+            .current_track
             .read(cx)
-            .map_or(false, |id| self.tracks.iter().any(|t| t.id == id));
+            .clone()
+            .map_or(false, |current_track| {
+                self.tracks
+                    .iter()
+                    .any(|track| track.location == current_track)
+            });
 
         div()
             .mt(px(24.0))
@@ -243,7 +248,7 @@ impl Render for ReleaseView {
                                                                 QueueItemData::new(
                                                                     cx,
                                                                     track.location.clone(),
-                                                                    track.id,
+                                                                    Some(track.id),
                                                                     track.album_id,
                                                                 )
                                                             })
@@ -288,7 +293,7 @@ impl Render for ReleaseView {
                                                             QueueItemData::new(
                                                                 cx,
                                                                 track.location.clone(),
-                                                                track.id,
+                                                                Some(track.id),
                                                                 track.album_id,
                                                             )
                                                         })
@@ -315,7 +320,7 @@ impl Render for ReleaseView {
                                                             QueueItemData::new(
                                                                 cx,
                                                                 track.location.clone(),
-                                                                track.id,
+                                                                Some(track.id),
                                                                 track.album_id,
                                                             )
                                                         })
@@ -378,7 +383,7 @@ struct TrackItem {
 impl RenderOnce for TrackItem {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
-        let current_track_id = cx.global::<PlaybackInfo>().current_track_id.read(cx);
+        let current_track = cx.global::<PlaybackInfo>().current_track.read(cx).clone();
 
         let track_location = self.track.location.clone();
         let track_location_2 = self.track.location.clone();
@@ -426,8 +431,8 @@ impl RenderOnce for TrackItem {
                             .py(px(6.0))
                             .hover(|this| this.bg(theme.nav_button_hover))
                             .active(|this| this.bg(theme.nav_button_active))
-                            .when_some(*current_track_id, |this, track_id| {
-                                this.bg(if self.track.id == track_id {
+                            .when_some(current_track, |this, track| {
+                                this.bg(if self.track.location == track {
                                     theme.queue_item_current
                                 } else {
                                     theme.background_primary
@@ -475,7 +480,7 @@ impl RenderOnce for TrackItem {
                                 let data = QueueItemData::new(
                                     cx,
                                     track_location.clone(),
-                                    track_id,
+                                    Some(track_id),
                                     album_id,
                                 );
                                 let playback_interface = cx.global::<GPUIPlaybackInterface>();
@@ -505,7 +510,7 @@ impl RenderOnce for TrackItem {
                                 let data = QueueItemData::new(
                                     cx,
                                     track_location_2.clone(),
-                                    track_id,
+                                    Some(track_id),
                                     album_id,
                                 );
                                 let playback_interface = cx.global::<GPUIPlaybackInterface>();
@@ -518,23 +523,30 @@ impl RenderOnce for TrackItem {
 }
 
 fn play_from_track(cx: &mut App, track: &Track) {
-    let tracks = if let Some(album_id) = track.album_id {
+    let queue_items = if let Some(album_id) = track.album_id {
         cx.list_tracks_in_album(album_id)
             .expect("Failed to retrieve tracks")
             .iter()
-            .map(|track| QueueItemData::new(cx, track.location.clone(), track.id, track.album_id))
+            .map(|track| {
+                QueueItemData::new(cx, track.location.clone(), Some(track.id), track.album_id)
+            })
             .collect()
     } else {
         Vec::from([QueueItemData::new(
             cx,
             track.location.clone(),
-            track.id,
+            Some(track.id),
             track.album_id,
         )])
     };
 
-    replace_queue(tracks.clone(), cx);
+    replace_queue(queue_items.clone(), cx);
 
     let playback_interface = cx.global::<GPUIPlaybackInterface>();
-    playback_interface.jump_unshuffled(tracks.iter().position(|t| t.get_id() == track.id).unwrap())
+    playback_interface.jump_unshuffled(
+        queue_items
+            .iter()
+            .position(|t| t.get_path() == &track.location)
+            .unwrap(),
+    )
 }

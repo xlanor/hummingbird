@@ -67,9 +67,9 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn open(&self, track_id: i64, path: String) {
+    pub fn open(&self, path: String) {
         self.commands_tx
-            .send(PlaybackCommand::Open(path, track_id))
+            .send(PlaybackCommand::Open(path))
             .expect("could not send tx");
     }
 
@@ -208,7 +208,7 @@ impl GPUIPlaybackInterface {
 
                             if v == PlaybackState::Stopped {
                                 playback_info
-                                    .current_track_id
+                                    .current_track
                                     .update(&mut cx, |m, cx| {
                                         *m = None;
                                         cx.notify()
@@ -250,17 +250,18 @@ impl GPUIPlaybackInterface {
                                 })
                                 .expect("failed to broadcast MMBS event DurationChanged");
                         }
-                        PlaybackEvent::SongChanged(track_id) => {
+                        PlaybackEvent::SongChanged(v) => {
+                            let clone = v.clone();
                             playback_info
-                                .current_track_id
+                                .current_track
                                 .update(&mut cx, |m, cx| {
-                                    *m = Some(track_id);
+                                    *m = Some(clone);
                                     cx.notify()
                                 })
                                 .expect("failed to update current track");
                             mmbs_model
                                 .update(&mut cx, |_, cx| {
-                                    cx.emit(MMBSEvent::NewTrack(track_id));
+                                    cx.emit(MMBSEvent::NewTrack(v));
                                 })
                                 .expect("failed to broadcast MMBS event NewTrack");
                         }
