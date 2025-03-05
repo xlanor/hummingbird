@@ -510,7 +510,7 @@ impl PlaybackThread {
 
         if self.state == PlaybackState::Stopped {
             let path = item.get_path();
-            self.open(&path);
+            self.open(path);
             self.queue_next = pre_len + 1;
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(pre_len))

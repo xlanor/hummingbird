@@ -8,6 +8,7 @@ use std::{
 use ahash::AHashMap;
 use async_std::sync::Mutex;
 use gpui::{App, AppContext, Entity, EventEmitter, Global, RenderImage};
+use serde::{Deserialize, Serialize};
 use tracing::{debug, error, warn};
 
 use crate::{
@@ -25,6 +26,7 @@ use crate::{
         lastfm::{client::LastFMClient, types::Session, LastFM, LASTFM_API_KEY, LASTFM_API_SECRET},
         MediaMetadataBroadcastService,
     },
+    settings::storage::StorageData,
     ui::{app::get_dirs, library::ViewSwitchMessage},
 };
 
@@ -58,12 +60,16 @@ pub struct Models {
 
 impl Global for Models {}
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct CurrentTrack(PathBuf);
 
 impl CurrentTrack {
     pub fn new(path: PathBuf) -> Self {
         CurrentTrack(path)
+    }
+
+    pub fn get_path(&self) -> &PathBuf {
+        &self.0
     }
 }
 
@@ -113,7 +119,7 @@ pub enum MMBSEvent {
 
 impl EventEmitter<MMBSEvent> for MMBSList {}
 
-pub fn build_models(cx: &mut App, queue: Queue) {
+pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     debug!("Building models");
     let metadata: Entity<Metadata> = cx.new(|_| Metadata::default());
     let albumart: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
@@ -230,7 +236,8 @@ pub fn build_models(cx: &mut App, queue: Queue) {
     let position: Entity<u64> = cx.new(|_| 0);
     let duration: Entity<u64> = cx.new(|_| 0);
     let playback_state: Entity<PlaybackState> = cx.new(|_| PlaybackState::Stopped);
-    let current_track: Entity<Option<CurrentTrack>> = cx.new(|_| None);
+    let current_track: Entity<Option<CurrentTrack>> =
+        cx.new(|_| storage_data.current_track.clone());
     let shuffling: Entity<bool> = cx.new(|_| false);
     let volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
     let prev_volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);

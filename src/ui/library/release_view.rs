@@ -154,7 +154,7 @@ impl Render for ReleaseView {
             .current_track
             .read(cx)
             .clone()
-            .map_or(false, |current_track| {
+            .is_some_and(|current_track| {
                 self.tracks
                     .iter()
                     .any(|track| current_track == track.location)

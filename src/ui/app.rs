@@ -17,7 +17,11 @@ use crate::{
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
-    settings::{setup_settings, SettingsGlobal},
+    settings::{
+        setup_settings,
+        storage::{Storage, StorageData},
+        SettingsGlobal,
+    },
 };
 
 use super::{
@@ -29,7 +33,7 @@ use super::{
     global_actions::register_actions,
     header::Header,
     library::Library,
-    models::{self, build_models},
+    models::{self, build_models, PlaybackInfo},
     queue::Queue,
     search::SearchView,
     theme::{setup_theme, Theme},
@@ -283,6 +287,8 @@ pub async fn run() {
             register_actions(cx);
 
             let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
+            let storage = Storage::new(directory.clone().join("app_data.json"));
+            let storage_data = storage.load_or_default();
 
             build_models(
                 cx,
@@ -290,6 +296,7 @@ pub async fn run() {
                     data: queue.clone(),
                     position: 0,
                 },
+                &storage_data,
             );
 
             input::bind_actions(cx);
@@ -325,6 +332,13 @@ pub async fn run() {
             let mut data_interface: GPUIDataInterface = DataThread::start();
 
             playback_interface.start_broadcast(cx);
+            if let Some(track) = storage_data.current_track {
+                // open current track,
+                playback_interface.open(track.get_path().clone());
+                // but stop it immediately
+                playback_interface.pause();
+            }
+
             data_interface.start_broadcast(cx, drop_model);
 
             parse_args_and_prepare(cx, &playback_interface);
@@ -356,6 +370,19 @@ pub async fn run() {
                     cx.new(|cx| {
                         cx.observe_window_appearance(window, |_, _, cx| {
                             cx.refresh_windows();
+                        })
+                        .detach();
+
+                        // Update `StorageData` and save it to file system while quitting the app
+                        cx.on_app_quit({
+                            let current_track = cx.global::<PlaybackInfo>().current_track.clone();
+                            move |_, cx| {
+                                let current_track = current_track.read(cx).clone();
+                                let storage = storage.clone();
+                                cx.background_executor().spawn(async move {
+                                    storage.save(&StorageData { current_track });
+                                })
+                            }
                         })
                         .detach();
 
