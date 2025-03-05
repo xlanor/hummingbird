@@ -13,7 +13,6 @@ use tracing::{info, warn};
 pub struct Settings {
     #[serde(default)]
     pub scanning: scan::ScanSettings,
-    pub storage_data: StorageData,
 }
 
 pub fn create_settings(path: &PathBuf) -> Settings {
