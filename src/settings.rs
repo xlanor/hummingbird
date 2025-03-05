@@ -1,10 +1,12 @@
 pub mod scan;
+pub mod storage;
 
 use std::{fs::File, path::PathBuf, sync::mpsc::channel, time::Duration};
 
 use gpui::{App, AppContext, AsyncApp, Entity, Global};
 use notify::{Event, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
+use storage::StorageData;
 use tracing::{info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
