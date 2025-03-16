@@ -23,7 +23,7 @@ use crate::{
         MediaMetadataBroadcastService,
     },
     settings::storage::StorageData,
-    ui::{app::get_dirs, library::ViewSwitchMessage},
+    ui::{app::get_dirs, data::Decode, library::ViewSwitchMessage},
 };
 
 // yes this looks a little silly
@@ -142,16 +142,11 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         }
     });
 
-    // cx.subscribe(&albumart, |_, ev, cx| {
-    //     let img = ev.0.clone();
-    //     cx.global::<GPUIDataInterface>().decode_image(
-    //         img,
-    //         ImageType::CurrentAlbumArt,
-    //         ImageLayout::BGR,
-    //         true,
-    //     );
-    // })
-    // .detach();
+    cx.subscribe(&albumart, |e, ev, cx| {
+        let img = ev.0.clone();
+        cx.decode_image(img, true, e).detach();
+    })
+    .detach();
 
     let mmbs_clone = mmbs.clone();
 
