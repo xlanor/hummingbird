@@ -12,10 +12,6 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, error, warn};
 
 use crate::{
-    data::{
-        events::{ImageLayout, ImageType},
-        interface::GPUIDataInterface,
-    },
     library::scan::ScanEvent,
     media::metadata::Metadata,
     playback::{
@@ -27,7 +23,7 @@ use crate::{
         MediaMetadataBroadcastService,
     },
     settings::storage::StorageData,
-    ui::{app::get_dirs, library::ViewSwitchMessage},
+    ui::{app::get_dirs, data::Decode, library::ViewSwitchMessage},
 };
 
 // yes this looks a little silly
@@ -51,7 +47,6 @@ pub struct Models {
     pub metadata: Entity<Metadata>,
     pub albumart: Entity<Option<Arc<RenderImage>>>,
     pub queue: Entity<Queue>,
-    pub image_transfer_model: Entity<TransferDummy>,
     pub scan_state: Entity<ScanEvent>,
     pub mmbs: Entity<MMBSList>,
     pub lastfm: Entity<LastFMState>,
@@ -92,10 +87,10 @@ pub struct PlaybackInfo {
 
 impl Global for PlaybackInfo {}
 
-pub struct ImageTransfer(pub ImageType, pub Arc<RenderImage>);
-pub struct TransferDummy;
+// pub struct ImageTransfer(pub ImageType, pub Arc<RenderImage>);
+// pub struct TransferDummy;
 
-impl EventEmitter<ImageTransfer> for TransferDummy {}
+// impl EventEmitter<ImageTransfer> for TransferDummy {}
 
 #[derive(Debug, Clone)]
 pub struct Queue {
@@ -124,7 +119,6 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     let metadata: Entity<Metadata> = cx.new(|_| Metadata::default());
     let albumart: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
     let queue: Entity<Queue> = cx.new(move |_| queue);
-    let image_transfer_model: Entity<TransferDummy> = cx.new(|_| TransferDummy);
     let scan_state: Entity<ScanEvent> = cx.new(|_| ScanEvent::ScanCompleteIdle);
     let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(AHashMap::new()));
     let lastfm: Entity<LastFMState> = cx.new(|cx| {
@@ -148,14 +142,9 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         }
     });
 
-    cx.subscribe(&albumart, |_, ev, cx| {
+    cx.subscribe(&albumart, |e, ev, cx| {
         let img = ev.0.clone();
-        cx.global::<GPUIDataInterface>().decode_image(
-            img,
-            ImageType::CurrentAlbumArt,
-            ImageLayout::BGR,
-            true,
-        );
+        cx.decode_image(img, true, e).detach();
     })
     .detach();
 
@@ -224,7 +213,6 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         metadata,
         albumart,
         queue,
-        image_transfer_model,
         scan_state,
         mmbs,
         lastfm,
