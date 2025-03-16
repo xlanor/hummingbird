@@ -22,6 +22,7 @@ image = "0.25"
 intx = "0.1"
 isahc = { version = "1", features = ["json"] }
 md5 = "0.7"
+moka = { version = "0.12", features = ["future"] }
 notify = "8"
 nucleo = "0.5"
 open = "5"

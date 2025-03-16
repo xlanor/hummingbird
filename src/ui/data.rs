@@ -1,15 +1,36 @@
-use std::{fs::File, io::Cursor, sync::Arc};
+use std::{fs::File, hash::Hasher, io::Cursor, sync::Arc};
 
-use gpui::{App, AppContext, Entity, RenderImage, SharedString, Task};
+use ahash::AHasher;
+use async_std::sync::Mutex;
+use gpui::{App, AppContext, Entity, Global, RenderImage, SharedString, Task};
 use image::{imageops::thumbnail, Frame, ImageReader};
 use smallvec::smallvec;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::{
     media::{builtin::symphonia::SymphoniaProvider, traits::MediaProvider},
     playback::queue::{DataSource, QueueItemUIData},
     util::rgb_to_bgr,
 };
+
+#[derive(Clone)]
+pub struct AlbumCache {
+    pub cache: Arc<Mutex<moka::future::Cache<u64, Arc<RenderImage>>>>,
+}
+
+impl AlbumCache {
+    pub fn new() -> Self {
+        Self {
+            cache: Arc::new(Mutex::new(moka::future::Cache::new(30))),
+        }
+    }
+}
+
+impl Global for AlbumCache {}
+
+pub fn create_album_cache(cx: &mut App) -> () {
+    cx.set_global(AlbumCache::new());
+}
 
 fn decode_image(data: Box<[u8]>, thumb: bool) -> anyhow::Result<Arc<RenderImage>> {
     let mut image = ImageReader::new(Cursor::new(data))
@@ -28,18 +49,38 @@ fn decode_image(data: Box<[u8]>, thumb: bool) -> anyhow::Result<Arc<RenderImage>
     Ok(Arc::new(RenderImage::new(smallvec![frame])))
 }
 
-fn read_metadata(path: String) -> anyhow::Result<QueueItemUIData> {
+async fn read_metadata(path: String, cache: &mut AlbumCache) -> anyhow::Result<QueueItemUIData> {
     let file = File::open(&path)?;
 
     // TODO: Switch to a different media provider based on the file
     let mut media_provider = SymphoniaProvider::default();
     media_provider.open(file, None)?;
     media_provider.start_playback()?;
-    let metadata = media_provider.read_metadata()?;
 
-    // TODO: handle album art
-    // needs a cache
-    let album_art = None;
+    let album_art_source = media_provider.read_image().ok().flatten();
+
+    let album_art = if let Some(v) = album_art_source {
+        let cache_lock = cache.cache.lock().await;
+
+        // hash before hand to avoid storing the entire image as a key
+        let mut hasher = AHasher::default();
+        hasher.write(&v);
+        let hash = hasher.finish();
+
+        if let Some(image) = cache_lock.get(&hash).await {
+            debug!("read_metadata cache hit for {}", hash);
+            Some(image.clone())
+        } else {
+            let image = decode_image(v, true)?;
+            debug!("read_metadata cache miss for {}", hash);
+            cache_lock.insert(hash, image.clone()).await;
+            Some(image)
+        }
+    } else {
+        None
+    };
+
+    let metadata = media_provider.read_metadata()?;
 
     Ok(QueueItemUIData {
         image: album_art,
@@ -86,9 +127,11 @@ impl Decode for App {
     }
 
     fn read_metadata(&self, path: String, entity: Entity<Option<QueueItemUIData>>) -> Task<()> {
+        let mut cache = self.global::<AlbumCache>().clone();
+
         self.spawn(|mut cx| async move {
             let read_task = cx
-                .background_spawn(async move { read_metadata(path) })
+                .background_spawn(async move { read_metadata(path, &mut cache).await })
                 .await;
 
             let Ok(metadata) = read_task else {

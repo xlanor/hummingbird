@@ -29,6 +29,7 @@ use super::{
     components::{input, modal},
     constants::APP_ROUNDING,
     controls::Controls,
+    data::create_album_cache,
     global_actions::register_actions,
     header::Header,
     library::Library,
@@ -303,6 +304,8 @@ pub async fn run() {
 
             setup_theme(cx, directory.join("theme.json"));
             setup_settings(cx, directory.join("settings.json"));
+
+            create_album_cache(cx);
 
             if let Ok(pool) = pool {
                 let settings = cx.global::<SettingsGlobal>().model.read(cx);
