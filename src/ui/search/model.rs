@@ -17,11 +17,13 @@ use tracing::debug;
 use crate::{
     library::{
         db::{AlbumMethod, LibraryAccess},
+        scan::ScanEvent,
         types::Album,
     },
     ui::{
         components::input::EnrichedInputAction,
         library::ViewSwitchMessage,
+        models::{Models, PlaybackInfo},
         theme::Theme,
         util::{create_or_retrieve_view, drop_image_from_app, prune_views},
     },
@@ -142,6 +144,32 @@ impl SearchModel {
             }
 
             let current_selection = cx.new(|_| 0);
+
+            let scan_status = cx.global::<Models>().scan_state.clone();
+
+            cx.observe(&scan_status, |this, ev, cx| {
+                let state = ev.read(cx);
+
+                if *state == ScanEvent::ScanCompleteIdle
+                    || *state == ScanEvent::ScanCompleteWatching
+                {
+                    let albums = cx
+                        .list_albums_search()
+                        .expect("could not retrieve albums from db");
+
+                    this.matcher.restart(false);
+                    let injector = this.matcher.injector();
+
+                    for album in albums {
+                        injector.push(album, |v, dest| {
+                            dest[0] = Utf32String::from(v.1.clone());
+                        });
+                    }
+
+                    cx.notify();
+                }
+            })
+            .detach();
 
             SearchModel {
                 query: String::new(),
