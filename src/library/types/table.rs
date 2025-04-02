@@ -1,67 +1,86 @@
 use std::sync::Arc;
 
+use fnv::FnvBuildHasher;
 use gpui::{App, RenderImage, SharedString};
+use indexmap::IndexMap;
 
 use super::Album;
 use crate::{
     library::db::{AlbumMethod, AlbumSortMethod, LibraryAccess},
-    ui::components::table::table_data::{TableData, TableSort},
+    ui::components::table::table_data::{Column, TableData, TableSort},
 };
 
-impl TableData for Album {
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum AlbumColumn {
+    Title,
+    Artist,
+    Date,
+    Label,
+    CatalogNumber,
+}
+
+impl Column for AlbumColumn {
+    fn get_column_name(&self) -> &'static str {
+        match self {
+            AlbumColumn::Title => "Title",
+            AlbumColumn::Artist => "Artist",
+            AlbumColumn::Date => "Date",
+            AlbumColumn::Label => "Label",
+            AlbumColumn::CatalogNumber => "Catalog Number",
+        }
+    }
+}
+
+impl TableData<AlbumColumn> for Album {
     type Identifier = (u32, String);
 
     fn get_table_name() -> &'static str {
         "Albums"
     }
 
-    fn get_column_names() -> &'static [&'static str] {
-        &["Title", "Artist", "Date", "Label", "Catalog Number"]
-    }
-
     fn get_rows(
         cx: &mut gpui::App,
-        sort: Option<TableSort>,
+        sort: Option<TableSort<AlbumColumn>>,
     ) -> anyhow::Result<Vec<Self::Identifier>> {
         let sort_method = match sort {
             Some(TableSort {
-                column: "Title",
+                column: AlbumColumn::Title,
                 ascending: true,
             }) => AlbumSortMethod::TitleAsc,
             Some(TableSort {
-                column: "Title",
+                column: AlbumColumn::Title,
                 ascending: false,
             }) => AlbumSortMethod::TitleDesc,
             Some(TableSort {
-                column: "Artist",
+                column: AlbumColumn::Artist,
                 ascending: true,
             }) => AlbumSortMethod::ArtistAsc,
             Some(TableSort {
-                column: "Artist",
+                column: AlbumColumn::Artist,
                 ascending: false,
             }) => AlbumSortMethod::ArtistDesc,
             Some(TableSort {
-                column: "Date",
+                column: AlbumColumn::Date,
                 ascending: true,
             }) => AlbumSortMethod::ReleaseAsc,
             Some(TableSort {
-                column: "Date",
+                column: AlbumColumn::Date,
                 ascending: false,
             }) => AlbumSortMethod::ReleaseDesc,
             Some(TableSort {
-                column: "Label",
+                column: AlbumColumn::Label,
                 ascending: true,
             }) => AlbumSortMethod::LabelAsc,
             Some(TableSort {
-                column: "Label",
+                column: AlbumColumn::Label,
                 ascending: false,
             }) => AlbumSortMethod::LabelDesc,
             Some(TableSort {
-                column: "Catalog Number",
+                column: AlbumColumn::CatalogNumber,
                 ascending: true,
             }) => AlbumSortMethod::CatalogAsc,
             Some(TableSort {
-                column: "Catalog Number",
+                column: AlbumColumn::CatalogNumber,
                 ascending: false,
             }) => AlbumSortMethod::CatalogDesc,
             _ => AlbumSortMethod::ArtistAsc,
@@ -74,19 +93,18 @@ impl TableData for Album {
         Ok(cx.get_album_by_id(id.0 as i64, AlbumMethod::Thumbnail).ok())
     }
 
-    fn get_column(&self, cx: &mut App, column: &'static str) -> Option<SharedString> {
+    fn get_column(&self, cx: &mut App, column: AlbumColumn) -> Option<SharedString> {
         match column {
-            "Title" => Some(self.title.0.clone()),
-            "Artist" => cx
+            AlbumColumn::Title => Some(self.title.0.clone()),
+            AlbumColumn::Artist => cx
                 .get_artist_name_by_id(self.artist_id)
                 .ok()
                 .map(|v| (*v).clone().into()),
-            "Date" => self
+            AlbumColumn::Date => self
                 .release_date
                 .map(|date| date.format("%x").to_string().into()),
-            "Label" => self.label.as_ref().map(|v| v.0.clone()),
-            "Catalog Number" => self.catalog_number.as_ref().map(|v| v.0.clone()),
-            _ => None,
+            AlbumColumn::Label => self.label.as_ref().map(|v| v.0.clone()),
+            AlbumColumn::CatalogNumber => self.catalog_number.as_ref().map(|v| v.0.clone()),
         }
     }
 
@@ -94,16 +112,18 @@ impl TableData for Album {
         self.thumb.as_ref().map(|thumb| thumb.0.clone())
     }
 
-    fn default_column_widths() -> Vec<f32> {
-        vec![300.0, 200.0, 100.0, 150.0, 200.0]
-    }
-
     fn has_images() -> bool {
         true
     }
 
-    fn column_monospace() -> &'static [bool] {
-        &[false, false, true, false, false]
+    fn column_monospace(column: AlbumColumn) -> bool {
+        match column {
+            AlbumColumn::Title
+            | AlbumColumn::Artist
+            | AlbumColumn::Label
+            | AlbumColumn::CatalogNumber => false,
+            AlbumColumn::Date => true,
+        }
     }
 
     fn get_element_id(&self) -> impl Into<gpui::ElementId> {
@@ -112,5 +132,16 @@ impl TableData for Album {
 
     fn get_table_id(&self) -> Self::Identifier {
         (self.id as u32, self.title.0.clone().into())
+    }
+
+    fn default_columns() -> IndexMap<AlbumColumn, f32, FnvBuildHasher> {
+        let s = FnvBuildHasher::default();
+        let mut columns: IndexMap<AlbumColumn, f32, FnvBuildHasher> = IndexMap::with_hasher(s);
+        columns.insert(AlbumColumn::Title, 300.0);
+        columns.insert(AlbumColumn::Artist, 200.0);
+        columns.insert(AlbumColumn::Date, 100.0);
+        columns.insert(AlbumColumn::Label, 150.0);
+        columns.insert(AlbumColumn::CatalogNumber, 200.0);
+        columns
     }
 }

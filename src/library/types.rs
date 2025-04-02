@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-mod table;
+pub mod table;
 
 use std::{path::PathBuf, sync::Arc};
 

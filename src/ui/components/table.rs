@@ -1,11 +1,13 @@
 pub mod table_data;
 mod table_item;
 
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use ahash::AHashMap;
+use fnv::FnvBuildHasher;
 use gpui::{prelude::FluentBuilder, *};
-use table_data::{TableData, TableSort};
+use indexmap::IndexMap;
+use table_data::{Column, TableData, TableSort};
 use table_item::TableItem;
 use tracing::warn;
 
@@ -15,41 +17,48 @@ use crate::ui::{
     util::{create_or_retrieve_view, prune_views},
 };
 
-type RowMap<T> = AHashMap<usize, Entity<TableItem<T>>>;
+type RowMap<T, C> = AHashMap<usize, Entity<TableItem<T, C>>>;
 
 #[allow(type_alias_bounds)]
-pub type OnSelectHandler<T>
+pub type OnSelectHandler<T, C>
 where
-    T: TableData,
+    C: Column,
+    T: TableData<C>,
 = Rc<dyn Fn(&mut App, &T::Identifier) + 'static>;
 
 #[derive(Clone)]
-pub struct Table<T>
+pub struct Table<T, C>
 where
-    T: TableData + 'static,
+    T: TableData<C> + 'static,
+    C: Column + 'static,
 {
-    columns: &'static [&'static str],
-    widths: Entity<Vec<f32>>,
-    views: Entity<RowMap<T>>,
+    columns: Entity<Arc<IndexMap<C, f32, FnvBuildHasher>>>,
+    views: Entity<RowMap<T, C>>,
     render_counter: Entity<usize>,
     list_state: ListState,
-    sort_method: Entity<Option<TableSort>>,
-    on_select: Option<OnSelectHandler<T>>,
+    sort_method: Entity<Option<TableSort<C>>>,
+    on_select: Option<OnSelectHandler<T, C>>,
 }
 
 pub enum TableEvent {
     NewRows,
 }
 
-impl<T> EventEmitter<TableEvent> for Table<T> where T: TableData {}
-
-impl<T> Table<T>
+impl<T, C> EventEmitter<TableEvent> for Table<T, C>
 where
-    T: TableData + 'static,
+    T: TableData<C>,
+    C: Column + 'static,
 {
-    pub fn new(cx: &mut App, on_select: Option<OnSelectHandler<T>>) -> Entity<Self> {
+}
+
+impl<T, C> Table<T, C>
+where
+    T: TableData<C> + 'static,
+    C: Column + 'static,
+{
+    pub fn new(cx: &mut App, on_select: Option<OnSelectHandler<T, C>>) -> Entity<Self> {
         cx.new(|cx| {
-            let widths = cx.new(|_| T::default_column_widths());
+            let columns = cx.new(|_| Arc::new(T::default_columns()));
             let views = cx.new(|_| AHashMap::new());
             let render_counter = cx.new(|_| 0);
             let sort_method = cx.new(|_| None);
@@ -59,7 +68,7 @@ where
                 views.clone(),
                 render_counter.clone(),
                 &sort_method,
-                widths.clone(),
+                columns.clone(),
                 on_select.clone(),
             );
 
@@ -75,8 +84,7 @@ where
             .detach();
 
             Self {
-                columns: T::get_column_names(),
-                widths,
+                columns,
                 views,
                 render_counter,
                 list_state,
@@ -96,7 +104,7 @@ where
             self.views.clone(),
             self.render_counter.clone(),
             &self.sort_method,
-            self.widths.clone(),
+            self.columns.clone(),
             self.on_select.clone(),
         );
 
@@ -107,13 +115,13 @@ where
 
     fn make_list_state(
         cx: &mut Context<'_, Self>,
-        views: Entity<RowMap<T>>,
+        views: Entity<RowMap<T, C>>,
         render_counter: Entity<usize>,
-        sort_method_entity: &Entity<Option<TableSort>>,
-        widths: Entity<Vec<f32>>,
-        handler: Option<OnSelectHandler<T>>,
+        sort_method_entity: &Entity<Option<TableSort<C>>>,
+        columns: Entity<Arc<IndexMap<C, f32, FnvBuildHasher>>>,
+        handler: Option<OnSelectHandler<T, C>>,
     ) -> ListState {
-        let sort_method = *sort_method_entity.read(cx);
+        let sort_method = sort_method_entity.read(cx).clone();
         let Ok(rows) = T::get_rows(cx, sort_method) else {
             warn!("Failed to get rows");
             return ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {
@@ -136,14 +144,7 @@ where
                     .child(create_or_retrieve_view(
                         &views,
                         idx,
-                        |cx| {
-                            TableItem::new(
-                                cx,
-                                idents_rc[idx].clone(),
-                                widths.clone(),
-                                handler.clone(),
-                            )
-                        },
+                        |cx| TableItem::new(cx, idents_rc[idx].clone(), &columns, handler.clone()),
                         cx,
                     ))
                     .into_any_element()
@@ -152,9 +153,10 @@ where
     }
 }
 
-impl<T> Render for Table<T>
+impl<T, C> Render for Table<T, C>
 where
-    T: TableData + 'static,
+    T: TableData<C> + 'static,
+    C: Column + 'static,
 {
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let mut header = div().w_full().flex();
@@ -179,8 +181,9 @@ where
             );
         }
 
-        for (i, column) in self.columns.iter().enumerate() {
-            let width = self.widths.read(cx)[i];
+        for (i, column) in self.columns.read(cx).iter().enumerate() {
+            let width = *column.1;
+            let column_id = *column.0;
             header = header.child(
                 div()
                     .flex()
@@ -202,9 +205,9 @@ where
                     .border_b_1()
                     .border_color(theme.border_color)
                     .font_weight(FontWeight::BOLD)
-                    .child(SharedString::new_static(column))
+                    .child(SharedString::new_static(column_id.get_column_name()))
                     .when_some(sort_method.as_ref(), |this, method| {
-                        this.when(method.column == *column, |this| {
+                        this.when(method.column == column_id, |this| {
                             this.child(
                                 div()
                                     .ml(px(7.0))
@@ -216,21 +219,21 @@ where
                             )
                         })
                     })
-                    .id(*column)
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.sort_method.update(cx, |this, cx| {
+                    .id(i)
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.sort_method.update(cx, move |this, cx| {
                             if let Some(method) = this.as_mut() {
-                                if method.column == *column {
+                                if method.column == column_id {
                                     method.ascending = !method.ascending;
                                 } else {
                                     *this = Some(TableSort {
-                                        column: *column,
+                                        column: column_id,
                                         ascending: true,
                                     });
                                 }
                             } else {
                                 *this = Some(TableSort {
-                                    column: *column,
+                                    column: column_id,
                                     ascending: true,
                                 });
                             }

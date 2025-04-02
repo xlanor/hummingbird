@@ -3,7 +3,10 @@ use std::{collections::VecDeque, rc::Rc};
 use gpui::*;
 
 use crate::{
-    library::{scan::ScanEvent, types::Album},
+    library::{
+        scan::ScanEvent,
+        types::{table::AlbumColumn, Album},
+    },
     ui::{
         components::table::{Table, TableEvent},
         models::Models,
@@ -14,7 +17,7 @@ use super::ViewSwitchMessage;
 
 #[derive(Clone)]
 pub struct AlbumView {
-    table: Entity<Table<Album>>,
+    table: Entity<Table<Album, AlbumColumn>>,
 }
 
 impl AlbumView {

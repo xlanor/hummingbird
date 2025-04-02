@@ -1,43 +1,51 @@
 use std::sync::Arc;
 
+use fnv::FnvBuildHasher;
 use gpui::{prelude::FluentBuilder, *};
+use indexmap::IndexMap;
 
 use crate::ui::{theme::Theme, util::drop_image_from_app};
 
-use super::{table_data::TableData, OnSelectHandler};
+use super::{
+    table_data::{Column, TableData},
+    OnSelectHandler,
+};
 
 #[derive(Clone)]
-pub struct TableItem<T>
+pub struct TableItem<T, C>
 where
-    T: TableData + 'static,
+    T: TableData<C> + 'static,
+    C: Column + 'static,
 {
     data: Option<Vec<Option<SharedString>>>,
     image: Option<Arc<RenderImage>>,
-    widths: Entity<Vec<f32>>,
-    on_select: Option<OnSelectHandler<T>>,
+    columns: Arc<IndexMap<C, f32, FnvBuildHasher>>,
+    on_select: Option<OnSelectHandler<T, C>>,
     row: Option<Arc<T>>,
     id: Option<ElementId>,
 }
 
-impl<T> TableItem<T>
+impl<T, C> TableItem<T, C>
 where
-    T: TableData + 'static,
+    T: TableData<C> + 'static,
+    C: Column + 'static,
 {
     pub fn new(
         cx: &mut App,
         id: T::Identifier,
-        widths: Entity<Vec<f32>>,
-        on_select: Option<OnSelectHandler<T>>,
+        columns: &Entity<Arc<IndexMap<C, f32, FnvBuildHasher>>>,
+        on_select: Option<OnSelectHandler<T, C>>,
     ) -> Entity<Self> {
         let row = T::get_row(cx, id).ok().flatten();
 
         let id = row.as_ref().map(|row| row.get_element_id().into());
 
-        let data = row.as_ref().map(|row| {
-            T::get_column_names()
-                .iter()
-                .map(|v| row.get_column(cx, v))
-                .collect()
+        let columns_read = columns.read(cx).clone();
+
+        let data = row.clone().map(|row| {
+            let keys = columns_read.keys();
+
+            keys.into_iter().map(|v| row.get_column(cx, *v)).collect()
         });
 
         let image = row.as_ref().and_then(|row| row.get_image());
@@ -52,10 +60,23 @@ where
             })
             .detach();
 
+            cx.observe(columns, |this, m, cx| {
+                this.columns = m.read(cx).clone();
+
+                this.data = this.row.clone().map(|row| {
+                    let keys = this.columns.keys();
+
+                    keys.into_iter().map(|v| row.get_column(cx, *v)).collect()
+                });
+
+                cx.notify();
+            })
+            .detach();
+
             Self {
                 data,
                 image,
-                widths,
+                columns: columns_read,
                 on_select,
                 id,
                 row,
@@ -64,9 +85,10 @@ where
     }
 }
 
-impl<T> Render for TableItem<T>
+impl<T, C> Render for TableItem<T, C>
 where
-    T: TableData + 'static,
+    T: TableData<C> + 'static,
+    C: Column + 'static,
 {
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
@@ -114,8 +136,12 @@ where
 
         if let Some(data) = self.data.as_ref() {
             for (i, column) in data.iter().enumerate() {
-                let width = self.widths.read(cx).get(i).cloned().unwrap_or(100.0);
-                let monospace = T::column_monospace()[i];
+                let col = self
+                    .columns
+                    .get_index(i)
+                    .expect("data references column outside of viewed table");
+                let width = *col.1;
+                let monospace = T::column_monospace(*col.0);
                 let column = div()
                     .w(px(width))
                     .when(T::has_images(), |div| {
