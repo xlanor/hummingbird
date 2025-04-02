@@ -163,7 +163,7 @@ impl GPUIPlaybackInterface {
             panic!("broadcast thread already started");
         };
 
-        app.spawn(|mut cx| async move {
+        app.spawn(async move |cx| {
             loop {
                 while let Ok(event) = events_rx.try_recv() {
                     match event {
@@ -171,21 +171,21 @@ impl GPUIPlaybackInterface {
                             let metadata = Arc::new(*v.clone());
 
                             metadata_model
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     *m = *v;
                                     cx.notify()
                                 })
                                 .expect("failed to update metadata");
 
                             mmbs_model
-                                .update(&mut cx, |_, cx| {
+                                .update(cx, |_, cx| {
                                     cx.emit(MMBSEvent::MetadataRecieved(metadata));
                                 })
                                 .expect("failed to broadcast MMBS event MetadataRecieved");
                         }
                         PlaybackEvent::AlbumArtUpdate(v) => {
                             albumart_model
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     if let Some(v) = v {
                                         cx.emit(ImageEvent(v))
                                     } else {
@@ -198,7 +198,7 @@ impl GPUIPlaybackInterface {
                         PlaybackEvent::StateChanged(v) => {
                             playback_info
                                 .playback_state
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     *m = v;
                                     cx.notify()
                                 })
@@ -207,7 +207,7 @@ impl GPUIPlaybackInterface {
                             if v == PlaybackState::Stopped {
                                 playback_info
                                     .current_track
-                                    .update(&mut cx, |m, cx| {
+                                    .update(cx, |m, cx| {
                                         *m = None;
                                         cx.notify()
                                     })
@@ -215,7 +215,7 @@ impl GPUIPlaybackInterface {
                             }
 
                             mmbs_model
-                                .update(&mut cx, |_, cx| {
+                                .update(cx, |_, cx| {
                                     cx.emit(MMBSEvent::StateChanged(v));
                                 })
                                 .expect("failed to broadcast MMBS event StateChanged");
@@ -223,13 +223,13 @@ impl GPUIPlaybackInterface {
                         PlaybackEvent::PositionChanged(v) => {
                             playback_info
                                 .position
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     *m = v;
                                     cx.notify()
                                 })
                                 .expect("failed to update position");
                             mmbs_model
-                                .update(&mut cx, |_, cx| {
+                                .update(cx, |_, cx| {
                                     cx.emit(MMBSEvent::PositionChanged(v));
                                 })
                                 .expect("failed to broadcast MMBS event PositionChanged");
@@ -237,13 +237,13 @@ impl GPUIPlaybackInterface {
                         PlaybackEvent::DurationChanged(v) => {
                             playback_info
                                 .duration
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     *m = v;
                                     cx.notify()
                                 })
                                 .expect("failed to update duration");
                             mmbs_model
-                                .update(&mut cx, |_, cx| {
+                                .update(cx, |_, cx| {
                                     cx.emit(MMBSEvent::DurationChanged(v));
                                 })
                                 .expect("failed to broadcast MMBS event DurationChanged");
@@ -251,26 +251,26 @@ impl GPUIPlaybackInterface {
                         PlaybackEvent::SongChanged(path) => {
                             playback_info
                                 .current_track
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     *m = Some(CurrentTrack::new(path.clone()));
                                     cx.notify()
                                 })
                                 .expect("failed to update current track");
                             mmbs_model
-                                .update(&mut cx, |_, cx| {
+                                .update(cx, |_, cx| {
                                     cx.emit(MMBSEvent::NewTrack(path));
                                 })
                                 .expect("failed to broadcast MMBS event NewTrack");
                         }
                         PlaybackEvent::QueueUpdated => {
                             queue_model
-                                .update(&mut cx, |_, cx| cx.notify())
+                                .update(cx, |_, cx| cx.notify())
                                 .expect("failed to update queue");
                         }
                         PlaybackEvent::ShuffleToggled(v, _) => {
                             playback_info
                                 .shuffling
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     *m = v;
                                     cx.notify()
                                 })
@@ -279,7 +279,7 @@ impl GPUIPlaybackInterface {
                         PlaybackEvent::VolumeChanged(v) => {
                             playback_info
                                 .volume
-                                .update(&mut cx, |m, cx| {
+                                .update(cx, |m, cx| {
                                     *m = v;
                                     cx.notify()
                                 })
@@ -292,7 +292,7 @@ impl GPUIPlaybackInterface {
                             if v > 0.05 {
                                 playback_info
                                     .prev_volume
-                                    .update(&mut cx, |m, cx| {
+                                    .update(cx, |m, cx| {
                                         *m = v;
                                         cx.notify()
                                     })
@@ -300,7 +300,7 @@ impl GPUIPlaybackInterface {
                             }
                         }
                         PlaybackEvent::QueuePositionChanged(v) => queue_model
-                            .update(&mut cx, |m, cx| {
+                            .update(cx, |m, cx| {
                                 m.position = v;
                                 cx.notify();
                             })

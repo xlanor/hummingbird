@@ -185,7 +185,7 @@ impl Queue {
                             .expect("couldn't read queue")
                             .get(idx)
                             .cloned();
-                        let was_removed = prune_views(&views_model, &render_counter, idx, cx);
+                        prune_views(&views_model, &render_counter, idx, cx);
 
                         // if was_removed {
                         //     cx.global::<GPUIDataInterface>().evict_cache();

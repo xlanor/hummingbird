@@ -23,7 +23,7 @@ use crate::{
     ui::{
         components::input::EnrichedInputAction,
         library::ViewSwitchMessage,
-        models::{Models, PlaybackInfo},
+        models::Models,
         theme::Theme,
         util::{create_or_retrieve_view, drop_image_from_app, prune_views},
     },
@@ -58,37 +58,35 @@ impl SearchModel {
             let views_model = cx.new(|_| AHashMap::new());
             let render_counter = cx.new(|_| 0);
 
-            cx.spawn(|weak, mut cx| async move {
-                loop {
-                    let mut did_regenerate = false;
+            cx.spawn(async move |weak, cx| loop {
+                let mut did_regenerate = false;
 
-                    while tx.try_recv().is_ok() {
-                        did_regenerate = true;
-                        weak.update(&mut cx, |this: &mut SearchModel, cx| {
-                            debug!("Received notification, regenerating list state");
-                            this.regenerate_list_state(cx);
-                            cx.notify();
-                        })
-                        .expect("unable to update weak search model");
-                    }
-
-                    weak.update(&mut cx, |this: &mut SearchModel, cx| {
-                        if !did_regenerate {
-                            let matches = this.get_matches();
-                            if matches != this.last_match {
-                                this.last_match = matches;
-                                this.regenerate_list_state(cx);
-                                cx.notify();
-                            }
-                        }
-                        this.tick();
+                while tx.try_recv().is_ok() {
+                    did_regenerate = true;
+                    weak.update(cx, |this: &mut SearchModel, cx| {
+                        debug!("Received notification, regenerating list state");
+                        this.regenerate_list_state(cx);
+                        cx.notify();
                     })
                     .expect("unable to update weak search model");
-
-                    cx.background_executor()
-                        .timer(Duration::from_millis(10))
-                        .await;
                 }
+
+                weak.update(cx, |this: &mut SearchModel, cx| {
+                    if !did_regenerate {
+                        let matches = this.get_matches();
+                        if matches != this.last_match {
+                            this.last_match = matches;
+                            this.regenerate_list_state(cx);
+                            cx.notify();
+                        }
+                    }
+                    this.tick();
+                })
+                .expect("unable to update weak search model");
+
+                cx.background_executor()
+                    .timer(Duration::from_millis(10))
+                    .await;
             })
             .detach();
 

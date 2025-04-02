@@ -76,21 +76,19 @@ impl ScanInterface {
         let Some(events_rx) = events_rx else {
             return;
         };
-        cx.spawn(|mut cx| async move {
-            loop {
-                while let Ok(event) = events_rx.try_recv() {
-                    state_model
-                        .update(&mut cx, |m, cx| {
-                            *m = event;
-                            cx.notify()
-                        })
-                        .expect("failed to update scan state model");
-                }
-
-                cx.background_executor()
-                    .timer(Duration::from_millis(10))
-                    .await;
+        cx.spawn(async move |cx| loop {
+            while let Ok(event) = events_rx.try_recv() {
+                state_model
+                    .update(cx, |m, cx| {
+                        *m = event;
+                        cx.notify()
+                    })
+                    .expect("failed to update scan state model");
             }
+
+            cx.background_executor()
+                .timer(Duration::from_millis(10))
+                .await;
         })
         .detach();
     }

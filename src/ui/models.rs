@@ -187,7 +187,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         #[allow(clippy::unnecessary_to_owned)]
         for mmbs in list.0.values().cloned() {
             let ev = ev.clone();
-            cx.spawn(|_| async move {
+            cx.spawn(async move |_| {
                 let mut borrow = mmbs.lock().await;
                 match ev {
                     MMBSEvent::NewTrack(path) => borrow.new_track(path),

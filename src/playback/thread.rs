@@ -14,8 +14,8 @@ use tracing::{debug, error, info, warn};
 
 use crate::devices::builtin::cpal::CpalProvider;
 use crate::devices::builtin::dummy::DummyDeviceProvider;
-#[cfg(target_os = "linux")]
-use crate::devices::builtin::pulse::PulseProvider;
+// #[cfg(target_os = "linux")]
+// use crate::devices::builtin::pulse::PulseProvider;
 #[cfg(target_os = "windows")]
 use crate::devices::builtin::win_audiograph::AudioGraphProvider;
 
@@ -159,7 +159,7 @@ impl PlaybackThread {
         // }
 
         let default_device_provider = match OS {
-            "linux" => "pulse",
+            "linux" => "cpal", // TODO: reimplement pulse provider
             "windows" => "win_audiograph",
             _ => "cpal",
         };
@@ -169,16 +169,19 @@ impl PlaybackThread {
 
         match requested_device_provider.as_str() {
             "pulse" => {
-                #[cfg(target_os = "linux")]
-                {
-                    self.device_provider = Some(Box::new(PulseProvider::default()));
-                }
-                #[cfg(not(target_os = "linux"))]
-                {
-                    warn!("pulse is not supported on this platform");
-                    warn!("Falling back to CPAL");
-                    self.device_provider = Some(Box::new(CpalProvider::default()));
-                }
+                // #[cfg(target_os = "linux")]
+                // {
+                //     self.device_provider = Some(Box::new(PulseProvider::default()));
+                // }
+                // #[cfg(not(target_os = "linux"))]
+                // {
+                //     warn!("pulse is not supported on this platform");
+                //     warn!("Falling back to CPAL");
+                //     self.device_provider = Some(Box::new(CpalProvider::default()));
+                // }
+                warn!("pulseaudio support was removed");
+                warn!("Falling back to CPAL");
+                self.device_provider = Some(Box::new(CpalProvider::default()));
             }
             "win_audiograph" => {
                 #[cfg(target_os = "windows")]

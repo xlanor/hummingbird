@@ -107,7 +107,7 @@ impl Decode for App {
         thumb: bool,
         entity: Entity<Option<Arc<RenderImage>>>,
     ) -> Task<()> {
-        self.spawn(|mut cx| async move {
+        self.spawn(async move |cx| {
             let decode_task = cx
                 .background_spawn(async move { decode_image(data, thumb) })
                 .await;
@@ -118,7 +118,7 @@ impl Decode for App {
             };
 
             entity
-                .update(&mut cx, |m, cx| {
+                .update(cx, |m, cx| {
                     *m = Some(image);
                     cx.notify();
                 })
@@ -129,7 +129,7 @@ impl Decode for App {
     fn read_metadata(&self, path: String, entity: Entity<Option<QueueItemUIData>>) -> Task<()> {
         let mut cache = self.global::<AlbumCache>().clone();
 
-        self.spawn(|mut cx| async move {
+        self.spawn(async move |cx| {
             let read_task = cx
                 .background_spawn(async move { read_metadata(path, &mut cache).await })
                 .await;
@@ -140,7 +140,7 @@ impl Decode for App {
             };
 
             entity
-                .update(&mut cx, |m, cx| {
+                .update(cx, |m, cx| {
                     *m = Some(metadata);
                     cx.notify();
                 })

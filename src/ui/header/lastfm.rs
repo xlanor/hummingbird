@@ -96,7 +96,7 @@ impl Render for LastFM {
 }
 
 fn get_token(cx: &mut App, state: Entity<LastFMState>) {
-    cx.spawn(|mut cx| async move {
+    cx.spawn(async move |cx| {
         let mut client = LastFMClient::new(
             LASTFM_API_KEY.unwrap().to_string(),
             LASTFM_API_SECRET.unwrap(),
@@ -115,7 +115,7 @@ fn get_token(cx: &mut App, state: Entity<LastFMState>) {
                 );
             }
             state
-                .update(&mut cx, move |m, cx| {
+                .update(cx, move |m, cx| {
                     *m = LastFMState::AwaitingFinalization(token);
                     cx.notify();
                 })
@@ -128,7 +128,7 @@ fn get_token(cx: &mut App, state: Entity<LastFMState>) {
 }
 
 fn confirm(cx: &mut App, state: Entity<LastFMState>, token: String) {
-    cx.spawn(|mut cx| async move {
+    cx.spawn(async move |cx| {
         let mut client = LastFMClient::new(
             LASTFM_API_KEY.unwrap().to_string(),
             LASTFM_API_SECRET.unwrap(),
@@ -136,7 +136,7 @@ fn confirm(cx: &mut App, state: Entity<LastFMState>, token: String) {
 
         if let Ok(session) = client.get_session(token).await {
             state
-                .update(&mut cx, move |_, cx| {
+                .update(cx, move |_, cx| {
                     cx.emit(session);
                 })
                 .expect("failed to emit session event");

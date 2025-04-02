@@ -95,11 +95,11 @@ impl Element for Slider {
         let mut corners = Corners::default();
         corners.refine(&self.style.corner_radii);
 
-        window.set_cursor_style(CursorStyle::PointingHand, self.hitbox.as_ref().unwrap());
+        window.set_cursor_style(CursorStyle::PointingHand, self.hitbox.as_ref());
 
         window.paint_quad(quad(
             bounds,
-            corners.to_pixels(bounds.size, window.rem_size()),
+            corners.to_pixels(window.rem_size()),
             self.style
                 .background
                 .clone()
@@ -107,6 +107,7 @@ impl Element for Slider {
                 .unwrap_or(default_background.into()),
             Edges::all(px(0.0)),
             rgb(0x000000),
+            BorderStyle::Solid,
         ));
 
         let mut borders = Edges::default();
@@ -114,7 +115,7 @@ impl Element for Slider {
 
         window.paint_quad(quad(
             inner_bounds,
-            corners.to_pixels(bounds.size, window.rem_size()),
+            corners.to_pixels(window.rem_size()),
             self.style
                 .text
                 .clone()
@@ -122,6 +123,7 @@ impl Element for Slider {
                 .unwrap_or(default_foreground.into()),
             borders.to_pixels(window.rem_size()),
             self.style.border_color.unwrap_or_default(),
+            BorderStyle::Solid,
         ));
 
         if let Some(func) = self.on_change.as_ref() {
