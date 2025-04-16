@@ -2,7 +2,10 @@ use std::{path::Path, sync::Arc};
 
 use async_std::task;
 use gpui::App;
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use sqlx::{
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
+    SqlitePool,
+};
 use tracing::debug;
 
 use crate::ui::app::Pool;
@@ -13,11 +16,14 @@ pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Err
     debug!("Creating database pool at {:?}", path.as_ref());
     let options = SqliteConnectOptions::new()
         .filename(path)
+        .optimize_on_close(true, None)
+        .synchronous(SqliteSynchronous::Normal)
+        .journal_mode(SqliteJournalMode::Wal)
         .statement_cache_capacity(0)
         .create_if_missing(true);
     let pool = SqlitePool::connect_with(options).await?;
 
-    sqlx::query("PRAGMA journal_mode = WAL")
+    sqlx::query("PRAGMA mmap_size = 30000000000")
         .execute(&pool)
         .await?;
 
