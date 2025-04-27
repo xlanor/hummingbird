@@ -38,11 +38,12 @@
           buildInputs = lib.flatten [
             pkgs.openssl
             (lib.optionals isLinux [
-              pkgs.alsa-lib
               pkgs.libxkbcommon
               pkgs.xorg.libxcb
               pkgs.xorg.libX11
-              pkgs.pipewire
+              (pkgs.alsa-lib-with-plugins.override {
+                plugins = [pkgs.alsa-plugins pkgs.pipewire];
+              })
             ])
             (lib.optionals isDarwin [
               pkgs.apple-sdk_15
@@ -88,7 +89,7 @@
                 pkgs.wayland
               ]
             );
-            ALSA_PLUGIN_DIR = lib.optionalString isLinux "${pkgs.pipewire}/lib/alsa-lib/";
+
             shellHook = ''
               rustc -Vv
             '';
