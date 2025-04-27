@@ -38,9 +38,9 @@
             pkgs.openssl
             (lib.optionals stdenv.hostPlatform.isLinux [
               pkgs.alsa-lib
-              pkgs.libpulseaudio
               pkgs.libxkbcommon
               pkgs.xorg.libxcb
+              pkgs.pipewire
             ])
             (lib.optionals stdenv.hostPlatform.isDarwin [
               pkgs.apple-sdk_15
@@ -100,6 +100,7 @@
                 pkgs.wayland
               ]
             );
+            ALSA_PLUGIN_DIR = lib.optionalString stdenv.hostPlatform.isLinux "${pkgs.pipewire}/lib/alsa-lib/";
             shellHook = ''
               rustc -Vv
             '';
