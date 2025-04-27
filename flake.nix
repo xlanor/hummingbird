@@ -41,6 +41,7 @@
               pkgs.alsa-lib
               pkgs.libxkbcommon
               pkgs.xorg.libxcb
+              pkgs.xorg.libX11
               pkgs.pipewire
             ])
             (lib.optionals isDarwin [
