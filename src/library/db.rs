@@ -29,7 +29,33 @@ pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Err
         .execute(&pool)
         .await?;
 
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    let migrations = sqlx::migrate!("./migrations")
+        .set_ignore_missing(true)
+        .run(&pool)
+        .await;
+
+    if let Err(e) = migrations
+        && let sqlx::migrate::MigrateError::VersionMismatch(v) = e
+    {
+        match v {
+            20240730163128 | 20240730163151 | 20240730163200 | 20240817201809 | 20240817201912
+            | 20240917084650 | 20250424090924 | 20250512214434 | 20250512231103
+            | 20250825224757 | 20250825225240 | 20250825234341 | 20251022214837
+                if cfg!(target_os = "windows") =>
+            {
+                // it's likely this is because of a line-ending caused hash mismatch
+                // this is fixed but not on existing databases
+                let fix_query = include_str!("../../queries/windows_fix_checksums.sql");
+                sqlx::query(fix_query).execute(&pool).await?;
+
+                sqlx::migrate!("./migrations")
+                    .set_ignore_missing(true)
+                    .run(&pool)
+                    .await?;
+            }
+            _ => (),
+        }
+    }
 
     Ok(pool)
 }
