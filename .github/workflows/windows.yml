@@ -28,7 +28,7 @@ jobs:
       - name: Update rust
         run: rustup update
       - name: Set ENV
-        run: echo "TARGET_TRIPLE=$(rustc -vV | grep 'host:' | cut -d' ' -f2)" >> $GITHUB_ENV
+        run: echo "TARGET_TRIPLE=$((rustc -vV | Select-String 'host:').ToString().Split(' ')[1])" >> $Env:GITHUB_ENV
       - name: Install cntp build tools
         run: |
           cargo install --git https://github.com/vicr123/contemporary-rs.git cargo-cntp-bundle
