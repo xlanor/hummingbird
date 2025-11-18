@@ -101,12 +101,17 @@ impl Render for LastFM {
 
 fn get_token(cx: &mut App, state: Entity<LastFMState>) {
     cx.spawn(async move |cx| {
-        let mut client = LastFMClient::new(
-            LASTFM_API_KEY.unwrap().to_string(),
-            LASTFM_API_SECRET.unwrap().to_string(),
-        );
+        let call = crate::RUNTIME
+            .spawn(async {
+                let mut client = LastFMClient::new(
+                    LASTFM_API_KEY.unwrap().to_string(),
+                    LASTFM_API_SECRET.unwrap().to_string(),
+                );
+                client.get_token().await
+            })
+            .await;
 
-        if let Ok(token) = client.get_token().await {
+        if let Ok(Ok(token)) = call {
             let path = format!(
                 "http://last.fm/api/auth/?api_key={}&token={}",
                 LASTFM_API_KEY.unwrap(),
@@ -133,12 +138,17 @@ fn get_token(cx: &mut App, state: Entity<LastFMState>) {
 
 fn confirm(cx: &mut App, state: Entity<LastFMState>, token: String) {
     cx.spawn(async move |cx| {
-        let mut client = LastFMClient::new(
-            LASTFM_API_KEY.unwrap().to_string(),
-            LASTFM_API_SECRET.unwrap().to_string(),
-        );
+        let call = crate::RUNTIME
+            .spawn(async move {
+                let mut client = LastFMClient::new(
+                    LASTFM_API_KEY.unwrap().to_string(),
+                    LASTFM_API_SECRET.unwrap().to_string(),
+                );
+                client.get_session(&token).await
+            })
+            .await;
 
-        if let Ok(session) = client.get_session(&token).await {
+        if let Ok(Ok(session)) = call {
             state
                 .update(cx, move |_, cx| {
                     cx.emit(session);
