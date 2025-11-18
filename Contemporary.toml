@@ -13,3 +13,9 @@ desktop_entry = "org.mailliw.hummingbird"
 desktop_entry_categories = ["Audio", "AudioVideo"]
 icon = "res/icon.svg"
 disk_image_background = "res/dmg-background.svg"
+
+[deployment."aarch64-apple-darwin"]
+icon = "res/macos-icon.svg"
+
+[deployment."x86_64-apple-darwin"]
+icon = "dist/macos-icon.svg"
