@@ -56,6 +56,6 @@ jobs:
         with:
           files: |
             target/bundle/${{ env.TARGET_TRIPLE }}/release-distro/Hummingbird-${{ env.ARCH }}.exe
-            package\inno\Output\HummingbirdSetup_${{ env.ARCH }}.exe
+            package/inno/Output/HummingbirdSetup_${{ env.ARCH }}.exe
           name: ${{ github.event.release.name }}
           tag_name: ${{ github.event.release.tag_name }}
