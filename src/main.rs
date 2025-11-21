@@ -6,7 +6,8 @@
 
 use std::sync::LazyLock;
 
-use tracing_subscriber::prelude::*;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::{EnvFilter, prelude::*};
 
 mod devices;
 mod library;
@@ -30,8 +31,13 @@ fn main() -> anyhow::Result<()> {
 
     #[cfg(feature = "console")]
     let reg = reg.with(console_subscriber::spawn());
-
-    reg.with(tracing_subscriber::fmt::layer()).init();
+    reg.with(tracing_subscriber::fmt::layer())
+        .with(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env_lossy(),
+        )
+        .init();
 
     tracing::info!("Starting application");
 
