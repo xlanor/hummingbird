@@ -8,7 +8,7 @@ design standard.
 
 # Features
 - Fully native application with no web component
-- FLAC, MP3, OGG (Vorbis), AAC and WAV playback
+- FLAC, MP3, OGG Vorbis, Opus, AAC and WAV playback
 - Linux, macOS and Windows support
 - SQLite-backed library
 - Theming with hot reload
@@ -23,7 +23,6 @@ design standard.
   - Scrobble services
   - Metadata services
 - Advanced search
-- Opus support
 - ReplayGain
 - Lyrics support
 - Improved library management

@@ -5,7 +5,7 @@ use regex::Regex;
 use symphonia::{
     core::{
         audio::{AudioBufferRef, Channels, Signal},
-        codecs::{CODEC_TYPE_NULL, Decoder, DecoderOptions},
+        codecs::{CODEC_TYPE_NULL, CodecRegistry, Decoder, DecoderOptions},
         errors::Error,
         formats::{FormatOptions, FormatReader, SeekMode, SeekTo},
         io::MediaSourceStream,
@@ -13,8 +13,12 @@ use symphonia::{
         probe::{Hint, ProbeResult},
         units::{Time, TimeBase},
     },
-    default::get_codecs,
+    default::codecs::{
+        AdpcmDecoder, AlacDecoder, FlacDecoder, MpaDecoder, PcmDecoder, VorbisDecoder,
+    },
 };
+use symphonia_adapter_fdk_aac::AacDecoder;
+use symphonia_adapter_libopus::OpusDecoder;
 
 use crate::{
     devices::format::ChannelSpec,
@@ -248,11 +252,21 @@ impl MediaProvider for SymphoniaProvider {
         self.current_track = track.id;
 
         let dec_opts: DecoderOptions = Default::default();
-        self.decoder = Some(
-            get_codecs()
+        self.decoder = Some({
+            let mut codecs = CodecRegistry::new();
+            codecs.register_all::<MpaDecoder>();
+            codecs.register_all::<PcmDecoder>();
+            codecs.register_all::<AlacDecoder>();
+            codecs.register_all::<FlacDecoder>();
+            codecs.register_all::<VorbisDecoder>();
+            codecs.register_all::<AdpcmDecoder>();
+            codecs.register_all::<OpusDecoder>();
+            codecs.register_all::<AacDecoder>(); // notably this is FDK AAC, not symphonia's
+
+            codecs
                 .make(&track.codec_params, &dec_opts)
-                .map_err(|_| PlaybackStartError::Undecodable)?,
-        );
+                .map_err(|_| PlaybackStartError::Undecodable)?
+        });
 
         Ok(())
     }
