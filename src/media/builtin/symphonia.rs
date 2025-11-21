@@ -17,7 +17,7 @@ use symphonia::{
         AdpcmDecoder, AlacDecoder, FlacDecoder, MpaDecoder, PcmDecoder, VorbisDecoder,
     },
 };
-use symphonia_adapter_fdk_aac::AacDecoder;
+
 use symphonia_adapter_libopus::OpusDecoder;
 
 use crate::{
@@ -261,7 +261,22 @@ impl MediaProvider for SymphoniaProvider {
             codecs.register_all::<VorbisDecoder>();
             codecs.register_all::<AdpcmDecoder>();
             codecs.register_all::<OpusDecoder>();
-            codecs.register_all::<AacDecoder>(); // notably this is FDK AAC, not symphonia's
+
+            // The ARM Github Actions builder cannot compile FDK, for some reason
+            // I can't really debug this right now because I don't have the HW for it (though
+            // I think it's a configuration issue with the image), so for now we'll just use
+            // Symphonia's AAC decoder on ARM Windows.
+            #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
+            {
+                // Use pure rust Symphonia decoder on ARM Windows
+                codecs.register_all::<symphonia::default::codecs::AacDecoder>();
+            }
+
+            #[cfg(not(all(target_os = "windows", target_arch = "aarch64")))]
+            {
+                // Use fdk-aac on everything else
+                codecs.register_all::<symphonia_adapter_fdk_aac::AacDecoder>();
+            }
 
             codecs
                 .make(&track.codec_params, &dec_opts)

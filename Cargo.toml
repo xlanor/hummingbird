@@ -45,7 +45,6 @@ serde_json = "1"
 smallvec = "1"
 sqlx = { version = "0.8", features = ["chrono", "runtime-tokio", "sqlite"] }
 symphonia = { version = "0.5", features = ["all", "opt-simd"] }
-symphonia-adapter-fdk-aac = { version = "0.1" }
 symphonia-adapter-libopus = { version = "0.2" }
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread"] }
@@ -63,6 +62,9 @@ zed-reqwest = { version = "0.12.15-zed", default-features = false, features = [
 [build-dependencies]
 dotenvy = "0.15"
 vergen-git2 = { version = "1" }
+
+[target.'cfg(not(all(target_os = "windows", target_arch = "aarch64")))'.dependencies]
+symphonia-adapter-fdk-aac = { version = "0.1" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.62", features = [
