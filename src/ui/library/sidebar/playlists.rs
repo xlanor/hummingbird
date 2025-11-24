@@ -71,40 +71,38 @@ impl Render for PlaylistList {
         for playlist in &*self.playlists {
             let pl_id = playlist.id;
 
-            main = main.child(
-                context(("playlist", pl_id as usize))
-                    .with(
-                        sidebar_item(("main-sidebar-pl", playlist.id as u64))
-                            .icon(if playlist.playlist_type == PlaylistType::System {
-                                STAR
-                            } else {
-                                PLAYLIST
-                            })
-                            .child(playlist.name.clone())
-                            .child(
-                                div()
-                                    .font_weight(FontWeight::NORMAL)
-                                    .text_color(theme.text_secondary)
-                                    .text_xs()
-                                    .mt(px(2.0))
-                                    .child(if playlist.track_count == 1 {
-                                        format!("{} song", playlist.track_count)
-                                    } else {
-                                        format!("{} songs", playlist.track_count)
-                                    }),
-                            )
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.nav_model.update(cx, move |_, cx| {
-                                    cx.emit(ViewSwitchMessage::Playlist(pl_id));
-                                });
-                            }))
-                            .when(
-                                current_view.iter().last()
-                                    == Some(&ViewSwitchMessage::Playlist(playlist.id)),
-                                |this| this.active(),
-                            ),
-                    )
-                    .child(
+            let item = sidebar_item(("main-sidebar-pl", playlist.id as u64))
+                .icon(if playlist.playlist_type == PlaylistType::System {
+                    STAR
+                } else {
+                    PLAYLIST
+                })
+                .child(playlist.name.clone())
+                .child(
+                    div()
+                        .font_weight(FontWeight::NORMAL)
+                        .text_color(theme.text_secondary)
+                        .text_xs()
+                        .mt(px(2.0))
+                        .child(if playlist.track_count == 1 {
+                            format!("{} song", playlist.track_count)
+                        } else {
+                            format!("{} songs", playlist.track_count)
+                        }),
+                )
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.nav_model.update(cx, move |_, cx| {
+                        cx.emit(ViewSwitchMessage::Playlist(pl_id));
+                    });
+                }))
+                .when(
+                    current_view.iter().last() == Some(&ViewSwitchMessage::Playlist(playlist.id)),
+                    |this| this.active(),
+                );
+
+            if playlist.playlist_type != PlaylistType::System {
+                main = main.child(
+                    context(("playlist", pl_id as usize)).with(item).child(
                         div()
                             .bg(theme.elevated_background)
                             .child(menu().item(menu_item(
@@ -137,7 +135,10 @@ impl Render for PlaylistList {
                                 },
                             ))),
                     ),
-            );
+                );
+            } else {
+                main = main.child(item);
+            }
         }
 
         main
