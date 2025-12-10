@@ -14,6 +14,7 @@ use crate::{
         thread::PlaybackState,
     },
     ui::{
+        caching::hummingbird_cache,
         components::{
             button::{ButtonIntent, ButtonSize, button},
             icons::{CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE, icon},
@@ -32,13 +33,11 @@ pub struct ReleaseView {
     track_listing: TrackListing,
     release_info: Option<SharedString>,
     img_path: SharedString,
-    image_cache: Entity<RetainAllImageCache>,
 }
 
 impl ReleaseView {
     pub(super) fn new(cx: &mut App, album_id: i64) -> Entity<Self> {
         cx.new(|cx| {
-            let image_cache = RetainAllImageCache::new(cx);
             // TODO: error handling
             let album = cx
                 .get_album_by_id(album_id, AlbumMethod::FullQuality)
@@ -89,7 +88,6 @@ impl ReleaseView {
                 track_listing,
                 release_info,
                 img_path: SharedString::from(format!("!db://album/{album_id}/full")),
-                image_cache,
             }
         })
     }
@@ -114,6 +112,7 @@ impl Render for ReleaseView {
             });
 
         div()
+            .image_cache(hummingbird_cache(("release", self.album.id as u64), 1))
             .id("release-view")
             .overflow_y_scroll()
             .pt(px(10.0))
@@ -139,7 +138,6 @@ impl Render for ReleaseView {
                             .overflow_hidden()
                             .child(
                                 img(self.img_path.clone())
-                                    .image_cache(&self.image_cache)
                                     .min_w(px(160.0))
                                     .min_h(px(160.0))
                                     .max_w(px(160.0))

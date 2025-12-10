@@ -18,6 +18,7 @@ use crate::{
         queue::QueueItemData,
     },
     ui::{
+        caching::hummingbird_cache,
         command_palette::{Command, CommandManager},
         components::{
             button::{ButtonIntent, ButtonSize, button},
@@ -115,6 +116,10 @@ impl Render for PlaylistView {
         }
 
         div()
+            .image_cache(hummingbird_cache(
+                ("playlist", self.playlist.id as u64),
+                100,
+            ))
             .id("playlist-view")
             .track_focus(&self.focus_handle)
             .on_action(move |_: &Export, _, cx| {
