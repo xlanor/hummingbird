@@ -1,12 +1,13 @@
 mod finder;
 
 pub use finder::{ExtraItem, ExtraItemProvider, FinderItemLeft, PaletteItem};
+use tracing::trace;
 
 use std::sync::Arc;
 
 use gpui::{
     App, AppContext, Context, Entity, EventEmitter, FocusHandle, IntoElement, ParentElement,
-    Render, Styled, Window, div, px,
+    Render, Styled, Window, div, prelude::FluentBuilder, px,
 };
 use nucleo::Utf32String;
 
@@ -24,7 +25,7 @@ where
 {
     input: Entity<TextInput>,
     handle: FocusHandle,
-    finder: Entity<Finder<T, MatcherFunc, OnAccept>>,
+    finder: Option<Entity<Finder<T, MatcherFunc, OnAccept>>>,
 }
 
 impl<T, MatcherFunc, OnAccept> Palette<T, MatcherFunc, OnAccept>
@@ -38,15 +39,19 @@ where
         items: Vec<Arc<T>>,
         matcher: MatcherFunc,
         on_accept: OnAccept,
+        show: &Entity<bool>,
     ) -> Entity<Self> {
         cx.new(|cx| {
             let handle = cx.focus_handle();
-            let finder = Finder::new(cx, items, matcher, on_accept);
-            let finder_clone = finder.clone();
+            let weak_self = cx.weak_entity();
 
             let handler = move |action, _: &mut Window, cx: &mut App| {
-                cx.update_entity(&finder_clone, |_, cx| {
-                    cx.emit(action);
+                _ = weak_self.update(cx, |this: &mut Self, cx| {
+                    if let Some(finder) = &this.finder {
+                        cx.update_entity(finder, |_, cx| {
+                            cx.emit(action);
+                        });
+                    }
                 });
             };
 
@@ -54,9 +59,11 @@ where
 
             // Connect input changes to finder
             cx.subscribe(&input, move |this: &mut Self, _, ev: &String, cx| {
-                cx.update_entity(&this.finder, |_, cx| {
-                    cx.emit(ev.clone());
-                });
+                if let Some(finder) = &this.finder {
+                    cx.update_entity(finder, |_, cx| {
+                        cx.emit(ev.clone());
+                    });
+                }
             })
             .detach();
 
@@ -64,17 +71,40 @@ where
             cx.subscribe(
                 &cx.entity(),
                 move |this: &mut Self, _, items: &Vec<Arc<T>>, cx| {
-                    cx.update_entity(&this.finder, |_, cx| {
-                        cx.emit(items.clone());
-                    });
+                    if let Some(finder) = &this.finder {
+                        cx.update_entity(finder, |_, cx| {
+                            cx.emit(items.clone());
+                        });
+                    }
                 },
             )
+            .detach();
+
+            let matcher = Arc::new(matcher);
+            let on_accept = Arc::new(on_accept);
+
+            cx.observe(show, move |this, show, cx| {
+                if *show.read(cx) {
+                    trace!("Creating finder for palette");
+                    this.finder = Some(Finder::new(
+                        cx,
+                        items.clone(),
+                        matcher.clone(),
+                        on_accept.clone(),
+                    ));
+                } else {
+                    trace!("Destroying finder for palette");
+                    this.finder = None;
+                }
+
+                cx.notify()
+            })
             .detach();
 
             Palette {
                 input,
                 handle,
-                finder,
+                finder: None,
             }
         })
     }
@@ -88,18 +118,22 @@ where
             input.reset();
             cx.notify();
         });
-        cx.update_entity(&self.finder, |finder, cx| {
-            finder.set_query("".to_string(), cx);
-            finder.regenerate_list_state(cx);
-            cx.notify();
-        });
+        if let Some(finder) = &self.finder {
+            cx.update_entity(finder, |finder, cx| {
+                finder.set_query("".to_string(), cx);
+                finder.regenerate_list_state(cx);
+                cx.notify();
+            });
+        }
     }
 
     pub fn register_extra_provider(&self, provider: ExtraItemProvider, cx: &mut Context<Self>) {
-        cx.update_entity(&self.finder, |finder, cx| {
-            finder.register_extra_provider(provider, cx);
-            cx.notify();
-        });
+        if let Some(finder) = &self.finder {
+            cx.update_entity(finder, |finder, cx| {
+                finder.register_extra_provider(provider, cx);
+                cx.notify();
+            });
+        }
     }
 }
 
@@ -136,7 +170,7 @@ where
                     // FIXME: weird layout issue, this is a hack
                     // eventually this should be removed
                     .pb(px(40.0))
-                    .child(self.finder.clone()),
+                    .when_some(self.finder.clone(), |this, finder| this.child(finder)),
             )
     }
 }

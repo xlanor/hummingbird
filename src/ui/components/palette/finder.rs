@@ -68,13 +68,10 @@ where
     pub fn new(
         cx: &mut App,
         items: Vec<Arc<T>>,
-        get_item_display: MatcherFunc,
-        on_accept: OnAccept,
+        get_item_display: Arc<MatcherFunc>,
+        on_accept: Arc<OnAccept>,
     ) -> Entity<Self> {
         cx.new(|cx| {
-            let get_item_display = Arc::new(get_item_display);
-            let on_accept = Arc::new(on_accept);
-
             let config = Config::DEFAULT;
 
             // make notification channel

@@ -21,7 +21,7 @@ impl SearchView {
         cx.new(|cx| {
             let show = cx.new(|_| false);
             let show_clone = show.clone();
-            let search = SearchModel::new(cx);
+            let search = SearchModel::new(cx, &show);
 
             App::on_action(cx, move |_: &Search, cx| {
                 show_clone.update(cx, |m, cx| {

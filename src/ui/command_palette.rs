@@ -88,7 +88,7 @@ type MatcherFunc = Box<dyn Fn(&Arc<Command>, &mut App) -> Utf32String + 'static>
 type OnAccept = Box<dyn Fn(&Arc<Command>, &mut App) + 'static>;
 
 pub struct CommandPalette {
-    show: bool,
+    show: Entity<bool>,
     palette: Entity<Palette<Command, MatcherFunc, OnAccept>>,
     items: FxHashMap<(&'static str, i64), Arc<Command>>,
 }
@@ -96,9 +96,10 @@ pub struct CommandPalette {
 impl CommandPalette {
     pub fn new(cx: &mut App, _: &mut Window) -> Entity<Self> {
         cx.new(|cx| {
+            let show = cx.new(|_| false);
             let matcher: MatcherFunc = Box::new(|item, _| item.name.to_string().into());
 
-            let weak_self = cx.weak_entity();
+            let show_clone = show.clone();
             let on_accept: OnAccept = Box::new(move |item, cx| {
                 if let Some(focus_handle) = &item.focus_handle
                     && let Err(err) =
@@ -111,12 +112,10 @@ impl CommandPalette {
 
                 cx.dispatch_action(&(*item.action));
 
-                weak_self
-                    .update(cx, |this: &mut Self, cx| {
-                        this.show = false;
-                        cx.notify();
-                    })
-                    .ok();
+                show_clone.update(cx, |show, cx| {
+                    *show = false;
+                    cx.notify();
+                });
             });
 
             let mut items = FxHashMap::default();
@@ -176,13 +175,23 @@ impl CommandPalette {
                 Command::new(Some("Scan"), "Rescan Entire Library", ForceScan, None),
             );
 
-            let palette = Palette::new(cx, items.values().cloned().collect(), matcher, on_accept);
+            let palette = Palette::new(
+                cx,
+                items.values().cloned().collect(),
+                matcher,
+                on_accept,
+                &show,
+            );
 
             let weak_self = cx.weak_entity();
+            let show_clone = show.clone();
             App::on_action(cx, move |_: &OpenPalette, cx: &mut App| {
+                show_clone.update(cx, |show, cx| {
+                    *show = true;
+                    cx.notify();
+                });
                 weak_self
                     .update(cx, |this: &mut Self, cx| {
-                        this.show = true;
                         this.palette.update(cx, |palette, cx| {
                             palette.reset(cx);
                         });
@@ -192,8 +201,10 @@ impl CommandPalette {
                     .ok();
             });
 
+            cx.observe(&show, |_, _, cx| cx.notify()).detach();
+
             Self {
-                show: false,
+                show,
                 items,
                 palette,
             }
@@ -203,9 +214,9 @@ impl CommandPalette {
 
 impl Render for CommandPalette {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        if self.show {
+        if *self.show.read(cx) {
             let palette = self.palette.clone();
-            let weak_self = cx.weak_entity();
+            let show = self.show.clone();
 
             palette.update(cx, |palette, _| {
                 palette.focus(window);
@@ -214,12 +225,10 @@ impl Render for CommandPalette {
             modal()
                 .child(div().w(px(550.0)).h(px(300.0)).child(palette.clone()))
                 .on_exit(move |_, cx| {
-                    weak_self
-                        .update(cx, |this, cx| {
-                            this.show = false;
-                            cx.notify();
-                        })
-                        .ok();
+                    show.update(cx, |show, cx| {
+                        *show = false;
+                        cx.notify();
+                    });
                 })
                 .into_any_element()
         } else {

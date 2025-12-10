@@ -100,7 +100,7 @@ impl AddToPlaylist {
                 .map(Arc::new)
                 .collect();
 
-            let palette = Palette::new(cx, items, matcher, on_accept);
+            let palette = Palette::new(cx, items, matcher, on_accept, &show);
 
             let show_for_create = show.clone();
             let provider: ExtraItemProvider = Arc::new(move |query: &str| {

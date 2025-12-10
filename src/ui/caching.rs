@@ -6,7 +6,7 @@ use gpui::{
     ImageCacheItem, ImageCacheProvider, ImageSource, Resource, hash,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use tracing::{debug, error, info};
+use tracing::{error, trace};
 
 pub fn hummingbird_cache(
     id: impl Into<ElementId>,
@@ -47,11 +47,11 @@ pub struct HummingbirdImageCache {
 impl HummingbirdImageCache {
     pub fn new(max_items: usize, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            info!("Creating HummingbirdImageCache");
+            trace!("Creating HummingbirdImageCache");
             cx.on_release(|this: &mut Self, cx| {
                 for (idx, (mut image, resource)) in take(&mut this.cache) {
                     if let Some(Ok(image)) = image.get() {
-                        info!("Dropping image {idx}");
+                        trace!("Dropping image {idx}");
                         cx.drop_image(image, None);
                     }
 
@@ -95,7 +95,7 @@ impl ImageCache for HummingbirdImageCache {
         let task = cx.background_executor().spawn(load_future).shared();
 
         if self.usage_list.len() >= self.max_items {
-            debug!("Image cache is full, evicting oldest item");
+            trace!("Image cache is full, evicting oldest item");
 
             let oldest = self.usage_list.pop_back().unwrap();
             let mut image = self
@@ -104,7 +104,7 @@ impl ImageCache for HummingbirdImageCache {
                 .expect("usage_list has an item cache doesn't");
 
             if let Some(Ok(image)) = image.0.get() {
-                debug!("requesting image to be dropped");
+                trace!("requesting image to be dropped");
                 cx.drop_image(image, Some(window));
             }
 

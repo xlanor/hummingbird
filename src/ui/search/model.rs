@@ -23,7 +23,7 @@ pub struct SearchModel {
 }
 
 impl SearchModel {
-    pub fn new(cx: &mut App) -> Entity<SearchModel> {
+    pub fn new(cx: &mut App, show: &Entity<bool>) -> Entity<SearchModel> {
         cx.new(|cx| {
             let albums = match cx.list_albums_search() {
                 Ok(album_data) => AlbumPaletteItem::from_search_results(album_data),
@@ -48,7 +48,7 @@ impl SearchModel {
                 }
             });
 
-            let palette = Palette::new(cx, albums, matcher, on_accept);
+            let palette = Palette::new(cx, albums, matcher, on_accept, show);
 
             let search_model = SearchModel { palette };
 
