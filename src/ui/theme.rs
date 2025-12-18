@@ -79,6 +79,9 @@ pub struct Theme {
 
     pub palette_item_hover: Rgba,
     pub palette_item_active: Rgba,
+
+    pub scrollbar_background: Rgba,
+    pub scrollbar_foreground: Rgba,
 }
 
 impl Default for Theme {
@@ -155,6 +158,9 @@ impl Default for Theme {
 
             palette_item_hover: rgb(0x282F3D),
             palette_item_active: rgb(0x0D1014),
+
+            scrollbar_background: rgba(0x272D3799),
+            scrollbar_foreground: rgba(0x37404E99),
         }
     }
 }

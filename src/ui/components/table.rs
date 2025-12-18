@@ -11,7 +11,10 @@ use table_item::TableItem;
 
 use crate::ui::{
     caching::hummingbird_cache,
-    components::icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
+    components::{
+        icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
+        scrollbar::floating_scrollbar,
+    },
     theme::Theme,
     util::{create_or_retrieve_view, prune_views},
 };
@@ -34,10 +37,10 @@ where
     columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
     views: Entity<RowMap<T, C>>,
     render_counter: Entity<usize>,
-    // list_state: ListState,
     items: Option<Arc<Vec<T::Identifier>>>,
     sort_method: Entity<Option<TableSort<C>>>,
     on_select: Option<OnSelectHandler<T, C>>,
+    scroll_handle: UniformListScrollHandle,
 }
 
 pub enum TableEvent {
@@ -62,17 +65,9 @@ where
             let views = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
             let sort_method = cx.new(|_| None);
+            let scroll_handle = UniformListScrollHandle::new();
 
             let items = T::get_rows(cx, None).ok().map(Arc::new);
-
-            // let list_state = Self::make_list_state(
-            //     cx,
-            //     views.clone(),
-            //     render_counter.clone(),
-            //     &sort_method,
-            //     columns.clone(),
-            //     on_select.clone(),
-            // );
 
             cx.observe(&sort_method, |this: &mut Table<T, C>, sort, cx| {
                 let sort_method = *sort.read(cx);
@@ -104,52 +99,13 @@ where
                 columns,
                 views,
                 render_counter,
-                // list_state,
                 items,
                 sort_method,
                 on_select,
+                scroll_handle,
             }
         })
     }
-
-    // fn make_list_state(
-    //     cx: &mut Context<'_, Self>,
-    //     views: Entity<RowMap<T, C>>,
-    //     render_counter: Entity<usize>,
-    //     sort_method_entity: &Entity<Option<TableSort<C>>>,
-    //     columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
-    //     handler: Option<OnSelectHandler<T, C>>,
-    // ) -> ListState {
-    //     let sort_method = *sort_method_entity.read(cx);
-    //     let Ok(rows) = T::get_rows(cx, sort_method) else {
-    //         warn!("Failed to get rows");
-    //         return ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {
-    //             div().into_any_element()
-    //         });
-    //     };
-
-    //     let idents_rc = Rc::new(rows);
-
-    //     ListState::new(
-    //         idents_rc.len(),
-    //         ListAlignment::Top,
-    //         px(300.0),
-    //         move |idx, _, cx| {
-    //             let idents_rc = idents_rc.clone();
-
-    //             prune_views(&views, &render_counter, idx, cx);
-    //             div()
-    //                 .w_full()
-    //                 .child(create_or_retrieve_view(
-    //                     &views,
-    //                     idx,
-    //                     |cx| TableItem::new(cx, idents_rc[idx].clone(), &columns, handler.clone()),
-    //                     cx,
-    //                 ))
-    //                 .into_any_element()
-    //         },
-    //     )
-    // }
 }
 
 impl<T, C> Render for Table<T, C>
@@ -166,6 +122,7 @@ where
         let render_counter = self.render_counter.clone();
         let columns = self.columns.clone();
         let handler = self.on_select.clone();
+        let scroll_handle = self.scroll_handle.clone();
 
         if T::has_images() {
             header = header.child(
@@ -178,7 +135,6 @@ where
                     .text_sm()
                     .flex_shrink_0()
                     .text_ellipsis()
-                    // .border_r_1()
                     .border_color(theme.border_color)
                     .border_b_1()
                     .border_color(theme.border_color),
@@ -203,9 +159,6 @@ where
                     })
                     .text_sm()
                     .flex_shrink_0()
-                    // .when(i != self.columns.len() - 1, |div| {
-                    //     div.border_r_1().border_color(theme.border_color)
-                    // })
                     .border_b_1()
                     .border_color(theme.border_color)
                     .font_weight(FontWeight::BOLD)
@@ -270,41 +223,49 @@ where
             .child(header)
             .when_some(items, |this, items| {
                 this.child(
-                    uniform_list("table-list", items.len(), move |range, _, cx| {
-                        let start = range.start;
-                        let is_templ_render = range.start == 0 && range.end == 1;
+                    div()
+                        .relative()
+                        .w_full()
+                        .h_full()
+                        .child(
+                            uniform_list("table-list", items.len(), move |range, _, cx| {
+                                let start = range.start;
+                                let is_templ_render = range.start == 0 && range.end == 1;
 
-                        items[range]
-                            .iter()
-                            .enumerate()
-                            .map(|(idx, item)| {
-                                let idx = idx + start;
+                                items[range]
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(idx, item)| {
+                                        let idx = idx + start;
 
-                                if !is_templ_render {
-                                    prune_views(&views_model, &render_counter, idx, cx);
-                                }
+                                        if !is_templ_render {
+                                            prune_views(&views_model, &render_counter, idx, cx);
+                                        }
 
-                                div()
-                                    .w_full()
-                                    .child(create_or_retrieve_view(
-                                        &views_model,
-                                        idx,
-                                        |cx| {
-                                            TableItem::new(
+                                        div()
+                                            .w_full()
+                                            .child(create_or_retrieve_view(
+                                                &views_model,
+                                                idx,
+                                                |cx| {
+                                                    TableItem::new(
+                                                        cx,
+                                                        item.clone(),
+                                                        &columns,
+                                                        handler.clone(),
+                                                    )
+                                                },
                                                 cx,
-                                                item.clone(),
-                                                &columns,
-                                                handler.clone(),
-                                            )
-                                        },
-                                        cx,
-                                    ))
-                                    .into_any_element()
+                                            ))
+                                            .into_any_element()
+                                    })
+                                    .collect()
                             })
-                            .collect()
-                    })
-                    .w_full()
-                    .h_full(),
+                            .track_scroll(scroll_handle.clone())
+                            .w_full()
+                            .h_full(),
+                        )
+                        .child(floating_scrollbar("table-scrollbar", scroll_handle)),
                 )
             })
     }
