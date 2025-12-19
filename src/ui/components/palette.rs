@@ -26,6 +26,8 @@ where
     input: Entity<TextInput>,
     handle: FocusHandle,
     finder: Option<Entity<Finder<T, MatcherFunc, OnAccept>>>,
+    items: Vec<Arc<T>>,
+    extra_providers: Vec<ExtraItemProvider>,
 }
 
 impl<T, MatcherFunc, OnAccept> Palette<T, MatcherFunc, OnAccept>
@@ -71,6 +73,8 @@ where
             cx.subscribe(
                 &cx.entity(),
                 move |this: &mut Self, _, items: &Vec<Arc<T>>, cx| {
+                    this.items = items.clone();
+
                     if let Some(finder) = &this.finder {
                         cx.update_entity(finder, |_, cx| {
                             cx.emit(items.clone());
@@ -86,12 +90,21 @@ where
             cx.observe(show, move |this, show, cx| {
                 if *show.read(cx) {
                     trace!("Creating finder for palette");
-                    this.finder = Some(Finder::new(
-                        cx,
-                        items.clone(),
-                        matcher.clone(),
-                        on_accept.clone(),
-                    ));
+
+                    let finder =
+                        Finder::new(cx, this.items.clone(), matcher.clone(), on_accept.clone());
+
+                    let providers = this.extra_providers.clone();
+
+                    finder.update(cx, |finder, cx| {
+                        for provider in providers {
+                            finder.register_extra_provider(provider, cx);
+                        }
+
+                        cx.notify();
+                    });
+
+                    this.finder = Some(finder);
                 } else {
                     trace!("Destroying finder for palette");
                     this.finder = None;
@@ -105,6 +118,8 @@ where
                 input,
                 handle,
                 finder: None,
+                items,
+                extra_providers: Vec::new(),
             }
         })
     }
@@ -127,13 +142,17 @@ where
         }
     }
 
-    pub fn register_extra_provider(&self, provider: ExtraItemProvider, cx: &mut Context<Self>) {
+    pub fn register_extra_provider(&mut self, provider: ExtraItemProvider, cx: &mut Context<Self>) {
+        let provider_clone = provider.clone();
+
         if let Some(finder) = &self.finder {
             cx.update_entity(finder, |finder, cx| {
-                finder.register_extra_provider(provider, cx);
+                finder.register_extra_provider(provider_clone, cx);
                 cx.notify();
             });
         }
+
+        self.extra_providers.push(provider);
     }
 }
 
