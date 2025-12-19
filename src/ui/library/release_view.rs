@@ -18,7 +18,7 @@ use crate::{
         components::{
             button::{ButtonIntent, ButtonSize, button},
             icons::{CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE, icon},
-            scrollbar::floating_scrollbar,
+            scrollbar::{RightPad, floating_scrollbar},
         },
         global_actions::PlayPause,
         library::track_listing::{ArtistNameVisibility, TrackListing},
@@ -362,6 +362,10 @@ impl Render for ReleaseView {
                         },
                     ),
             )
-            .child(floating_scrollbar("release_scrollbar", scroll_handle))
+            .child(floating_scrollbar(
+                "release_scrollbar",
+                scroll_handle,
+                RightPad::Pad,
+            ))
     }
 }

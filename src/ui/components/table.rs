@@ -13,7 +13,7 @@ use crate::ui::{
     caching::hummingbird_cache,
     components::{
         icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
-        scrollbar::floating_scrollbar,
+        scrollbar::{RightPad, floating_scrollbar},
     },
     theme::Theme,
     util::{create_or_retrieve_view, prune_views},
@@ -265,7 +265,11 @@ where
                             .w_full()
                             .h_full(),
                         )
-                        .child(floating_scrollbar("table-scrollbar", scroll_handle)),
+                        .child(floating_scrollbar(
+                            "table-scrollbar",
+                            scroll_handle,
+                            RightPad::Pad,
+                        )),
                 )
             })
     }

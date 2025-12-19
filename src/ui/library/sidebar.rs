@@ -49,6 +49,7 @@ impl Render for Sidebar {
 
         sidebar()
             .id("main-sidebar")
+            .h_full()
             .max_h_full()
             .pt(px(10.0))
             .pb(px(12.0))
@@ -56,6 +57,9 @@ impl Render for Sidebar {
             .pr(px(11.0))
             .border_r_1()
             .border_color(theme.border_color)
+            .overflow_hidden()
+            .flex()
+            .flex_col()
             .child(
                 div().flex().mb(px(10.0)).mx(px(-2.0)).child(
                     nav_button("search", SEARCH).on_click(|_, window, cx| {

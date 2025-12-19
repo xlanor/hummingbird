@@ -8,9 +8,9 @@ use std::{
 use gpui::{
     AbsoluteLength, App, Background, BorderStyle, Bounds, Corners, CursorStyle, DispatchPhase,
     Edges, Element, ElementId, GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId,
-    IntoElement, LayoutId, MouseDownEvent, MouseMoveEvent, MouseUpEvent, ParentElement, Pixels,
-    Refineable, RenderOnce, ScrollHandle, ScrollWheelEvent, Style, StyleRefinement, Styled,
-    UniformListScrollHandle, Window, black, div, px, quad, rgb, white,
+    InteractiveElement, IntoElement, LayoutId, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
+    ParentElement, Pixels, Refineable, RenderOnce, ScrollHandle, ScrollWheelEvent, Style,
+    StyleRefinement, Styled, UniformListScrollHandle, Window, black, div, px, quad, rgb, white,
 };
 
 use crate::ui::theme::Theme;
@@ -159,7 +159,10 @@ impl Element for Scrollbar {
         window: &mut Window,
         _cx: &mut App,
     ) -> Self::PrepaintState {
-        window.insert_hitbox(bounds, HitboxBehavior::Normal)
+        let mut hb = window.insert_hitbox(bounds, HitboxBehavior::Normal);
+        hb.behavior = HitboxBehavior::BlockMouseExceptScroll;
+
+        hb
     }
 
     fn paint(
@@ -511,10 +514,17 @@ pub fn scrollbar() -> Scrollbar {
     }
 }
 
+#[derive(PartialEq, Eq)]
+pub enum RightPad {
+    None,
+    Pad,
+}
+
 #[derive(IntoElement)]
 pub struct FloatingScrollbar {
     id: ElementId,
     handle: ScrollableHandle,
+    right_pad: RightPad,
 }
 
 impl RenderOnce for FloatingScrollbar {
@@ -524,9 +534,14 @@ impl RenderOnce for FloatingScrollbar {
         div()
             .absolute()
             .top_0()
-            .right(px(6.0))
+            .right(if self.right_pad == RightPad::Pad {
+                px(6.0)
+            } else {
+                px(0.0)
+            })
             .bottom_0()
             .my(px(6.0))
+            .occlude()
             .child(
                 scrollbar()
                     .id(self.id)
@@ -545,9 +560,11 @@ impl RenderOnce for FloatingScrollbar {
 pub fn floating_scrollbar(
     id: impl Into<ElementId>,
     handle: impl Into<ScrollableHandle>,
+    right_pad: RightPad,
 ) -> FloatingScrollbar {
     FloatingScrollbar {
         id: id.into(),
         handle: handle.into(),
+        right_pad,
     }
 }

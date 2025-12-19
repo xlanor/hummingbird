@@ -24,7 +24,7 @@ use crate::{
         components::{
             button::{ButtonIntent, ButtonSize, button},
             icons::{CIRCLE_PLUS, PLAY, PLAYLIST, SHUFFLE, STAR, icon},
-            scrollbar::floating_scrollbar,
+            scrollbar::{RightPad, floating_scrollbar},
         },
         library::track_listing::{
             ArtistNameVisibility,
@@ -345,7 +345,7 @@ impl Render for PlaylistView {
                         .border_t_1()
                         .track_scroll(scroll_handle.clone()),
                     )
-                    .child(floating_scrollbar("playlist", scroll_handle)),
+                    .child(floating_scrollbar("playlist", scroll_handle, RightPad::Pad)),
             )
     }
 }

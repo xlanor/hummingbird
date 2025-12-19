@@ -2,7 +2,7 @@ use std::{collections::VecDeque, sync::Arc};
 
 use gpui::{
     App, AppContext, Context, Entity, FontWeight, InteractiveElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
+    ScrollHandle, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 use tracing::error;
 
@@ -16,6 +16,7 @@ use crate::{
             context::context,
             icons::{CROSS, PLAYLIST, STAR},
             menu::{menu, menu_item},
+            scrollbar::{RightPad, floating_scrollbar},
             sidebar::sidebar_item,
         },
         library::ViewSwitchMessage,
@@ -27,6 +28,7 @@ use crate::{
 pub struct PlaylistList {
     playlists: Arc<Vec<PlaylistWithCount>>,
     nav_model: Entity<VecDeque<ViewSwitchMessage>>,
+    scroll_handle: ScrollHandle,
 }
 
 impl PlaylistList {
@@ -54,6 +56,7 @@ impl PlaylistList {
             Self {
                 playlists: playlists.clone(),
                 nav_model,
+                scroll_handle: ScrollHandle::new(),
             }
         })
     }
@@ -62,10 +65,15 @@ impl PlaylistList {
 impl Render for PlaylistList {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
         let theme = cx.global::<Theme>();
+        let scroll_handle = self.scroll_handle.clone();
         let mut main = div()
+            .pt(px(6.0))
             .id("sidebar-playlist")
-            .flex_shrink()
-            .overflow_y_scroll();
+            .flex_grow()
+            .min_h(px(0.0))
+            .overflow_y_scroll()
+            .track_scroll(&scroll_handle);
+
         let current_view = self.nav_model.read(cx);
 
         for playlist in &*self.playlists {
@@ -141,6 +149,19 @@ impl Render for PlaylistList {
             }
         }
 
-        main
+        div()
+            .mt(px(-6.0))
+            .flex()
+            .flex_col()
+            .w_full()
+            .flex_grow()
+            .min_h(px(0.0))
+            .relative()
+            .child(main)
+            .child(floating_scrollbar(
+                "playlist_list_scrollbar",
+                scroll_handle,
+                RightPad::None,
+            ))
     }
 }

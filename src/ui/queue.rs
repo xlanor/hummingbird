@@ -6,7 +6,7 @@ use crate::{
     ui::components::{
         icons::{CROSS, SHUFFLE, TRASH, icon},
         nav_button::nav_button,
-        scrollbar::floating_scrollbar,
+        scrollbar::{RightPad, floating_scrollbar},
     },
 };
 use gpui::*;
@@ -341,7 +341,11 @@ impl Render for Queue {
                         .flex_col()
                         .track_scroll(scroll_handle.clone()),
                     )
-                    .child(floating_scrollbar("queue_scrollbar", scroll_handle)),
+                    .child(floating_scrollbar(
+                        "queue_scrollbar",
+                        scroll_handle,
+                        RightPad::Pad,
+                    )),
             )
     }
 }
