@@ -535,22 +535,22 @@ impl RenderOnce for FloatingScrollbar {
             .absolute()
             .top_0()
             .right(if self.right_pad == RightPad::Pad {
-                px(6.0)
+                px(4.0)
             } else {
                 px(0.0)
             })
             .bottom_0()
-            .my(px(6.0))
+            .my(px(4.0))
             .occlude()
             .child(
                 scrollbar()
                     .id(self.id)
                     .scroll_handle(self.handle)
-                    .w(px(8.0))
+                    .w(px(10.0))
                     .h_full()
                     .bg(theme.scrollbar_background)
                     .text_color(theme.scrollbar_foreground)
-                    .rounded(px(4.0)),
+                    .rounded(px(6.0)),
             )
     }
 }

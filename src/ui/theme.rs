@@ -159,8 +159,8 @@ impl Default for Theme {
             palette_item_hover: rgb(0x282F3D),
             palette_item_active: rgb(0x0D1014),
 
-            scrollbar_background: rgba(0x272D3799),
-            scrollbar_foreground: rgba(0x37404E99),
+            scrollbar_background: rgb(0x181C26),
+            scrollbar_foreground: rgb(0x303843),
         }
     }
 }
