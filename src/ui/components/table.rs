@@ -59,13 +59,28 @@ where
     T: TableData<C> + 'static,
     C: Column + 'static,
 {
-    pub fn new(cx: &mut App, on_select: Option<OnSelectHandler<T, C>>) -> Entity<Self> {
+    pub fn new(
+        cx: &mut App,
+        on_select: Option<OnSelectHandler<T, C>>,
+        initial_scroll_offset: Option<f32>,
+    ) -> Entity<Self> {
         cx.new(|cx| {
             let columns = cx.new(|_| Arc::new(T::default_columns()));
             let views = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
             let sort_method = cx.new(|_| None);
             let scroll_handle = UniformListScrollHandle::new();
+
+            if let Some(offset) = initial_scroll_offset {
+                scroll_handle
+                    .0
+                    .borrow()
+                    .base_handle
+                    .set_offset(gpui::Point {
+                        x: px(0.0),
+                        y: px(-offset),
+                    });
+            }
 
             let items = T::get_rows(cx, None).ok().map(Arc::new);
 
@@ -105,6 +120,11 @@ where
                 scroll_handle,
             }
         })
+    }
+
+    pub fn get_scroll_offset(&self) -> f32 {
+        let offset = self.scroll_handle.0.borrow().base_handle.offset();
+        (-offset.y).into()
     }
 }
 

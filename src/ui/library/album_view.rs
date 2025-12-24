@@ -24,6 +24,7 @@ impl AlbumView {
     pub(super) fn new(
         cx: &mut App,
         view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
+        initial_scroll_offset: Option<f32>,
     ) -> Entity<Self> {
         cx.new(|cx| {
             let state = cx.global::<Models>().scan_state.clone();
@@ -33,7 +34,7 @@ impl AlbumView {
                     .update(cx, |_, cx| cx.emit(ViewSwitchMessage::Release(id.0 as i64)))
             });
 
-            let table = Table::new(cx, Some(handler));
+            let table = Table::new(cx, Some(handler), initial_scroll_offset);
 
             let table_clone = table.clone();
 
@@ -55,6 +56,10 @@ impl AlbumView {
 
             AlbumView { table }
         })
+    }
+
+    pub fn get_scroll_offset(&self, cx: &App) -> f32 {
+        self.table.read(cx).get_scroll_offset()
     }
 }
 

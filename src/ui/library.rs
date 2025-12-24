@@ -6,6 +6,11 @@ use navigation::NavigationView;
 use release_view::ReleaseView;
 use tracing::debug;
 
+#[derive(Clone, Default)]
+struct ScrollStateStorage {
+    album_view_scroll: Option<f32>,
+}
+
 use crate::ui::{
     command_palette::{Command, CommandManager},
     library::{
@@ -44,6 +49,7 @@ pub struct Library {
     show_update_playlist: Entity<bool>,
     update_playlist: Entity<UpdatePlaylist>,
     focus_handle: FocusHandle,
+    scroll_state: ScrollStateStorage,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -61,9 +67,14 @@ fn make_view(
     message: &ViewSwitchMessage,
     cx: &mut App,
     model: Entity<VecDeque<ViewSwitchMessage>>,
+    scroll_state: &ScrollStateStorage,
 ) -> LibraryView {
     match message {
-        ViewSwitchMessage::Albums => LibraryView::Album(AlbumView::new(cx, model.clone())),
+        ViewSwitchMessage::Albums => LibraryView::Album(AlbumView::new(
+            cx,
+            model.clone(),
+            scroll_state.album_view_scroll,
+        )),
         ViewSwitchMessage::Release(id) => LibraryView::Release(ReleaseView::new(cx, *id)),
         ViewSwitchMessage::Playlist(id) => LibraryView::Playlist(PlaylistView::new(cx, *id)),
         ViewSwitchMessage::Back => panic!("improper use of make_view (cannot make Back)"),
@@ -75,11 +86,21 @@ impl Library {
     pub fn new(cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
             let switcher_model = cx.global::<Models>().switcher_model.clone();
-            let view = LibraryView::Album(AlbumView::new(cx, switcher_model.clone()));
+            let scroll_state = ScrollStateStorage::default();
+            let view = LibraryView::Album(AlbumView::new(
+                cx,
+                switcher_model.clone(),
+                scroll_state.album_view_scroll,
+            ));
 
             cx.subscribe(
                 &switcher_model,
                 move |this: &mut Library, m, message, cx| {
+                    if let LibraryView::Album(album_view) = &this.view {
+                        let scroll_pos = album_view.read(cx).get_scroll_offset(cx);
+                        this.scroll_state.album_view_scroll = Some(scroll_pos);
+                    }
+
                     this.view = match message {
                         ViewSwitchMessage::Back => {
                             let last = m.update(cx, |v: &mut VecDeque<ViewSwitchMessage>, cx| {
@@ -95,7 +116,7 @@ impl Library {
 
                             if let Some(message) = last {
                                 debug!("{:?}", message);
-                                make_view(&message, cx, m)
+                                make_view(&message, cx, m, &this.scroll_state)
                             } else {
                                 this.view.clone()
                             }
@@ -103,7 +124,7 @@ impl Library {
                         ViewSwitchMessage::Refresh => {
                             let last = *m.read(cx).iter().last().unwrap();
 
-                            make_view(&last, cx, m)
+                            make_view(&last, cx, m, &this.scroll_state)
                         }
                         _ => {
                             m.update(cx, |v, cx| {
@@ -115,7 +136,7 @@ impl Library {
                                 cx.notify();
                             });
 
-                            make_view(message, cx, m)
+                            make_view(message, cx, m, &this.scroll_state)
                         }
                     };
 
@@ -150,6 +171,7 @@ impl Library {
                 update_playlist: UpdatePlaylist::new(cx, show_update_playlist.clone()),
                 show_update_playlist,
                 focus_handle,
+                scroll_state,
             }
         })
     }
