@@ -94,7 +94,7 @@ impl RenderOnce for AboutDialog {
                                             .child(" on GitHub."),
                                     )
                                     .child(div().child(
-                                        "Copyright © 2024 - 2025 William Whittaker and \
+                                        "Copyright © 2024 - 2026 William Whittaker and \
                                         contributors.",
                                     ))
                                     .child(
