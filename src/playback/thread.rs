@@ -112,6 +112,10 @@ pub struct PlaybackThread {
 
     /// Whether or not the queue should be repeated when the end of the queue is reached.
     repeat: RepeatState,
+
+    /// The last recorded volume level. This is used to ensure that volume remains consistent, even
+    /// after the thread is recreated.
+    last_volume: f64,
 }
 
 pub const LN_50: f64 = 3.91202300543_f64;
@@ -153,6 +157,7 @@ impl PlaybackThread {
                         RepeatState::NotRepeating
                     },
                     playback_settings: settings,
+                    last_volume: 1.0,
                 };
 
                 thread.run();
@@ -840,6 +845,8 @@ impl PlaybackThread {
                 volume * LINEAR_SCALING_COEFFICIENT
             };
 
+            self.last_volume = volume_scaled;
+
             stream
                 .set_volume(volume_scaled)
                 .expect("failed to set volume");
@@ -922,6 +929,12 @@ impl PlaybackThread {
                     .expect("failed to open device with default format")
             },
         );
+
+        self.stream
+            .as_mut()
+            .unwrap()
+            .set_volume(self.last_volume)
+            .expect("failed to set volume after reset");
 
         self.device = Some(device);
         info!(
