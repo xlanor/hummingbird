@@ -58,6 +58,8 @@ pub enum PlaybackCommand {
     ToggleShuffle,
     /// Requests that the repeating setting should be set to the specified RepeatState.
     SetRepeat(RepeatState),
+    /// Requests that the item at the index provided be removed from the queue.
+    RemoveItem(usize),
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback

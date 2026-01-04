@@ -312,6 +312,7 @@ impl PlaybackThread {
                 PlaybackCommand::Stop => self.stop(),
                 PlaybackCommand::ToggleShuffle => self.toggle_shuffle(),
                 PlaybackCommand::SetRepeat(v) => self.set_repeat(v),
+                PlaybackCommand::RemoveItem(idx) => self.remove(idx),
             }
         }
     }
@@ -624,6 +625,33 @@ impl PlaybackThread {
         self.events_tx
             .send(PlaybackEvent::QueueUpdated)
             .expect("unable to send event");
+    }
+
+    /// Remove an item from the queue.
+    fn remove(&mut self, idx: usize) {
+        let mut queue = self.queue.write().expect("couldn't get the queue");
+        queue.remove(idx);
+        drop(queue);
+
+        self.events_tx
+            .send(PlaybackEvent::QueueUpdated)
+            .expect("unable to send event");
+
+        if idx == 0 {
+            self.jump(0);
+        }
+
+        if idx < self.queue_next {
+            self.queue_next -= 1;
+
+            if idx == self.queue_next {
+                self.next(true);
+            } else {
+                self.events_tx
+                    .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
+                    .expect("unable to send event");
+            }
+        }
     }
 
     /// Add a list of [`QueueItemData`] to the queue. If nothing is playing, start playing the

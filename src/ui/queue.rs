@@ -4,7 +4,9 @@ use crate::{
         queue::{DataSource, QueueItemData},
     },
     ui::components::{
+        context::context,
         icons::{CROSS, SHUFFLE, TRASH, icon},
+        menu::{menu, menu_item},
         nav_button::nav_button,
         scrollbar::{RightPad, floating_scrollbar},
     },
@@ -87,64 +89,79 @@ impl Render for QueueItem {
 
             let idx = self.idx;
 
-            div()
-                .w_full()
-                .id(ElementId::View(cx.entity_id()))
-                .flex()
-                .flex_shrink_0()
-                .overflow_x_hidden()
-                .gap(px(11.0))
-                .h(px(59.0))
-                .p(px(11.0))
-                .border_b(px(1.0))
-                .cursor_pointer()
-                .border_color(theme.border_color)
-                .when(is_current, |div| div.bg(theme.queue_item_current))
-                .on_click(move |_, _, cx| {
-                    cx.global::<PlaybackInterface>().jump(idx);
-                })
-                .hover(|div| div.bg(theme.queue_item_hover))
-                .active(|div| div.bg(theme.queue_item_active))
-                .child(
+            context(ElementId::View(cx.entity_id()))
+                .with(
                     div()
-                        .id("album-art")
-                        .rounded(px(4.0))
-                        .bg(theme.album_art_background)
-                        .shadow_sm()
-                        .w(px(36.0))
-                        .h(px(36.0))
-                        .flex_shrink_0()
-                        .when(album_art.is_some(), |div| {
-                            div.child(
-                                img(album_art.unwrap())
-                                    .w(px(36.0))
-                                    .h(px(36.0))
-                                    .rounded(px(4.0)),
-                            )
-                        }),
-                )
-                .child(
-                    div()
+                        .w_full()
+                        .id("item-contents")
                         .flex()
-                        .flex_col()
-                        .line_height(rems(1.0))
-                        .text_size(px(15.0))
-                        .gap_1()
+                        .flex_shrink_0()
                         .overflow_x_hidden()
+                        .gap(px(11.0))
+                        .h(px(59.0))
+                        .p(px(11.0))
+                        .border_b(px(1.0))
+                        .cursor_pointer()
+                        .border_color(theme.border_color)
+                        .when(is_current, |div| div.bg(theme.queue_item_current))
+                        .on_click(move |_, _, cx| {
+                            cx.global::<PlaybackInterface>().jump(idx);
+                        })
+                        .hover(|div| div.bg(theme.queue_item_hover))
+                        .active(|div| div.bg(theme.queue_item_active))
                         .child(
                             div()
-                                .text_ellipsis()
-                                .font_weight(FontWeight::EXTRA_BOLD)
-                                .when_some(item.name.clone(), |this, string| this.child(string)),
+                                .id("album-art")
+                                .rounded(px(4.0))
+                                .bg(theme.album_art_background)
+                                .shadow_sm()
+                                .w(px(36.0))
+                                .h(px(36.0))
+                                .flex_shrink_0()
+                                .when(album_art.is_some(), |div| {
+                                    div.child(
+                                        img(album_art.unwrap())
+                                            .w(px(36.0))
+                                            .h(px(36.0))
+                                            .rounded(px(4.0)),
+                                    )
+                                }),
                         )
                         .child(
                             div()
-                                .text_ellipsis()
-                                .when_some(item.artist_name.clone(), |this, string| {
-                                    this.child(string)
-                                }),
+                                .flex()
+                                .flex_col()
+                                .line_height(rems(1.0))
+                                .text_size(px(15.0))
+                                .gap_1()
+                                .overflow_x_hidden()
+                                .child(
+                                    div()
+                                        .text_ellipsis()
+                                        .font_weight(FontWeight::EXTRA_BOLD)
+                                        .when_some(item.name.clone(), |this, string| {
+                                            this.child(string)
+                                        }),
+                                )
+                                .child(
+                                    div()
+                                        .text_ellipsis()
+                                        .when_some(item.artist_name.clone(), |this, string| {
+                                            this.child(string)
+                                        }),
+                                ),
                         ),
                 )
+                .child(menu().item(menu_item(
+                    "remove-item",
+                    Some(CROSS),
+                    "Remove from queue",
+                    move |_, _, cx| {
+                        let playback = cx.global::<PlaybackInterface>();
+                        playback.remove_item(idx);
+                    },
+                )))
+                .into_any_element()
         } else {
             // TODO: Skeleton for this
             div()
@@ -153,6 +170,7 @@ impl Render for QueueItem {
                 .border_color(theme.border_color)
                 .w_full()
                 .id(ElementId::View(cx.entity_id()))
+                .into_any_element()
         }
     }
 }
