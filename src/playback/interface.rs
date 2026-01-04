@@ -119,6 +119,12 @@ impl PlaybackInterface {
         self.cmd_tx.send(PlaybackCommand::RemoveItem(idx)).unwrap();
     }
 
+    pub fn move_item(&self, from: usize, to: usize) {
+        self.cmd_tx
+            .send(PlaybackCommand::MoveItem { from, to })
+            .unwrap();
+    }
+
     pub fn get_sender(&self) -> UnboundedSender<PlaybackCommand> {
         self.cmd_tx.clone()
     }

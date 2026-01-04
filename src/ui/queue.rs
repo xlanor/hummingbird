@@ -5,10 +5,15 @@ use crate::{
     },
     ui::components::{
         context::context,
+        drag_drop::{
+            DragData, DragDropItemState, DragDropListConfig, DragDropListManager, DragPreview,
+            DropIndicator, check_drag_cancelled, continue_edge_scroll, handle_drag_move,
+            handle_drop,
+        },
         icons::{CROSS, SHUFFLE, TRASH, icon},
         menu::{menu, menu_item},
         nav_button::nav_button,
-        scrollbar::{RightPad, floating_scrollbar},
+        scrollbar::{RightPad, ScrollableHandle, floating_scrollbar},
     },
 };
 use gpui::*;
@@ -22,14 +27,25 @@ use super::{
     util::{create_or_retrieve_view, drop_image_from_app, prune_views},
 };
 
+/// The list identifier for queue drag-drop operations
+const QUEUE_LIST_ID: &str = "queue";
+/// Height of each queue item in pixels
+const QUEUE_ITEM_HEIGHT: f32 = 59.0;
+
 pub struct QueueItem {
     item: Option<QueueItemData>,
     current: usize,
     idx: usize,
+    drag_drop_manager: Entity<DragDropListManager>,
 }
 
 impl QueueItem {
-    pub fn new(cx: &mut App, item: Option<QueueItemData>, idx: usize) -> Entity<Self> {
+    pub fn new(
+        cx: &mut App,
+        item: Option<QueueItemData>,
+        idx: usize,
+        drag_drop_manager: Entity<DragDropListManager>,
+    ) -> Entity<Self> {
         cx.new(move |cx| {
             cx.on_release(|m: &mut QueueItem, cx| {
                 if let Some(item) = m.item.as_mut() {
@@ -58,10 +74,17 @@ impl QueueItem {
             })
             .detach();
 
+            // Observe drag-drop state changes to update visual feedback
+            cx.observe(&drag_drop_manager, |_, _, cx| {
+                cx.notify();
+            })
+            .detach();
+
             Self {
                 item,
                 idx,
                 current: queue.read(cx).position,
+                drag_drop_manager,
             }
         })
     }
@@ -76,18 +99,14 @@ impl Render for QueueItem {
         let theme = cx.global::<Theme>().clone();
 
         if let Some(item) = data.as_ref() {
-            // let is_current = self
-            //     .current_track
-            //     .read(cx)
-            //     .as_ref()
-            //     .map(|v| v == &item.file_path)
-            //     .unwrap_or(false);
-
             let is_current = self.current == self.idx;
-
             let album_art = item.image.as_ref().cloned();
-
             let idx = self.idx;
+
+            let item_state =
+                DragDropItemState::for_index(&self.drag_drop_manager.read(cx), self.idx);
+
+            let track_name = item.name.clone().unwrap_or_else(|| "Unknown Track".into());
 
             context(ElementId::View(cx.entity_id()))
                 .with(
@@ -98,17 +117,35 @@ impl Render for QueueItem {
                         .flex_shrink_0()
                         .overflow_x_hidden()
                         .gap(px(11.0))
-                        .h(px(59.0))
+                        .h(px(QUEUE_ITEM_HEIGHT))
                         .p(px(11.0))
-                        .border_b(px(1.0))
                         .cursor_pointer()
+                        .relative()
+                        // Default bottom border - always present
+                        .border_b(px(1.0))
                         .border_color(theme.border_color)
-                        .when(is_current, |div| div.bg(theme.queue_item_current))
+                        .when(item_state.is_being_dragged, |div| div.opacity(0.5))
+                        .when(is_current && !item_state.is_being_dragged, |div| {
+                            div.bg(theme.queue_item_current)
+                        })
                         .on_click(move |_, _, cx| {
                             cx.global::<PlaybackInterface>().jump(idx);
                         })
-                        .hover(|div| div.bg(theme.queue_item_hover))
-                        .active(|div| div.bg(theme.queue_item_active))
+                        .when(!item_state.is_being_dragged, |div| {
+                            div.hover(|div| div.bg(theme.queue_item_hover))
+                                .active(|div| div.bg(theme.queue_item_active))
+                        })
+                        .on_drag(DragData::new(idx, QUEUE_LIST_ID), move |_, _, _, cx| {
+                            DragPreview::new(cx, track_name.clone())
+                        })
+                        .drag_over::<DragData>(move |style, _, _, _| {
+                            style.bg(gpui::rgba(0x88888822))
+                        })
+                        .child(DropIndicator::with_state(
+                            item_state.is_drop_target_before,
+                            item_state.is_drop_target_after,
+                            theme.button_primary,
+                        ))
                         .child(
                             div()
                                 .id("album-art")
@@ -165,7 +202,7 @@ impl Render for QueueItem {
         } else {
             // TODO: Skeleton for this
             div()
-                .h(px(59.0))
+                .h(px(QUEUE_ITEM_HEIGHT))
                 .border_t(px(1.0))
                 .border_color(theme.border_color)
                 .w_full()
@@ -181,6 +218,7 @@ pub struct Queue {
     shuffling: Entity<bool>,
     show_queue: Entity<bool>,
     scroll_handle: UniformListScrollHandle,
+    drag_drop_manager: Entity<DragDropListManager>,
 }
 
 impl Queue {
@@ -189,6 +227,9 @@ impl Queue {
             let views_model = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
             let items = cx.global::<Models>().queue.clone();
+
+            let config = DragDropListConfig::new(QUEUE_LIST_ID, px(QUEUE_ITEM_HEIGHT));
+            let drag_drop_manager = DragDropListManager::new(cx, config);
 
             cx.observe(&items, move |this: &mut Queue, _, cx| {
                 this.views_model = cx.new(|_| FxHashMap::default());
@@ -211,6 +252,7 @@ impl Queue {
                 shuffling,
                 show_queue,
                 scroll_handle: UniformListScrollHandle::new(),
+                drag_drop_manager,
             }
         })
     }
@@ -218,6 +260,8 @@ impl Queue {
 
 impl Render for Queue {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        check_drag_cancelled(self.drag_drop_manager.clone(), cx);
+
         let theme = cx.global::<Theme>();
         let queue = cx
             .global::<Models>()
@@ -227,15 +271,14 @@ impl Render for Queue {
             .data
             .read()
             .expect("could not read queue");
+        let queue_len = queue.len();
         let shuffling = self.shuffling.read(cx);
         let views_model = self.views_model.clone();
         let render_counter = self.render_counter.clone();
         let scroll_handle = self.scroll_handle.clone();
+        let drag_drop_manager = self.drag_drop_manager.clone();
 
         div()
-            // .absolute()
-            // .top_0()
-            // .right_0()
             .h_full()
             .min_w(px(275.0))
             .max_w(px(275.0))
@@ -308,12 +351,61 @@ impl Render for Queue {
             )
             .child(
                 div()
+                    .id("queue-list-container")
                     .flex()
                     .w_full()
                     .h_full()
                     .relative()
+                    .on_drag_move::<DragData>(cx.listener(
+                        move |this: &mut Queue, event: &DragMoveEvent<DragData>, window, cx| {
+                            let scroll_handle: ScrollableHandle = this.scroll_handle.clone().into();
+
+                            let scrolled = handle_drag_move(
+                                this.drag_drop_manager.clone(),
+                                scroll_handle,
+                                event,
+                                queue_len,
+                                cx,
+                            );
+
+                            if scrolled {
+                                let entity = cx.entity().downgrade();
+                                let manager = this.drag_drop_manager.clone();
+                                let scroll_handle: ScrollableHandle =
+                                    this.scroll_handle.clone().into();
+
+                                window.on_next_frame(move |window, cx| {
+                                    if let Some(entity) = entity.upgrade() {
+                                        entity.update(cx, |_, cx| {
+                                            Self::schedule_edge_scroll(
+                                                manager,
+                                                scroll_handle,
+                                                window,
+                                                cx,
+                                            );
+                                        });
+                                    }
+                                });
+                            }
+
+                            cx.notify();
+                        },
+                    ))
+                    .on_drop(
+                        cx.listener(move |this: &mut Queue, drag_data: &DragData, _, cx| {
+                            handle_drop(
+                                this.drag_drop_manager.clone(),
+                                drag_data,
+                                cx,
+                                |from, to, cx| {
+                                    cx.global::<PlaybackInterface>().move_item(from, to);
+                                },
+                            );
+                            cx.notify();
+                        }),
+                    )
                     .child(
-                        uniform_list("queue", queue.len(), move |range, _, cx| {
+                        uniform_list("queue", queue_len, move |range, _, cx| {
                             let start = range.start;
                             let is_templ_render = range.start == 0 && range.end == 1;
 
@@ -341,10 +433,19 @@ impl Render for Queue {
                                             prune_views(&views_model, &render_counter, idx, cx);
                                         }
 
+                                        let drag_drop_manager = drag_drop_manager.clone();
+
                                         div().child(create_or_retrieve_view(
                                             &views_model,
                                             idx,
-                                            move |cx| QueueItem::new(cx, Some(item), idx),
+                                            move |cx| {
+                                                QueueItem::new(
+                                                    cx,
+                                                    Some(item),
+                                                    idx,
+                                                    drag_drop_manager,
+                                                )
+                                            },
                                             cx,
                                         ))
                                     })
@@ -365,5 +466,27 @@ impl Render for Queue {
                         RightPad::Pad,
                     )),
             )
+    }
+}
+
+impl Queue {
+    fn schedule_edge_scroll(
+        manager: Entity<DragDropListManager>,
+        scroll_handle: ScrollableHandle,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        let should_continue = continue_edge_scroll(&manager.read(cx), &scroll_handle);
+
+        if should_continue {
+            let manager_clone = manager.clone();
+            let scroll_handle_clone = scroll_handle.clone();
+
+            window.on_next_frame(move |window, cx| {
+                Self::schedule_edge_scroll(manager_clone, scroll_handle_clone, window, cx);
+            });
+
+            window.refresh();
+        }
     }
 }

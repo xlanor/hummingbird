@@ -60,6 +60,9 @@ pub enum PlaybackCommand {
     SetRepeat(RepeatState),
     /// Requests that the item at the index provided be removed from the queue.
     RemoveItem(usize),
+    /// Requests that an item be moved from one position to another in the queue.
+    /// The first usize is the source index, the second is the destination index.
+    MoveItem { from: usize, to: usize },
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback

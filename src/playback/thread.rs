@@ -313,6 +313,7 @@ impl PlaybackThread {
                 PlaybackCommand::ToggleShuffle => self.toggle_shuffle(),
                 PlaybackCommand::SetRepeat(v) => self.set_repeat(v),
                 PlaybackCommand::RemoveItem(idx) => self.remove(idx),
+                PlaybackCommand::MoveItem { from, to } => self.move_item(from, to),
             }
         }
     }
@@ -619,6 +620,51 @@ impl PlaybackThread {
             self.queue_next = pre_len + 1;
             self.events_tx
                 .send(PlaybackEvent::QueuePositionChanged(pre_len))
+                .expect("unable to send event");
+        }
+
+        self.events_tx
+            .send(PlaybackEvent::QueueUpdated)
+            .expect("unable to send event");
+    }
+
+    /// Move an item from one position to another in the queue.
+    fn move_item(&mut self, from: usize, to: usize) {
+        if from == to {
+            return;
+        }
+
+        let mut queue = self.queue.write().expect("couldn't get the queue");
+
+        if from >= queue.len() || to >= queue.len() {
+            return;
+        }
+
+        let item = queue.remove(from);
+        queue.insert(to, item);
+        drop(queue);
+
+        let current_playing = if self.queue_next > 0 {
+            self.queue_next - 1
+        } else {
+            0
+        };
+
+        if from == current_playing {
+            self.queue_next = to + 1;
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(to))
+                .expect("unable to send event");
+        } else if from < current_playing && to >= current_playing {
+            // before to after current
+            self.queue_next -= 1;
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
+                .expect("unable to send event");
+        } else if from > current_playing && to <= current_playing {
+            self.queue_next += 1;
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
                 .expect("unable to send event");
         }
 
