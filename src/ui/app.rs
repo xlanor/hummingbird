@@ -428,11 +428,19 @@ pub fn run() -> anyhow::Result<()> {
                         // Update `StorageData` and save it to file system while quitting the app
                         cx.on_app_quit({
                             let current_track = cx.global::<PlaybackInfo>().current_track.clone();
+                            let sidebar_width = cx.global::<Models>().sidebar_width.clone();
+                            let queue_width = cx.global::<Models>().queue_width.clone();
                             move |_, cx| {
                                 let current_track = current_track.read(cx).clone();
+                                let sidebar_width: f32 = (*sidebar_width.read(cx)).into();
+                                let queue_width: f32 = (*queue_width.read(cx)).into();
                                 let storage = storage.clone();
                                 cx.background_executor().spawn(async move {
-                                    storage.save(&StorageData { current_track });
+                                    storage.save(&StorageData {
+                                        current_track,
+                                        sidebar_width,
+                                        queue_width,
+                                    });
                                 })
                             }
                         })

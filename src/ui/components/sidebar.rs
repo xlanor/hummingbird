@@ -1,14 +1,18 @@
 use gpui::{
-    App, Div, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
-    Stateful, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
+    App, Div, ElementId, Entity, FontWeight, InteractiveElement, IntoElement, ParentElement,
+    Pixels, RenderOnce, Stateful, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder, px,
 };
 
-use crate::ui::{components::icons::icon, theme::Theme, util::MaybeStateful};
+use crate::{
+    settings::storage::DEFAULT_SIDEBAR_WIDTH,
+    ui::{components::icons::icon, theme::Theme, util::MaybeStateful},
+};
 
 #[derive(IntoElement)]
 pub struct Sidebar {
     div: MaybeStateful<Div>,
+    width: Option<Entity<Pixels>>,
 }
 
 impl Sidebar {
@@ -18,6 +22,11 @@ impl Sidebar {
             MaybeStateful::Stateful(div) => div,
         });
 
+        self
+    }
+
+    pub fn width(mut self, width: Entity<Pixels>) -> Self {
+        self.width = Some(width);
         self
     }
 }
@@ -35,14 +44,19 @@ impl ParentElement for Sidebar {
 }
 
 impl RenderOnce for Sidebar {
-    fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        self.div.w(px(225.0)).flex().flex_col()
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+        let width: Pixels = match self.width {
+            Some(w) => *w.read(cx),
+            None => DEFAULT_SIDEBAR_WIDTH,
+        };
+        self.div.w(width).flex().flex_col()
     }
 }
 
 pub fn sidebar() -> Sidebar {
     Sidebar {
         div: MaybeStateful::NotStateful(div()),
+        width: None,
     }
 }
 

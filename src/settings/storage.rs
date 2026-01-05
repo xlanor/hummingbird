@@ -1,13 +1,51 @@
+use gpui::{Pixels, px};
 use serde::{Deserialize, Serialize};
 
 use crate::ui::models::CurrentTrack;
 
 use std::{fs, path::PathBuf};
 
+pub const DEFAULT_SIDEBAR_WIDTH: Pixels = px(225.0);
+pub const DEFAULT_QUEUE_WIDTH: Pixels = px(275.0);
+
+fn default_sidebar_width() -> f32 {
+    f32::from(DEFAULT_SIDEBAR_WIDTH)
+}
+
+fn default_queue_width() -> f32 {
+    f32::from(DEFAULT_QUEUE_WIDTH)
+}
+
 /// Data to store while quitting the app
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageData {
     pub current_track: Option<CurrentTrack>,
+    /// Width of the library sidebar in pixels
+    #[serde(default = "default_sidebar_width")]
+    pub sidebar_width: f32,
+    /// Width of the queue panel in pixels
+    #[serde(default = "default_queue_width")]
+    pub queue_width: f32,
+}
+
+impl StorageData {
+    pub fn sidebar_width(&self) -> Pixels {
+        px(self.sidebar_width)
+    }
+
+    pub fn queue_width(&self) -> Pixels {
+        px(self.queue_width)
+    }
+}
+
+impl Default for StorageData {
+    fn default() -> Self {
+        Self {
+            current_track: None,
+            sidebar_width: f32::from(DEFAULT_SIDEBAR_WIDTH),
+            queue_width: f32::from(DEFAULT_QUEUE_WIDTH),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +80,9 @@ impl Storage {
                         // validate whether path still exists
                         Some(current_track) if !current_track.get_path().exists() => StorageData {
                             current_track: None,
+                            // Preserve other settings when invalidating current_track
+                            sidebar_width: data.sidebar_width,
+                            queue_width: data.queue_width,
                         },
                         _ => data,
                     })

@@ -7,6 +7,7 @@ pub mod menu;
 pub mod modal;
 pub mod nav_button;
 pub mod palette;
+pub mod resizable_sidebar;
 pub mod scrollbar;
 pub mod sidebar;
 pub mod slider;

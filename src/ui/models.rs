@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use gpui::{App, AppContext, Entity, EventEmitter, Global, RenderImage};
+use gpui::{App, AppContext, Entity, EventEmitter, Global, Pixels, RenderImage};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -23,7 +23,10 @@ use crate::{
         MediaMetadataBroadcastService,
         lastfm::{LASTFM_CREDS, LastFM, client::LastFMClient, types::Session},
     },
-    settings::{SettingsGlobal, storage::StorageData},
+    settings::{
+        SettingsGlobal,
+        storage::{DEFAULT_QUEUE_WIDTH, DEFAULT_SIDEBAR_WIDTH, StorageData},
+    },
     ui::{app::get_dirs, data::Decode, library::ViewSwitchMessage},
 };
 
@@ -54,6 +57,8 @@ pub struct Models {
     pub switcher_model: Entity<VecDeque<ViewSwitchMessage>>,
     pub show_about: Entity<bool>,
     pub playlist_tracker: Entity<PlaylistInfoTransfer>,
+    pub sidebar_width: Entity<Pixels>,
+    pub queue_width: Entity<Pixels>,
 }
 
 impl Global for Models {}
@@ -225,6 +230,21 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         deque
     });
 
+    let sidebar_width: Entity<Pixels> = cx.new(|_| {
+        if storage_data.sidebar_width > 0.0 {
+            storage_data.sidebar_width()
+        } else {
+            DEFAULT_SIDEBAR_WIDTH
+        }
+    });
+    let queue_width: Entity<Pixels> = cx.new(|_| {
+        if storage_data.queue_width > 0.0 {
+            storage_data.queue_width()
+        } else {
+            DEFAULT_QUEUE_WIDTH
+        }
+    });
+
     cx.set_global(Models {
         metadata,
         albumart,
@@ -235,6 +255,8 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         switcher_model,
         show_about,
         playlist_tracker,
+        sidebar_width,
+        queue_width,
     });
 
     const DEFAULT_VOLUME: f64 = 1.0;

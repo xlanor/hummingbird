@@ -5,16 +5,20 @@ use gpui::{
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 
+use crate::settings::storage::DEFAULT_SIDEBAR_WIDTH;
+
 use crate::{
     library::{db::LibraryAccess, types::TrackStats},
     ui::{
         components::{
             icons::{DISC, SEARCH},
             nav_button::nav_button,
+            resizable_sidebar::{ResizeSide, resizable_sidebar},
             sidebar::{sidebar, sidebar_item, sidebar_separator},
         },
         global_actions::Search,
         library::{ViewSwitchMessage, sidebar::playlists::PlaylistList},
+        models::Models,
         theme::Theme,
     },
 };
@@ -31,6 +35,10 @@ impl Sidebar {
     pub fn new(cx: &mut App, nav_model: Entity<VecDeque<ViewSwitchMessage>>) -> Entity<Self> {
         cx.new(|cx| {
             cx.observe(&nav_model, |_, _, cx| cx.notify()).detach();
+
+            let sidebar_width = cx.global::<Models>().sidebar_width.clone();
+            cx.observe(&sidebar_width, |_, _, cx| cx.notify()).detach();
+
             Self {
                 playlists: PlaylistList::new(cx, nav_model.clone()),
                 track_stats: cx.get_track_stats().unwrap(),
@@ -46,64 +54,78 @@ impl Render for Sidebar {
         let stats_minutes = self.track_stats.total_duration / 60;
         let stats_hours = stats_minutes / 60;
         let current_view = self.nav_model.read(cx);
+        let sidebar_width = cx.global::<Models>().sidebar_width.clone();
 
-        sidebar()
-            .id("main-sidebar")
-            .h_full()
-            .max_h_full()
-            .pt(px(10.0))
-            .pb(px(12.0))
-            .pl(px(12.0))
-            .pr(px(11.0))
-            .border_r_1()
-            .border_color(theme.border_color)
-            .overflow_hidden()
-            .flex()
-            .flex_col()
-            .child(
-                div().flex().mb(px(10.0)).mx(px(-2.0)).child(
-                    nav_button("search", SEARCH).on_click(|_, window, cx| {
-                        window.dispatch_action(Box::new(Search), cx);
-                    }),
-                ), // .child(nav_button("sidebar-toggle", SIDEBAR_INACTIVE).ml_auto()),
-            )
-            .child(
-                sidebar_item("albums")
-                    .icon(DISC)
-                    .child("Albums")
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.nav_model.update(cx, |_, cx| {
-                            cx.emit(ViewSwitchMessage::Albums);
-                        });
-                    }))
-                    .when(
-                        matches!(
-                            current_view.iter().last(),
-                            Some(ViewSwitchMessage::Albums) | Some(ViewSwitchMessage::Release(_))
+        resizable_sidebar(
+            "main-sidebar-resizable",
+            sidebar_width.clone(),
+            ResizeSide::Right,
+        )
+        .min_width(px(175.0))
+        .max_width(px(350.0))
+        .default_width(DEFAULT_SIDEBAR_WIDTH)
+        .h_full()
+        .child(
+            sidebar()
+                .width(sidebar_width)
+                .id("main-sidebar")
+                .h_full()
+                .max_h_full()
+                .pt(px(10.0))
+                .pb(px(12.0))
+                .pl(px(12.0))
+                .pr(px(11.0))
+                .border_r_1()
+                .border_color(theme.border_color)
+                .overflow_hidden()
+                .flex()
+                .flex_col()
+                .child(
+                    div().flex().mb(px(10.0)).mx(px(-2.0)).child(
+                        nav_button("search", SEARCH).on_click(|_, window, cx| {
+                            window.dispatch_action(Box::new(Search), cx);
+                        }),
+                    ), // .child(nav_button("sidebar-toggle", SIDEBAR_INACTIVE).ml_auto()),
+                )
+                .child(
+                    sidebar_item("albums")
+                        .icon(DISC)
+                        .child("Albums")
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.nav_model.update(cx, |_, cx| {
+                                cx.emit(ViewSwitchMessage::Albums);
+                            });
+                        }))
+                        .when(
+                            matches!(
+                                current_view.iter().last(),
+                                Some(ViewSwitchMessage::Albums)
+                                    | Some(ViewSwitchMessage::Release(_))
+                            ),
+                            |this| this.active(),
                         ),
-                        |this| this.active(),
-                    ),
-            )
-            .child(sidebar_separator())
-            .child(self.playlists.clone())
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .mt_auto()
-                    .text_xs()
-                    .pt(px(8.0))
-                    .text_color(theme.text_secondary)
-                    .child(if self.track_stats.track_count != 1 {
-                        format!("{} tracks", self.track_stats.track_count)
-                    } else {
-                        format!("{} track", self.track_stats.track_count)
-                    })
-                    .child(format!(
-                        "{} hours, {} minutes",
-                        stats_hours,
-                        stats_minutes % 60
-                    )),
-            )
+                )
+                .child(sidebar_separator())
+                .child(self.playlists.clone())
+                .child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .mt_auto()
+                        .text_xs()
+                        .pt(px(8.0))
+                        .text_color(theme.text_secondary)
+                        .child(if self.track_stats.track_count != 1 {
+                            format!("{} tracks", self.track_stats.track_count)
+                        } else {
+                            format!("{} track", self.track_stats.track_count)
+                        })
+                        .child(format!(
+                            "{} hours, {} minutes",
+                            stats_hours,
+                            stats_minutes % 60
+                        )),
+                ),
+        )
     }
 }
