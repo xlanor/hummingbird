@@ -113,12 +113,12 @@ impl Render for PlaylistView {
         let playlist_name = self.playlist.name.0.clone();
         let scroll_handle = self.scroll_handle.clone();
 
-        let theme = cx.global::<Theme>();
-
         if self.first_render {
             self.first_render = false;
-            self.focus_handle.focus(window);
+            self.focus_handle.focus(window, cx);
         }
+
+        let theme = cx.global::<Theme>();
 
         div()
             .image_cache(hummingbird_cache(
@@ -343,7 +343,7 @@ impl Render for PlaylistView {
                         .flex_col()
                         .border_color(theme.border_color)
                         .border_t_1()
-                        .track_scroll(scroll_handle.clone()),
+                        .track_scroll(&scroll_handle),
                     )
                     .child(floating_scrollbar("playlist", scroll_handle, RightPad::Pad)),
             )

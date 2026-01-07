@@ -2,11 +2,16 @@
 
 use std::ops::Range;
 
-use gpui::*;
-use tracing::debug;
+use gpui::{
+    App, Bounds, ClipboardItem, Context, CursorStyle, ElementId, ElementInputHandler, Entity,
+    EntityInputHandler, EventEmitter, FocusHandle, Focusable, GlobalElementId, KeyBinding,
+    LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
+    ScrollHandle, ShapedLine, SharedString, Style, TextRun, UTF16Selection, UnderlineStyle, Window,
+    actions, div, fill, hsla, point, prelude::*, px, relative, rgba, size,
+};
 use unicode_segmentation::*;
 
-use crate::ui::{global_actions::PlayPause, theme::Theme};
+use crate::ui::global_actions::PlayPause;
 
 actions!(
     text_input,
@@ -142,10 +147,6 @@ impl TextInput {
         self.replace_text_in_range(None, "", window, cx)
     }
 
-    fn space(&mut self, _: &PlayPause, window: &mut Window, cx: &mut Context<Self>) {
-        self.replace_text_in_range(None, " ", window, cx)
-    }
-
     fn on_mouse_down(
         &mut self,
         event: &MouseDownEvent,
@@ -193,7 +194,7 @@ impl TextInput {
             ));
         }
     }
-    fn cut(&mut self, _: &Copy, window: &mut Window, cx: &mut Context<Self>) {
+    fn cut(&mut self, _: &Cut, window: &mut Window, cx: &mut Context<Self>) {
         if !self.selected_range.is_empty() {
             cx.write_to_clipboard(ClipboardItem::new_string(
                 self.content[self.selected_range.clone()].to_string(),
@@ -309,6 +310,10 @@ impl TextInput {
         self.is_selecting = false;
     }
 
+    fn space(&mut self, _: &PlayPause, window: &mut Window, cx: &mut Context<Self>) {
+        self.replace_text_in_range(None, " ", window, cx)
+    }
+
     pub fn next(&mut self, _: &Next, window: &mut Window, cx: &mut Context<Self>) {
         let Some(handler) = self.enriched_input_handler.as_mut() else {
             return;
@@ -377,7 +382,6 @@ impl EntityInputHandler for TextInput {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        debug!("replacing text with {:?}", new_text);
         let range = range_utf16
             .as_ref()
             .map(|range_utf16| self.range_from_utf16(range_utf16))
@@ -389,8 +393,6 @@ impl EntityInputHandler for TextInput {
                 .into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
-
-        cx.emit(self.content.to_string());
         cx.notify();
     }
 
@@ -411,14 +413,17 @@ impl EntityInputHandler for TextInput {
         self.content =
             (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])
                 .into();
-        self.marked_range = Some(range.start..range.start + new_text.len());
+        if !new_text.is_empty() {
+            self.marked_range = Some(range.start..range.start + new_text.len());
+        } else {
+            self.marked_range = None;
+        }
         self.selected_range = new_selected_range_utf16
             .as_ref()
             .map(|range_utf16| self.range_from_utf16(range_utf16))
             .map(|new_range| new_range.start + range.start..new_range.end + range.end)
             .unwrap_or_else(|| range.start + new_text.len()..range.start + new_text.len());
 
-        cx.emit(self.content.to_string());
         cx.notify();
     }
 
@@ -463,6 +468,7 @@ struct TextElement {
 }
 
 struct PrepaintState {
+    line: Option<ShapedLine>,
     cursor: Option<PaintQuad>,
     selection: Option<PaintQuad>,
 }
@@ -476,33 +482,49 @@ impl IntoElement for TextElement {
 }
 
 impl Element for TextElement {
-    type RequestLayoutState = Option<ShapedLine>;
-
+    type RequestLayoutState = ();
     type PrepaintState = PrepaintState;
 
     fn id(&self) -> Option<ElementId> {
         None
     }
 
-    fn source_location(&self) -> Option<&'static std::panic::Location<'static>> {
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
     }
 
     fn request_layout(
         &mut self,
         _id: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
+        _inspector_id: Option<&gpui::InspectorElementId>,
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
+        let mut style = Style::default();
+        style.size.width = relative(1.).into();
+        style.size.height = window.line_height().into();
+        (window.request_layout(style, [], cx), ())
+    }
+
+    fn prepaint(
+        &mut self,
+        _id: Option<&GlobalElementId>,
+        _inspector_id: Option<&gpui::InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _request_layout: &mut Self::RequestLayoutState,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Self::PrepaintState {
         let input = self.input.read(cx);
         let content = input.content.clone();
+        let selected_range = input.selected_range.clone();
+        let cursor = input.cursor_offset();
         let style = window.text_style();
 
         let (display_text, text_color) = if content.is_empty() {
             (input.placeholder.clone(), hsla(0., 0., 0., 0.2))
         } else {
-            (content.clone(), style.color)
+            (content, style.color)
         };
 
         let run = TextRun {
@@ -530,7 +552,7 @@ impl Element for TextElement {
                 },
                 TextRun {
                     len: display_text.len() - marked_range.end,
-                    ..run.clone()
+                    ..run
                 },
             ]
             .into_iter()
@@ -545,29 +567,6 @@ impl Element for TextElement {
             .text_system()
             .shape_line(display_text, font_size, &runs, None);
 
-        let mut size_style = Style::default();
-
-        size_style.size.width = line.width.into();
-        size_style.size.height = window.line_height().into();
-        (window.request_layout(size_style, [], cx), Some(line))
-    }
-
-    fn prepaint(
-        &mut self,
-        _id: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        request_layout: &mut Self::RequestLayoutState,
-        _: &mut Window,
-        cx: &mut App,
-    ) -> Self::PrepaintState {
-        let input = self.input.read(cx);
-        let selected_range = input.selected_range.clone();
-        let cursor = input.cursor_offset();
-        let line = request_layout.as_mut().unwrap();
-
-        let theme = cx.global::<Theme>();
-
         let cursor_pos = line.x_for_index(cursor);
         let (selection, cursor) = if selected_range.is_empty() {
             (
@@ -575,9 +574,9 @@ impl Element for TextElement {
                 Some(fill(
                     Bounds::new(
                         point(bounds.left() + cursor_pos, bounds.top()),
-                        size(px(1.), bounds.bottom() - bounds.top()),
+                        size(px(2.), bounds.bottom() - bounds.top()),
                     ),
-                    theme.caret_color,
+                    gpui::blue(),
                 )),
             )
         } else {
@@ -593,59 +592,50 @@ impl Element for TextElement {
                             bounds.bottom(),
                         ),
                     ),
-                    theme.text_input_selection,
+                    rgba(0x3311ff30),
                 )),
                 None,
             )
         };
-        PrepaintState { cursor, selection }
+        PrepaintState {
+            line: Some(line),
+            cursor,
+            selection,
+        }
     }
 
     fn paint(
         &mut self,
         _id: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
+        _inspector_id: Option<&gpui::InspectorElementId>,
         bounds: Bounds<Pixels>,
-        request_layout: &mut Self::RequestLayoutState,
+        _request_layout: &mut Self::RequestLayoutState,
         prepaint: &mut Self::PrepaintState,
         window: &mut Window,
         cx: &mut App,
     ) {
         let focus_handle = self.input.read(cx).focus_handle.clone();
-        let cursor = prepaint.cursor.take();
-
         window.handle_input(
             &focus_handle,
             ElementInputHandler::new(bounds, self.input.clone()),
             cx,
         );
-
-        if focus_handle.is_focused(window)
-            && let Some(cursor) = &cursor
-        {
-            let mut origin = cursor.bounds.origin - bounds.origin;
-            let original_x = origin.x;
-            origin.y = px(0.0);
-            origin.x = -origin.x - cursor.bounds.size.width;
-            self.input.update(cx, |m, _| {
-                if original_x > m.scroll_handle.bounds().size.width {
-                    m.scroll_handle.set_offset(origin);
-                } else {
-                    m.scroll_handle.set_offset(point(px(0.), px(0.)));
-                }
-            })
-        }
-
         if let Some(selection) = prepaint.selection.take() {
             window.paint_quad(selection)
         }
-
-        let line = request_layout.take().unwrap();
-        line.paint(bounds.origin, window.line_height(), window, cx)
-            .unwrap();
+        let line = prepaint.line.take().unwrap();
+        line.paint(
+            bounds.origin,
+            window.line_height(),
+            gpui::TextAlign::Left,
+            None,
+            window,
+            cx,
+        )
+        .unwrap();
 
         if focus_handle.is_focused(window)
-            && let Some(cursor) = cursor
+            && let Some(cursor) = prepaint.cursor.take()
         {
             window.paint_quad(cursor);
         }

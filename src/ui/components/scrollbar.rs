@@ -185,8 +185,7 @@ impl Element for Scrollbar {
         let foreground: Background = self
             .style
             .text
-            .as_ref()
-            .and_then(|v| v.color)
+            .color
             .map(|v| v.into())
             .unwrap_or(white().into());
 

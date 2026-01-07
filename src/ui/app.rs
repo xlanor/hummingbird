@@ -226,9 +226,8 @@ impl Render for WindowShadow {
             );
 
         let text_styles = element.text_style();
-        *text_styles = Some(TextStyleRefinement::default());
 
-        let ff = &mut text_styles.as_mut().unwrap().font_features;
+        let ff = &mut text_styles.font_features;
         *ff = Some(FontFeatures(Arc::new(vec![("tnum".to_string(), 1)])));
 
         element

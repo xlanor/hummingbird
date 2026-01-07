@@ -124,8 +124,8 @@ where
         })
     }
 
-    pub fn focus(&self, window: &mut Window) {
-        self.handle.focus(window);
+    pub fn focus(&self, window: &mut Window, cx: &mut App) {
+        self.handle.focus(window, cx);
     }
 
     pub fn reset(&self, cx: &mut Context<Self>) {

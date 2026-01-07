@@ -148,8 +148,8 @@ impl Render for AddToPlaylist {
         let show_read = *self.show.read(cx);
 
         if show_read {
-            cx.update_entity(&palette, |palette, _| {
-                palette.focus(window);
+            cx.update_entity(&palette, |palette, cx| {
+                palette.focus(window, cx);
             });
 
             modal()

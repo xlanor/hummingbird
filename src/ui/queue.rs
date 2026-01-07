@@ -479,7 +479,7 @@ impl Render for Queue {
                                 .h_full()
                                 .flex()
                                 .flex_col()
-                                .track_scroll(scroll_handle.clone()),
+                                .track_scroll(&scroll_handle),
                             )
                             .child(floating_scrollbar(
                                 "queue_scrollbar",

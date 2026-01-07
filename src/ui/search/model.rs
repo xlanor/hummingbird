@@ -90,8 +90,10 @@ impl SearchModel {
         });
     }
 
-    pub fn focus(&self, window: &mut Window, cx: &Context<Self>) {
-        self.palette.read(cx).focus(window);
+    pub fn focus(&self, window: &mut Window, cx: &mut Context<Self>) {
+        self.palette.update(cx, |palette, cx| {
+            palette.focus(window, cx);
+        });
     }
 }
 

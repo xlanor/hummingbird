@@ -281,7 +281,7 @@ where
                                     })
                                     .collect()
                             })
-                            .track_scroll(scroll_handle.clone())
+                            .track_scroll(&scroll_handle)
                             .w_full()
                             .h_full(),
                         )

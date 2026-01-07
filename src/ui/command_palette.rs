@@ -103,8 +103,8 @@ impl CommandPalette {
             let on_accept: OnAccept = Box::new(move |item, cx| {
                 if let Some(focus_handle) = &item.focus_handle
                     && let Err(err) =
-                        cx.update_window(cx.active_window().unwrap(), |_, window, _| {
-                            focus_handle.focus(window);
+                        cx.update_window(cx.active_window().unwrap(), |_, window, cx| {
+                            focus_handle.focus(window, cx);
                         })
                 {
                     error!("Failed to focus window, action may not trigger: {}", err);
@@ -218,8 +218,8 @@ impl Render for CommandPalette {
             let palette = self.palette.clone();
             let show = self.show.clone();
 
-            palette.update(cx, |palette, _| {
-                palette.focus(window);
+            palette.update(cx, |palette, cx| {
+                palette.focus(window, cx);
             });
 
             modal()
