@@ -11,7 +11,7 @@ use gpui::{
 };
 use unicode_segmentation::*;
 
-use crate::ui::global_actions::PlayPause;
+use crate::ui::{global_actions::PlayPause, theme::Theme};
 
 actions!(
     text_input,
@@ -393,6 +393,8 @@ impl EntityInputHandler for TextInput {
                 .into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
+
+        cx.emit(self.content.to_string());
         cx.notify();
     }
 
@@ -567,6 +569,8 @@ impl Element for TextElement {
             .text_system()
             .shape_line(display_text, font_size, &runs, None);
 
+        let theme = cx.global::<Theme>();
+
         let cursor_pos = line.x_for_index(cursor);
         let (selection, cursor) = if selected_range.is_empty() {
             (
@@ -574,9 +578,9 @@ impl Element for TextElement {
                 Some(fill(
                     Bounds::new(
                         point(bounds.left() + cursor_pos, bounds.top()),
-                        size(px(2.), bounds.bottom() - bounds.top()),
+                        size(px(1.), bounds.bottom() - bounds.top()),
                     ),
-                    gpui::blue(),
+                    theme.caret_color,
                 )),
             )
         } else {
