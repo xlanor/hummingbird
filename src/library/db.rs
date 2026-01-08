@@ -304,7 +304,7 @@ pub async fn move_playlist_item(
     // retrieve the current item's position
     let original_item = get_playlist_item(pool, item_id).await?;
 
-    if original_item.position > new_position {
+    if original_item.position < new_position {
         let move_query = include_str!("../../queries/playlist/move_track_down.sql");
 
         sqlx::query(move_query)
@@ -313,7 +313,7 @@ pub async fn move_playlist_item(
             .bind(item_id)
             .execute(pool)
             .await?;
-    } else if original_item.position < new_position {
+    } else if original_item.position > new_position {
         let move_query = include_str!("../../queries/playlist/move_track_up.sql");
 
         sqlx::query(move_query)

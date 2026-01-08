@@ -1,7 +1,7 @@
 use gpui::{
-    App, AppContext, Bounds, Context, Corner, Div, DragMoveEvent, Entity, Hsla, IntoElement,
-    ParentElement, Pixels, Point, Render, RenderOnce, SharedString, Styled, Window, anchored, div,
-    point, prelude::FluentBuilder, px, size,
+    App, AppContext, Bounds, Context, Corner, Div, DragMoveEvent, ElementId, Entity, Hsla,
+    IntoElement, ParentElement, Pixels, Point, Render, RenderOnce, SharedString, Styled, Window,
+    anchored, div, point, prelude::FluentBuilder, px, size,
 };
 
 use super::scrollbar::ScrollableHandle;
@@ -15,29 +15,29 @@ pub enum DropPosition {
 #[derive(Clone, Debug)]
 pub struct DragData {
     pub source_index: usize,
-    pub list_id: &'static str,
+    pub list_id: ElementId,
 }
 
 impl DragData {
-    pub fn new(source_index: usize, list_id: &'static str) -> Self {
+    pub fn new(source_index: usize, list_id: impl Into<ElementId>) -> Self {
         Self {
             source_index,
-            list_id,
+            list_id: list_id.into(),
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct DragDropListConfig {
-    pub list_id: &'static str,
+    pub list_id: ElementId,
     pub item_height: Pixels,
     pub scroll_config: EdgeScrollConfig,
 }
 
 impl DragDropListConfig {
-    pub fn new(list_id: &'static str, item_height: Pixels) -> Self {
+    pub fn new(list_id: impl Into<ElementId>, item_height: Pixels) -> Self {
         Self {
-            list_id,
+            list_id: list_id.into(),
             item_height,
             scroll_config: EdgeScrollConfig::default(),
         }
@@ -430,7 +430,7 @@ pub fn handle_drop<V: 'static, F>(
 ) where
     F: FnOnce(usize, usize, &mut Context<V>),
 {
-    let config_list_id = manager.read(cx).config.list_id;
+    let config_list_id = manager.read(cx).config.list_id.clone();
     if drag_data.list_id != config_list_id {
         return;
     }

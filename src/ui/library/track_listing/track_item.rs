@@ -144,6 +144,7 @@ impl Render for TrackItem {
                             .flex()
                             .flex_row()
                             .border_b_1()
+                            .h(px(39.0))
                             .id(("track", self.track.id as u64))
                             .w_full()
                             .border_color(theme.border_color)
