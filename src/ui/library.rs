@@ -5,10 +5,12 @@ use gpui::*;
 use navigation::NavigationView;
 use release_view::ReleaseView;
 use tracing::debug;
+use track_view::TrackView;
 
 #[derive(Clone, Default)]
 struct ScrollStateStorage {
     album_view_scroll: Option<f32>,
+    track_view_scroll: Option<f32>,
 }
 
 use crate::ui::{
@@ -29,6 +31,7 @@ mod playlist_view;
 mod release_view;
 mod sidebar;
 mod track_listing;
+mod track_view;
 mod update_playlist;
 
 pub fn bind_actions(cx: &mut App) {
@@ -38,6 +41,7 @@ pub fn bind_actions(cx: &mut App) {
 #[derive(Clone)]
 enum LibraryView {
     Album(Entity<AlbumView>),
+    Tracks(Entity<TrackView>),
     Release(Entity<ReleaseView>),
     Playlist(Entity<PlaylistView>),
 }
@@ -55,6 +59,7 @@ pub struct Library {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ViewSwitchMessage {
     Albums,
+    Tracks,
     Release(i64),
     Playlist(i64),
     Back,
@@ -74,6 +79,11 @@ fn make_view(
             cx,
             model.clone(),
             scroll_state.album_view_scroll,
+        )),
+        ViewSwitchMessage::Tracks => LibraryView::Tracks(TrackView::new(
+            cx,
+            model.clone(),
+            scroll_state.track_view_scroll,
         )),
         ViewSwitchMessage::Release(id) => LibraryView::Release(ReleaseView::new(cx, *id)),
         ViewSwitchMessage::Playlist(id) => LibraryView::Playlist(PlaylistView::new(cx, *id)),
@@ -99,6 +109,9 @@ impl Library {
                     if let LibraryView::Album(album_view) = &this.view {
                         let scroll_pos = album_view.read(cx).get_scroll_offset(cx);
                         this.scroll_state.album_view_scroll = Some(scroll_pos);
+                    } else if let LibraryView::Tracks(track_view) = &this.view {
+                        let scroll_pos = track_view.read(cx).get_scroll_offset(cx);
+                        this.scroll_state.track_view_scroll = Some(scroll_pos);
                     }
 
                     this.view = match message {
@@ -217,6 +230,7 @@ impl Render for Library {
                     .child(self.navigation_view.clone())
                     .child(match &self.view {
                         LibraryView::Album(album_view) => album_view.clone().into_any_element(),
+                        LibraryView::Tracks(track_view) => track_view.clone().into_any_element(),
                         LibraryView::Release(release_view) => {
                             release_view.clone().into_any_element()
                         }

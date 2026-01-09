@@ -7,6 +7,7 @@ use gpui::{
 
 use crate::settings::storage::DEFAULT_SIDEBAR_WIDTH;
 
+use crate::ui::components::icons::MENU;
 use crate::{
     library::{db::LibraryAccess, types::TrackStats},
     ui::{
@@ -102,6 +103,20 @@ impl Render for Sidebar {
                                 Some(ViewSwitchMessage::Albums)
                                     | Some(ViewSwitchMessage::Release(_))
                             ),
+                            |this| this.active(),
+                        ),
+                )
+                .child(
+                    sidebar_item("tracks")
+                        .icon(MENU)
+                        .child("Tracks")
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.nav_model.update(cx, |_, cx| {
+                                cx.emit(ViewSwitchMessage::Tracks);
+                            });
+                        }))
+                        .when(
+                            matches!(current_view.iter().last(), Some(ViewSwitchMessage::Tracks)),
                             |this| this.active(),
                         ),
                 )

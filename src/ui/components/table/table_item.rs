@@ -136,23 +136,15 @@ where
                 let monospace = T::column_monospace(*col.0);
                 let column = div()
                     .w(px(width))
-                    .when(T::has_images(), |div| {
-                        div.h(px(36.0)).px(px(12.0)).py(px(6.0))
-                    })
-                    .when(!T::has_images(), |div| {
-                        div.h(px(30.0))
-                            .px(px(10.0))
-                            .py(px(2.0))
-                            .when(i == 0, |div| div.pl(px(21.0)))
-                    })
+                    .h(px(36.0))
+                    .px(px(12.0))
+                    .py(px(6.0))
+                    .when(!T::has_images() && i == 0, |div| div.pl(px(21.0)))
                     .when(monospace, |div| div.font_family("Roboto Mono"))
                     .text_sm()
                     .flex_shrink_0()
                     .overflow_hidden()
                     .text_ellipsis()
-                    // .when(i != data.len() - 1, |div| {
-                    //     div.border_r_1().border_color(theme.border_color)
-                    // })
                     .border_b_1()
                     .border_color(theme.border_color)
                     .when_some(column.clone(), |div, string| div.child(string));

@@ -75,6 +75,20 @@ pub enum AlbumSortMethod {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TrackSortMethod {
+    TitleAsc,
+    TitleDesc,
+    ArtistAsc,
+    ArtistDesc,
+    AlbumAsc,
+    AlbumDesc,
+    DurationAsc,
+    DurationDesc,
+    TrackNumberAsc,
+    TrackNumberDesc,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AlbumMethod {
     FullQuality,
     Thumbnail,
@@ -122,6 +136,50 @@ pub async fn list_albums(
         .await?;
 
     Ok(albums)
+}
+
+pub async fn list_tracks(
+    pool: &SqlitePool,
+    sort_method: TrackSortMethod,
+) -> sqlx::Result<Vec<(i64, String)>> {
+    let query = match sort_method {
+        TrackSortMethod::TitleAsc => {
+            include_str!("../../queries/library/find_tracks_title_asc.sql")
+        }
+        TrackSortMethod::TitleDesc => {
+            include_str!("../../queries/library/find_tracks_title_desc.sql")
+        }
+        TrackSortMethod::ArtistAsc => {
+            include_str!("../../queries/library/find_tracks_artist_asc.sql")
+        }
+        TrackSortMethod::ArtistDesc => {
+            include_str!("../../queries/library/find_tracks_artist_desc.sql")
+        }
+        TrackSortMethod::AlbumAsc => {
+            include_str!("../../queries/library/find_tracks_album_asc.sql")
+        }
+        TrackSortMethod::AlbumDesc => {
+            include_str!("../../queries/library/find_tracks_album_desc.sql")
+        }
+        TrackSortMethod::DurationAsc => {
+            include_str!("../../queries/library/find_tracks_length_asc.sql")
+        }
+        TrackSortMethod::DurationDesc => {
+            include_str!("../../queries/library/find_tracks_length_desc.sql")
+        }
+        TrackSortMethod::TrackNumberAsc => {
+            include_str!("../../queries/library/find_tracks_number_asc.sql")
+        }
+        TrackSortMethod::TrackNumberDesc => {
+            include_str!("../../queries/library/find_tracks_number_desc.sql")
+        }
+    };
+
+    let tracks = sqlx::query_as::<_, (i64, String)>(query)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(tracks)
 }
 
 pub async fn list_tracks_in_album(
@@ -374,6 +432,7 @@ pub async fn playlist_has_track(
 
 pub trait LibraryAccess {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> sqlx::Result<Vec<(u32, String)>>;
+    fn list_tracks(&self, sort_method: TrackSortMethod) -> sqlx::Result<Vec<(i64, String)>>;
     fn list_tracks_in_album(&self, album_id: i64) -> sqlx::Result<Arc<Vec<Track>>>;
     fn get_album_by_id(&self, album_id: i64, method: AlbumMethod) -> sqlx::Result<Arc<Album>>;
     fn get_artist_name_by_id(&self, artist_id: i64) -> sqlx::Result<Arc<String>>;
@@ -398,6 +457,11 @@ impl LibraryAccess for App {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> sqlx::Result<Vec<(u32, String)>> {
         let pool: &Pool = self.global();
         crate::RUNTIME.block_on(list_albums(&pool.0, sort_method))
+    }
+
+    fn list_tracks(&self, sort_method: TrackSortMethod) -> sqlx::Result<Vec<(i64, String)>> {
+        let pool: &Pool = self.global();
+        crate::RUNTIME.block_on(list_tracks(&pool.0, sort_method))
     }
 
     fn list_tracks_in_album(&self, album_id: i64) -> sqlx::Result<Arc<Vec<Track>>> {
