@@ -126,6 +126,10 @@ where
         let offset = self.scroll_handle.0.borrow().base_handle.offset();
         (-offset.y).into()
     }
+
+    pub fn get_items(&self) -> Option<Arc<Vec<T::Identifier>>> {
+        self.items.clone()
+    }
 }
 
 impl<T, C> Render for Table<T, C>

@@ -1,6 +1,8 @@
 SELECT
     t.id,
-    t.title_sortable
+    t.title_sortable,
+    t.album_id,
+    t.location
 FROM
     track t
     LEFT JOIN album al ON t.album_id = al.id

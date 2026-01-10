@@ -164,6 +164,7 @@ impl ControllerBridge {
 type ControllerList = FxHashMap<String, Box<dyn PlaybackController>>;
 
 // has to be held in memory
+#[allow(dead_code)]
 pub struct PbcHandle(UnboundedSender<PbcEvent>, tokio::task::JoinHandle<()>);
 
 impl Global for PbcHandle {}

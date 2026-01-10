@@ -460,8 +460,6 @@ impl Render for PlaylistView {
                                 cx,
                                 |from_idx, to_idx, cx| {
                                     let item_id = playlist_track_ids[from_idx].0;
-                                    let current_item = cx.get_playlist_item(item_id).unwrap();
-                                    let current_db_position = current_item.position;
 
                                     let new_position = if to_idx < playlist_track_ids.len() {
                                         let target_item_id = playlist_track_ids[to_idx].0;
