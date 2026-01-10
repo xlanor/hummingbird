@@ -382,9 +382,20 @@ impl ScanThread {
         let paths = fs::read_dir(&path).unwrap();
 
         for paths in paths {
-            // TODO: handle errors
-            // this might be slower than just reading the path directly but this prevents loops
-            let path = paths.unwrap().path().canonicalize().unwrap();
+            let path = match paths {
+                Ok(entry) => match entry.path().canonicalize() {
+                    Ok(p) => p,
+                    Err(e) => {
+                        info!("Failed to canonicalize path {:?}: {:?}", entry.path(), e);
+                        continue;
+                    }
+                },
+                Err(e) => {
+                    info!("Failed to read directory entry: {:?}", e);
+                    continue;
+                }
+            };
+
             if path.is_dir() {
                 self.discovered.push(path);
             } else if self.file_is_scannable(&path) {
