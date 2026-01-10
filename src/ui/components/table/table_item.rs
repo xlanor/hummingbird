@@ -4,12 +4,26 @@ use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
-use crate::ui::theme::Theme;
-
 use super::{
     OnSelectHandler,
-    table_data::{Column, TableData},
+    table_data::{Column, TABLE_IMAGE_COLUMN_WIDTH, TABLE_MAX_WIDTH, TableData},
 };
+use crate::ui::theme::Theme;
+
+/// Calculates the extra width to add to the final column to fill available space.
+/// This is required so that the table does not just appear to "end" before it logically should.
+fn calculate_final_column_extra_width<C: Column>(
+    columns: &IndexMap<C, f32, FxBuildHasher>,
+    has_images: bool,
+) -> f32 {
+    let total_width: f32 = columns.values().sum();
+    let available_width = if has_images {
+        TABLE_MAX_WIDTH - TABLE_IMAGE_COLUMN_WIDTH
+    } else {
+        TABLE_MAX_WIDTH
+    };
+    (available_width - total_width).max(0.0)
+}
 
 #[derive(Clone)]
 pub struct TableItem<T, C>
@@ -101,7 +115,7 @@ where
         if T::has_images() {
             row = row.child(
                 div()
-                    .w(px(47.0))
+                    .w(px(TABLE_IMAGE_COLUMN_WIDTH))
                     .h(px(36.0))
                     .text_sm()
                     .pl(px(11.0))
@@ -127,29 +141,38 @@ where
         }
 
         if let Some(data) = self.data.as_ref() {
-            for (i, column) in data.iter().enumerate() {
+            let extra_width = calculate_final_column_extra_width(&self.columns, T::has_images());
+            let column_count = self.columns.len();
+
+            for (i, column_data) in data.iter().enumerate() {
                 let col = self
                     .columns
                     .get_index(i)
                     .expect("data references column outside of viewed table");
-                let width = *col.1;
+                let is_last = i == column_count - 1;
+                let base_width = *col.1;
+                let width = if is_last {
+                    base_width + extra_width
+                } else {
+                    base_width
+                };
                 let monospace = T::column_monospace(*col.0);
-                let column = div()
-                    .w(px(width))
-                    .h(px(36.0))
-                    .px(px(12.0))
-                    .py(px(6.0))
-                    .when(!T::has_images() && i == 0, |div| div.pl(px(21.0)))
-                    .when(monospace, |div| div.font_family("Roboto Mono"))
-                    .text_sm()
-                    .flex_shrink_0()
-                    .overflow_hidden()
-                    .text_ellipsis()
-                    .border_b_1()
-                    .border_color(theme.border_color)
-                    .when_some(column.clone(), |div, string| div.child(string));
-
-                row = row.child(column);
+                row = row.child(
+                    div()
+                        .w(px(width))
+                        .h(px(36.0))
+                        .px(px(12.0))
+                        .py(px(6.0))
+                        .when(!T::has_images() && i == 0, |div| div.pl(px(21.0)))
+                        .when(monospace, |div| div.font_family("Roboto Mono"))
+                        .text_sm()
+                        .flex_shrink_0()
+                        .overflow_hidden()
+                        .text_ellipsis()
+                        .border_b_1()
+                        .border_color(theme.border_color)
+                        .when_some(column_data.clone(), |div, string| div.child(string)),
+                );
             }
         }
 

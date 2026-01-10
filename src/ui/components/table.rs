@@ -1,12 +1,16 @@
+mod column_resize_handle;
 pub mod table_data;
 mod table_item;
 
 use std::{rc::Rc, sync::Arc};
 
+use column_resize_handle::column_resize_handle;
 use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use table_data::{Column, TableData, TableSort};
+use table_data::{
+    Column, TABLE_HEADER_GROUP, TABLE_IMAGE_COLUMN_WIDTH, TABLE_MAX_WIDTH, TableData, TableSort,
+};
 use table_item::TableItem;
 
 use crate::ui::{
@@ -138,7 +142,6 @@ where
     C: Column + 'static,
 {
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
-        let mut header = div().w_full().flex();
         let theme = cx.global::<Theme>();
         let sort_method = self.sort_method.read(cx);
         let items = self.items.clone();
@@ -148,10 +151,28 @@ where
         let handler = self.on_select.clone();
         let scroll_handle = self.scroll_handle.clone();
 
+        // Calculate available width and extra width for final column expansion
+        let columns_read = self.columns.read(cx);
+        let total_width: f32 = columns_read.values().sum();
+        let available_width = if T::has_images() {
+            TABLE_MAX_WIDTH - TABLE_IMAGE_COLUMN_WIDTH
+        } else {
+            TABLE_MAX_WIDTH
+        };
+        let extra_width = (available_width - total_width).max(0.0);
+        let column_count = columns_read.len();
+        let default_columns = T::default_columns();
+
+        let mut header = div()
+            .w_full()
+            .flex()
+            .id("table-header")
+            .group(SharedString::from(TABLE_HEADER_GROUP));
+
         if T::has_images() {
             header = header.child(
                 div()
-                    .w(px(47.0))
+                    .w(px(TABLE_IMAGE_COLUMN_WIDTH))
                     .h(px(36.0))
                     .pl(px(21.0))
                     .pr(px(10.0))
@@ -165,9 +186,20 @@ where
             );
         }
 
-        for (i, column) in self.columns.read(cx).iter().enumerate() {
-            let width = *column.1;
+        for (i, column) in columns_read.iter().enumerate() {
+            let is_last = i == column_count - 1;
+            let base_width = *column.1;
+            let width = if is_last {
+                base_width + extra_width
+            } else {
+                base_width
+            };
             let column_id = *column.0;
+            let default_width = default_columns
+                .get(&column_id)
+                .copied()
+                .unwrap_or(base_width);
+
             header = header.child(
                 div()
                     .flex()
@@ -219,6 +251,10 @@ where
                         })
                     })),
             );
+
+            if column_id.is_resizable() && !is_last {
+                header = header.child(column_resize_handle(i, self.columns.clone(), default_width));
+            }
         }
 
         div()

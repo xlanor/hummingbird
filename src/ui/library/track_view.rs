@@ -9,7 +9,7 @@ use crate::{
     },
     playback::{interface::PlaybackInterface, queue::QueueItemData},
     ui::{
-        components::table::{Table, TableEvent},
+        components::table::{Table, TableEvent, table_data::TABLE_MAX_WIDTH},
         models::Models,
     },
 };
@@ -98,7 +98,7 @@ impl Render for TrackView {
             .flex_col()
             .w_full()
             .h_full()
-            .max_w(px(1000.0))
+            .max_w(px(TABLE_MAX_WIDTH))
             .pt(px(10.0))
             .pb(px(0.0))
             .child(self.table.clone())

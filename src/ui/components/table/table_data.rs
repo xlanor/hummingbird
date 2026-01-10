@@ -4,9 +4,24 @@ use gpui::{App, ElementId, SharedString};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
+// table layout constants
+pub const TABLE_MAX_WIDTH: f32 = 1000.0;
+pub const TABLE_IMAGE_COLUMN_WIDTH: f32 = 47.0;
+
+// column resize constants
+pub const COLUMN_MIN_WIDTH: f32 = 50.0;
+pub const COLUMN_RESIZE_HANDLE_WIDTH: f32 = 6.0;
+pub const TABLE_HEADER_GROUP: &str = "table-header-group";
+
 pub trait Column: Clone + Copy + Debug + Hash + PartialEq + Eq {
     /// Retrieves the friendly name text of the column.
     fn get_column_name(&self) -> &'static str;
+
+    /// Returns whether this column can be resized by the user.
+    /// Defaults to true.
+    fn is_resizable(&self) -> bool {
+        true
+    }
 }
 
 #[derive(Copy, Clone)]

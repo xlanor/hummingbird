@@ -135,7 +135,8 @@ impl TableData<AlbumColumn> for Album {
         columns.insert(AlbumColumn::Artist, 200.0);
         columns.insert(AlbumColumn::Date, 100.0);
         columns.insert(AlbumColumn::Label, 150.0);
-        columns.insert(AlbumColumn::CatalogNumber, 200.0);
+        // length is weird because the image column is 47.0
+        columns.insert(AlbumColumn::CatalogNumber, 203.0);
         columns
     }
 }
