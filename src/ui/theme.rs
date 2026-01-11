@@ -18,6 +18,7 @@ pub struct Theme {
 
     pub text: Rgba,
     pub text_secondary: Rgba,
+    pub text_disabled: Rgba,
     pub text_link: Rgba,
 
     pub nav_button_hover: Rgba,
@@ -97,6 +98,7 @@ impl Default for Theme {
 
             text: rgb(0xF4F5F6),
             text_secondary: rgb(0xBEC4CA),
+            text_disabled: rgb(0x6B7280),
             text_link: rgb(0x5279D4),
 
             nav_button_hover: rgb(0x161A22),

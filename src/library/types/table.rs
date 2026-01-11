@@ -29,6 +29,20 @@ impl Column for AlbumColumn {
             AlbumColumn::CatalogNumber => "Catalog Number",
         }
     }
+
+    fn is_hideable(&self) -> bool {
+        !matches!(self, AlbumColumn::Title)
+    }
+
+    fn all_columns() -> &'static [Self] {
+        &[
+            AlbumColumn::Title,
+            AlbumColumn::Artist,
+            AlbumColumn::Date,
+            AlbumColumn::Label,
+            AlbumColumn::CatalogNumber,
+        ]
+    }
 }
 
 impl TableData<AlbumColumn> for Album {
@@ -159,6 +173,20 @@ impl Column for TrackColumn {
             TrackColumn::Artist => "Artist",
             TrackColumn::Length => "Length",
         }
+    }
+
+    fn is_hideable(&self) -> bool {
+        !matches!(self, TrackColumn::Title)
+    }
+
+    fn all_columns() -> &'static [Self] {
+        &[
+            TrackColumn::TrackNumber,
+            TrackColumn::Title,
+            TrackColumn::Album,
+            TrackColumn::Artist,
+            TrackColumn::Length,
+        ]
     }
 }
 

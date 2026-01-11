@@ -4,7 +4,7 @@ use gpui::{App, Entity, FontWeight, IntoElement, SharedString, Window, div, img,
 use crate::ui::components::icons::{
     PLAY, PLAYLIST_ADD, PLAYLIST_REMOVE, PLUS, STAR, STAR_FILLED, icon,
 };
-use crate::ui::components::menu::CMenuItem;
+use crate::ui::components::menu::menu_separator;
 use crate::ui::library::add_to_playlist::AddToPlaylist;
 use crate::ui::models::PlaylistEvent;
 use crate::{
@@ -313,7 +313,7 @@ impl Render for TrackItem {
                                 playback_interface.queue(data);
                             },
                         ))
-                        .item(CMenuItem::Seperator)
+                        .item(menu_separator())
                         .item(menu_item(
                             "track_add_to_playlist",
                             Some(PLAYLIST_ADD),

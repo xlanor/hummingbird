@@ -22,6 +22,17 @@ pub trait Column: Clone + Copy + Debug + Hash + PartialEq + Eq {
     fn is_resizable(&self) -> bool {
         true
     }
+
+    /// Returns whether this column can be hidden by the user.
+    /// Return `false` for essential columns like "Title".
+    /// Defaults to true.
+    fn is_hideable(&self) -> bool {
+        true
+    }
+
+    /// Returns all possible column variants for this type.
+    /// Required for building the column visibility menu.
+    fn all_columns() -> &'static [Self];
 }
 
 #[derive(Copy, Clone)]

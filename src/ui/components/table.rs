@@ -16,7 +16,9 @@ use table_item::TableItem;
 use crate::ui::{
     caching::hummingbird_cache,
     components::{
+        context::context,
         icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
+        menu::{menu, menu_check_item},
         scrollbar::{RightPad, floating_scrollbar},
     },
     theme::Theme,
@@ -39,6 +41,8 @@ where
     C: Column + 'static,
 {
     columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
+    // preserves hidden column widths, even if not shown
+    hidden_column_widths: Entity<FxHashMap<C, f32>>,
     views: Entity<RowMap<T, C>>,
     render_counter: Entity<usize>,
     items: Option<Arc<Vec<T::Identifier>>>,
@@ -70,6 +74,7 @@ where
     ) -> Entity<Self> {
         cx.new(|cx| {
             let columns = cx.new(|_| Arc::new(T::default_columns()));
+            let hidden_column_widths = cx.new(|_| FxHashMap::default());
             let views = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
             let sort_method = cx.new(|_| None);
@@ -100,6 +105,13 @@ where
             })
             .detach();
 
+            cx.observe(&columns, |this: &mut Table<T, C>, _, cx| {
+                this.views = cx.new(|_| FxHashMap::default());
+                this.render_counter = cx.new(|_| 0);
+                cx.notify();
+            })
+            .detach();
+
             cx.subscribe(&cx.entity(), |this, _, event, cx| match event {
                 TableEvent::NewRows => {
                     let sort_method = *this.sort_method.read(cx);
@@ -116,6 +128,7 @@ where
 
             Self {
                 columns,
+                hidden_column_widths,
                 views,
                 render_counter,
                 items,
@@ -133,6 +146,76 @@ where
 
     pub fn get_items(&self) -> Option<Arc<Vec<T::Identifier>>> {
         self.items.clone()
+    }
+
+    pub fn toggle_column(&mut self, column: C, cx: &mut App) {
+        if self.columns.read(cx).contains_key(&column) {
+            self.hide_column(column, cx);
+        } else {
+            self.show_column(column, cx);
+        }
+    }
+
+    pub fn hide_column(&mut self, column: C, cx: &mut App) {
+        if !column.is_hideable() {
+            return;
+        }
+
+        let width = self.columns.read(cx).get(&column).copied();
+        if let Some(w) = width {
+            self.hidden_column_widths.update(cx, |map, _| {
+                map.insert(column, w);
+            });
+        }
+
+        self.columns.update(cx, |cols, cx| {
+            let mut new_cols = (**cols).clone();
+            new_cols.shift_remove(&column);
+            *cols = Arc::new(new_cols);
+            cx.notify();
+        });
+    }
+
+    pub fn show_column(&mut self, column: C, cx: &mut App) {
+        // use the previous col widths if available
+        let default_columns = T::default_columns();
+        let width = self
+            .hidden_column_widths
+            .read(cx)
+            .get(&column)
+            .copied()
+            .or_else(|| default_columns.get(&column).copied())
+            .unwrap_or(100.0);
+
+        // insert based on default column positions
+        let default_order: Vec<C> = default_columns.keys().copied().collect();
+        let target_idx = default_order.iter().position(|c| *c == column).unwrap_or(0);
+
+        self.columns.update(cx, |cols, cx| {
+            let mut new_cols = (**cols).clone();
+
+            let mut insert_idx = 0;
+            for (idx, key) in new_cols.keys().enumerate() {
+                if let Some(pos) = default_order.iter().position(|c| c == key) {
+                    if pos < target_idx {
+                        insert_idx = idx + 1;
+                    }
+                }
+            }
+
+            new_cols.shift_insert(insert_idx, column, width);
+            *cols = Arc::new(new_cols);
+            cx.notify();
+        });
+
+        self.hidden_column_widths.update(cx, |map, _| {
+            map.remove(&column);
+        });
+    }
+
+    #[allow(dead_code)]
+    pub fn is_column_visible(&self, column: C, cx: &App) -> bool {
+        self.columns.read(cx).contains_key(&column)
     }
 }
 
@@ -166,7 +249,7 @@ where
         let mut header = div()
             .w_full()
             .flex()
-            .id("table-header")
+            .id("table-header-inner")
             .group(SharedString::from(TABLE_HEADER_GROUP));
 
         if T::has_images() {
@@ -257,6 +340,31 @@ where
             }
         }
 
+        // column vis menu
+        let all_columns = C::all_columns();
+        let mut column_menu = menu();
+        for col in all_columns {
+            let is_visible = columns_read.contains_key(col);
+            let is_hideable = col.is_hideable();
+            let column_copy = *col;
+
+            column_menu = column_menu.item(
+                menu_check_item(
+                    SharedString::from(col.get_column_name()),
+                    is_visible,
+                    col.get_column_name(),
+                    cx.listener(move |this, _, _, cx| {
+                        this.toggle_column(column_copy, cx);
+                    }),
+                )
+                .disabled(!is_hideable),
+            );
+        }
+
+        let header_with_context = context("table-header-context")
+            .with(header)
+            .child(div().bg(theme.elevated_background).child(column_menu));
+
         div()
             .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 100))
             .id(T::get_table_name())
@@ -275,7 +383,7 @@ where
                     .text_size(px(26.0))
                     .child(T::get_table_name()),
             )
-            .child(header)
+            .child(header_with_context)
             .when_some(items, |this, items| {
                 this.child(
                     div()
