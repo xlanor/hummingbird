@@ -101,20 +101,24 @@ impl CommandPalette {
 
             let show_clone = show.clone();
             let on_accept: OnAccept = Box::new(move |item, cx| {
-                if let Some(focus_handle) = &item.focus_handle
-                    && let Err(err) =
-                        cx.update_window(cx.active_window().unwrap(), |_, window, cx| {
-                            focus_handle.focus(window, cx);
-                        })
-                {
-                    error!("Failed to focus window, action may not trigger: {}", err);
-                }
+                let item = item.clone();
+                let show_clone = show_clone.clone();
+                cx.defer(move |cx| {
+                    if let Some(focus_handle) = &item.focus_handle
+                        && let Err(err) =
+                            cx.update_window(cx.active_window().unwrap(), |_, window, cx| {
+                                focus_handle.focus(window, cx);
+                            })
+                    {
+                        error!("Failed to focus window, action may not trigger: {}", err);
+                    }
 
-                cx.dispatch_action(&(*item.action));
+                    cx.dispatch_action(&(*item.action));
 
-                show_clone.update(cx, |show, cx| {
-                    *show = false;
-                    cx.notify();
+                    show_clone.update(cx, |show, cx| {
+                        *show = false;
+                        cx.notify();
+                    });
                 });
             });
 
