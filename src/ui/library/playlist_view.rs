@@ -25,9 +25,9 @@ use crate::{
         components::{
             button::{ButtonIntent, ButtonSize, button},
             drag_drop::{
-                DragData, DragDropItemState, DragDropListConfig, DragDropListManager, DragPreview,
-                DropIndicator, check_drag_cancelled, continue_edge_scroll, handle_drag_move,
-                handle_drop,
+                DragDropItemState, DragDropListConfig, DragDropListManager, DragPreview,
+                DropIndicator, TrackDragData, check_drag_cancelled, continue_edge_scroll,
+                handle_track_drag_move, handle_track_drop,
             },
             icons::{CIRCLE_PLUS, PLAY, PLAYLIST, SHUFFLE, STAR, icon},
             scrollbar::{RightPad, ScrollableHandle, floating_scrollbar},
@@ -60,7 +60,11 @@ pub struct PlaylistTrackItem {
     playlist_item_id: i64,
     track_title: SharedString,
     drag_drop_manager: Entity<DragDropListManager>,
-    list_id: SharedString,
+    list_id: gpui::ElementId,
+    /// Track info for drag data
+    track_id: i64,
+    album_id: Option<i64>,
+    track_path: std::path::PathBuf,
 }
 
 impl PlaylistTrackItem {
@@ -71,7 +75,10 @@ impl PlaylistTrackItem {
         playlist_item_id: i64,
         track_title: SharedString,
         drag_drop_manager: Entity<DragDropListManager>,
-        list_id: SharedString,
+        list_id: gpui::ElementId,
+        track_id: i64,
+        album_id: Option<i64>,
+        track_path: std::path::PathBuf,
     ) -> Entity<Self> {
         cx.new(|cx| {
             cx.observe(&drag_drop_manager, |_, _, cx| {
@@ -86,6 +93,9 @@ impl PlaylistTrackItem {
                 track_title,
                 drag_drop_manager,
                 list_id,
+                track_id,
+                album_id,
+                track_path,
             }
         })
     }
@@ -97,8 +107,15 @@ impl Render for PlaylistTrackItem {
         let item_state = DragDropItemState::for_index(&self.drag_drop_manager.read(cx), self.idx);
 
         let idx = self.idx;
-        let list_id = self.list_id.clone();
         let track_title = self.track_title.clone();
+
+        let drag_data = TrackDragData::from_track(
+            self.track_id,
+            self.album_id,
+            self.track_path.clone(),
+            self.track_title.clone(),
+        )
+        .with_reorder_info(self.list_id.clone(), idx);
 
         div()
             .id(("playlist-track-item", self.playlist_item_id as u64))
@@ -106,10 +123,10 @@ impl Render for PlaylistTrackItem {
             .h(px(PLAYLIST_ITEM_HEIGHT))
             .relative()
             .when(item_state.is_being_dragged, |d| d.opacity(0.5))
-            .on_drag(DragData::new(idx, list_id), move |_, _, _, cx| {
+            .on_drag(drag_data, move |_, _, _, cx| {
                 DragPreview::new(cx, track_title.clone())
             })
-            .drag_over::<DragData>(move |style, _, _, _| style.bg(rgba(0x88888822)))
+            .drag_over::<TrackDragData>(move |style, _, _, _| style.bg(rgba(0x88888822)))
             .child(self.track_item.clone())
             .child(DropIndicator::with_state(
                 item_state.is_drop_target_before,
@@ -128,7 +145,7 @@ pub struct PlaylistView {
     first_render: bool,
     scroll_handle: UniformListScrollHandle,
     drag_drop_manager: Entity<DragDropListManager>,
-    list_id: SharedString,
+    list_id: gpui::ElementId,
 }
 
 impl PlaylistView {
@@ -136,7 +153,7 @@ impl PlaylistView {
         cx.new(|cx| {
             let playlist_tracker = cx.global::<Models>().playlist_tracker.clone();
 
-            let list_id: SharedString = format!("playlist-{}", playlist_id).into();
+            let list_id: gpui::ElementId = format!("playlist-{}", playlist_id).into();
             let config = DragDropListConfig::new(list_id.clone(), px(PLAYLIST_ITEM_HEIGHT));
             let drag_drop_manager = DragDropListManager::new(cx, config);
 
@@ -411,14 +428,14 @@ impl Render for PlaylistView {
                     .h_full()
                     .relative()
                     .mt(px(18.0))
-                    .on_drag_move::<DragData>(cx.listener(
+                    .on_drag_move::<TrackDragData>(cx.listener(
                         move |this: &mut PlaylistView,
-                              event: &DragMoveEvent<DragData>,
+                              event: &DragMoveEvent<TrackDragData>,
                               window,
                               cx| {
                             let scroll_handle: ScrollableHandle = this.scroll_handle.clone().into();
 
-                            let scrolled = handle_drag_move(
+                            let scrolled = handle_track_drag_move(
                                 this.drag_drop_manager.clone(),
                                 scroll_handle,
                                 event,
@@ -450,11 +467,11 @@ impl Render for PlaylistView {
                         },
                     ))
                     .on_drop(cx.listener(
-                        move |this: &mut PlaylistView, drag_data: &DragData, _, cx| {
+                        move |this: &mut PlaylistView, drag_data: &TrackDragData, _, cx| {
                             let playlist_track_ids = this.playlist_track_ids.clone();
                             let playlist_id = this.playlist.id;
 
-                            handle_drop(
+                            handle_track_drop(
                                 this.drag_drop_manager.clone(),
                                 drag_data,
                                 cx,
@@ -517,6 +534,8 @@ impl Render for PlaylistView {
                                                 let track = cx.get_track_by_id(track_id).unwrap();
                                                 let track_title: SharedString =
                                                     track.title.clone().into();
+                                                let track_path = track.location.clone();
+                                                let album_id = track.album_id;
 
                                                 let track_item = TrackItem::new(
                                                     cx,
@@ -538,6 +557,9 @@ impl Render for PlaylistView {
                                                     track_title,
                                                     drag_drop_manager,
                                                     list_id,
+                                                    track_id,
+                                                    album_id,
+                                                    track_path,
                                                 )
                                             },
                                             cx,

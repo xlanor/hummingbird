@@ -1,6 +1,7 @@
 use gpui::prelude::{FluentBuilder, *};
 use gpui::{App, Entity, FontWeight, IntoElement, SharedString, Window, div, img, px};
 
+use crate::ui::components::drag_drop::{DragPreview, TrackDragData};
 use crate::ui::components::icons::{
     PLAY, PLAYLIST_ADD, PLAYLIST_REMOVE, PLUS, STAR, STAR_FILLED, icon,
 };
@@ -98,8 +99,10 @@ impl Render for TrackItem {
 
         let track_location = self.track.location.clone();
         let track_location_2 = self.track.location.clone();
+        let track_location_for_drag = self.track.location.clone();
         let track_id = self.track.id;
         let album_id = self.track.album_id;
+        let track_title_for_drag: SharedString = self.track.title.clone().into();
 
         let show_artist_name = self.artist_name_visibility != ArtistNameVisibility::Never
             && self.artist_name_visibility
@@ -154,6 +157,21 @@ impl Render for TrackItem {
                             .group(self.hover_group.clone())
                             .hover(|this| this.bg(theme.nav_button_hover))
                             .active(|this| this.bg(theme.nav_button_active))
+                            // only handle drag when we're not in a playlist
+                            // playlists have their own drag handler
+                            .when(self.pl_info.is_none(), |this| {
+                                this.on_drag(
+                                    TrackDragData::from_track(
+                                        track_id,
+                                        album_id,
+                                        track_location_for_drag,
+                                        track_title_for_drag.clone(),
+                                    ),
+                                    move |_, _, _, cx| {
+                                        DragPreview::new(cx, track_title_for_drag.clone())
+                                    },
+                                )
+                            })
                             .when_some(current_track, |this, track| {
                                 this.bg(if track == self.track.location {
                                     theme.queue_item_current

@@ -7,7 +7,10 @@ use rustc_hash::FxBuildHasher;
 use super::{Album, Track};
 use crate::{
     library::db::{AlbumMethod, AlbumSortMethod, LibraryAccess, TrackSortMethod},
-    ui::components::table::table_data::{Column, TableData, TableSort},
+    ui::components::{
+        drag_drop::{AlbumDragData, TrackDragData},
+        table::table_data::{Column, TableData, TableDragData, TableSort},
+    },
 };
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -152,6 +155,13 @@ impl TableData<AlbumColumn> for Album {
         // length is weird because the image column is 47.0
         columns.insert(AlbumColumn::CatalogNumber, 203.0);
         columns
+    }
+
+    fn get_drag_data(&self) -> Option<TableDragData> {
+        Some(TableDragData::Album(AlbumDragData::new(
+            self.id,
+            self.title.0.clone(),
+        )))
     }
 }
 
@@ -326,5 +336,14 @@ impl TableData<TrackColumn> for Track {
         columns.insert(TrackColumn::Artist, 225.0);
         columns.insert(TrackColumn::Length, 100.0);
         columns
+    }
+
+    fn get_drag_data(&self) -> Option<TableDragData> {
+        Some(TableDragData::Track(TrackDragData::from_track(
+            self.id,
+            self.album_id,
+            self.location.clone(),
+            self.title.0.clone(),
+        )))
     }
 }

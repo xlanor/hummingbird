@@ -301,6 +301,10 @@ impl PlaybackThread {
                 }
                 PlaybackCommand::Queue(v) => self.queue(&v),
                 PlaybackCommand::QueueList(v) => self.queue_list(v),
+                PlaybackCommand::InsertAt { item, position } => self.insert_at(&item, position),
+                PlaybackCommand::InsertListAt { items, position } => {
+                    self.insert_list_at(items, position)
+                }
                 PlaybackCommand::Next => self.next(true),
                 PlaybackCommand::Previous => self.previous(),
                 PlaybackCommand::ClearQueue => self.clear_queue(),
@@ -698,6 +702,101 @@ impl PlaybackThread {
                     .expect("unable to send event");
             }
         }
+    }
+
+    /// Insert a [`QueueItemData`] at the specified position in the queue.
+    /// If nothing is playing, start playing it.
+    fn insert_at(&mut self, item: &QueueItemData, position: usize) {
+        info!("Inserting file to queue at position {}: {}", position, item);
+
+        let mut queue = self.queue.write().expect("couldn't get the queue");
+
+        let insert_pos = position.min(queue.len());
+        queue.insert(insert_pos, item.clone());
+
+        drop(queue);
+
+        if self.shuffle {
+            self.original_queue.push(item.clone());
+        }
+
+        if insert_pos < self.queue_next {
+            self.queue_next += 1;
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
+                .expect("unable to send event");
+        }
+
+        if self.state == PlaybackState::Stopped {
+            let path = item.get_path();
+
+            if let Err(err) = self.open(path) {
+                error!(path = %path.display(), ?err, "Unable to open file: {err}");
+            }
+            self.queue_next = insert_pos + 1;
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(insert_pos))
+                .expect("unable to send event");
+        }
+
+        self.events_tx
+            .send(PlaybackEvent::QueueUpdated)
+            .expect("unable to send event");
+    }
+
+    /// Insert a list of [`QueueItemData`] at the specified position in the queue.
+    /// If nothing is playing, start playing the first track.
+    fn insert_list_at(&mut self, mut items: Vec<QueueItemData>, position: usize) {
+        if items.is_empty() {
+            return;
+        }
+
+        info!(
+            "Inserting {} files to queue at position {}",
+            items.len(),
+            position
+        );
+
+        let mut queue = self.queue.write().expect("couldn't get the queue");
+
+        let insert_pos = position.min(queue.len());
+        let first = items.first().cloned();
+        let items_len = items.len();
+
+        for (i, item) in items.drain(..).enumerate() {
+            queue.insert(insert_pos + i, item.clone());
+            if self.shuffle {
+                self.original_queue.push(item);
+            }
+        }
+
+        drop(queue);
+
+        if insert_pos < self.queue_next {
+            self.queue_next += items_len;
+
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next - 1))
+                .expect("unable to send event");
+        }
+
+        if self.state == PlaybackState::Stopped
+            && let Some(first) = first
+        {
+            let path = first.get_path();
+
+            if let Err(err) = self.open(path) {
+                error!(path = %path.display(), ?err, "Unable to open file: {err}");
+            }
+            self.queue_next = insert_pos + 1;
+            self.events_tx
+                .send(PlaybackEvent::QueuePositionChanged(insert_pos))
+                .expect("unable to send event");
+        }
+
+        self.events_tx
+            .send(PlaybackEvent::QueueUpdated)
+            .expect("unable to send event");
     }
 
     /// Add a list of [`QueueItemData`] to the queue. If nothing is playing, start playing the

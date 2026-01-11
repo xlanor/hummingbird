@@ -4,6 +4,14 @@ use gpui::{App, ElementId, SharedString};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
+use crate::ui::components::drag_drop::{AlbumDragData, TrackDragData};
+
+#[derive(Clone, Debug)]
+pub enum TableDragData {
+    Track(TrackDragData),
+    Album(AlbumDragData),
+}
+
 // table layout constants
 pub const TABLE_MAX_WIDTH: f32 = 1000.0;
 pub const TABLE_IMAGE_COLUMN_WIDTH: f32 = 47.0;
@@ -90,4 +98,10 @@ where
 
     /// Retrieves the table ID for the row.
     fn get_table_id(&self) -> Self::Identifier;
+
+    /// Returns drag data for this row, if dragging is supported. If None is returned, dragging is
+    /// not supported. Default implementation returns None.
+    fn get_drag_data(&self) -> Option<TableDragData> {
+        None
+    }
 }

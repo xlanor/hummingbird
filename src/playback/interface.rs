@@ -65,6 +65,18 @@ impl PlaybackInterface {
         self.cmd_tx.send(PlaybackCommand::QueueList(items)).unwrap();
     }
 
+    pub fn insert_at(&self, item: QueueItemData, position: usize) {
+        self.cmd_tx
+            .send(PlaybackCommand::InsertAt { item, position })
+            .unwrap();
+    }
+
+    pub fn insert_list_at(&self, items: Vec<QueueItemData>, position: usize) {
+        self.cmd_tx
+            .send(PlaybackCommand::InsertListAt { items, position })
+            .unwrap();
+    }
+
     pub fn next(&self) {
         self.cmd_tx.send(PlaybackCommand::Next).unwrap();
     }

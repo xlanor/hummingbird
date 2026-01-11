@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use gpui::{
     App, AppContext, Bounds, Context, Corner, Div, DragMoveEvent, ElementId, Entity, Hsla,
     IntoElement, ParentElement, Pixels, Point, Render, RenderOnce, SharedString, Styled, Window,
@@ -23,6 +25,58 @@ impl DragData {
         Self {
             source_index,
             list_id: list_id.into(),
+        }
+    }
+}
+
+/// Drag data for individual tracks that can be dropped onto the queue.
+/// Also supports reordering when source_list_id and source_index are provided.
+#[derive(Clone, Debug)]
+pub struct TrackDragData {
+    pub track_id: Option<i64>,
+    pub album_id: Option<i64>,
+    pub path: PathBuf,
+    pub display_name: SharedString,
+    /// Source list ID, if dragged from a reorderable list (e.g. a playlist).
+    pub source_list_id: Option<ElementId>,
+    pub source_index: Option<usize>,
+}
+
+impl TrackDragData {
+    pub fn from_track(
+        track_id: i64,
+        album_id: Option<i64>,
+        path: impl Into<PathBuf>,
+        display_name: impl Into<SharedString>,
+    ) -> Self {
+        Self {
+            track_id: Some(track_id),
+            album_id,
+            path: path.into(),
+            display_name: display_name.into(),
+            source_list_id: None,
+            source_index: None,
+        }
+    }
+
+    pub fn with_reorder_info(mut self, list_id: impl Into<ElementId>, index: usize) -> Self {
+        self.source_list_id = Some(list_id.into());
+        self.source_index = Some(index);
+        self
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AlbumDragData {
+    pub album_id: i64,
+    pub display_name: SharedString,
+}
+
+impl AlbumDragData {
+    pub fn new(album_id: i64, display_name: impl Into<SharedString>) -> Self {
+        Self {
+            album_id,
+            display_name: display_name.into(),
         }
     }
 }
@@ -58,6 +112,7 @@ impl Default for EdgeScrollConfig {
         }
     }
 }
+
 #[derive(Clone, Debug, Default)]
 pub struct DragDropState {
     pub dragging_index: Option<usize>,
@@ -422,6 +477,72 @@ pub fn handle_drag_move<V: 'static>(
     scrolled
 }
 
+/// Handle a drag move event for TrackDragData in a reorderable list.
+///
+/// Only processes the event if the drag originated from the same list (source_list_id matches).
+/// Returns `true` if scrolling occurred.
+pub fn handle_track_drag_move<V: 'static>(
+    manager: Entity<DragDropListManager>,
+    scroll_handle: ScrollableHandle,
+    event: &DragMoveEvent<TrackDragData>,
+    item_count: usize,
+    cx: &mut Context<V>,
+) -> bool {
+    let drag_data = event.drag(cx);
+    let config = manager.read(cx).config.clone();
+
+    let is_internal = drag_data
+        .source_list_id
+        .as_ref()
+        .map(|id| *id == config.list_id)
+        .unwrap_or(false);
+
+    if !is_internal {
+        return false;
+    }
+
+    let Some(source_index) = drag_data.source_index else {
+        return false;
+    };
+
+    let mouse_pos = event.event.position;
+    let container_bounds = event.bounds;
+
+    manager.update(cx, |m, _| {
+        m.state.is_dragging = true;
+        m.state.dragging_index = Some(source_index);
+        m.state.set_mouse_y(mouse_pos.y);
+        m.container_bounds = Some(container_bounds);
+    });
+
+    let direction = get_edge_scroll_direction(mouse_pos.y, container_bounds, &config.scroll_config);
+    let scrolled = perform_edge_scroll(&scroll_handle, direction, &config.scroll_config);
+
+    if !container_bounds.contains(&mouse_pos) {
+        manager.update(cx, |m, _| m.state.clear_drop_target());
+        return scrolled;
+    }
+
+    let scroll_offset_y = scroll_handle.offset().y;
+    let drop_target = calculate_drop_target(
+        mouse_pos,
+        container_bounds,
+        scroll_offset_y,
+        config.item_height,
+        item_count,
+    );
+
+    manager.update(cx, |m, _| {
+        if let Some((item_index, drop_position)) = drop_target {
+            m.state.update_drop_target(item_index, drop_position);
+        } else {
+            m.state.clear_drop_target();
+        }
+    });
+
+    scrolled
+}
+
 pub fn handle_drop<V: 'static, F>(
     manager: Entity<DragDropListManager>,
     drag_data: &DragData,
@@ -431,11 +552,57 @@ pub fn handle_drop<V: 'static, F>(
     F: FnOnce(usize, usize, &mut Context<V>),
 {
     let config_list_id = manager.read(cx).config.list_id.clone();
+
     if drag_data.list_id != config_list_id {
         return;
     }
 
     let source_index = drag_data.source_index;
+    let target = manager.read(cx).state.drop_target;
+
+    if let Some((target_index, position)) = target {
+        let final_target = calculate_move_target(source_index, target_index, position);
+
+        if source_index != final_target {
+            on_reorder(source_index, final_target, cx);
+        }
+    }
+
+    manager.update(cx, |m, _| m.state.end_drag());
+}
+
+/// Handle a drop of TrackDragData for reordering within a list.
+///
+/// Only processes the drop if it originated from the same list (source_list_id matches).
+/// Calls on_reorder with (source_index, target_index) if a valid reorder should occur.
+pub fn handle_track_drop<V: 'static, F>(
+    manager: Entity<DragDropListManager>,
+    drag_data: &TrackDragData,
+    cx: &mut Context<V>,
+    on_reorder: F,
+) where
+    F: FnOnce(usize, usize, &mut Context<V>),
+{
+    let config_list_id = manager.read(cx).config.list_id.clone();
+
+    // Only handle if this drag originated from our list
+    // Use string comparison for ElementId since direct comparison may not work reliably
+    let is_internal = drag_data
+        .source_list_id
+        .as_ref()
+        .map(|id| *id == config_list_id)
+        .unwrap_or(false);
+
+    if !is_internal {
+        manager.update(cx, |m, _| m.state.end_drag());
+        return;
+    }
+
+    let Some(source_index) = drag_data.source_index else {
+        manager.update(cx, |m, _| m.state.end_drag());
+        return;
+    };
+
     let target = manager.read(cx).state.drop_target;
 
     if let Some((target_index, position)) = target {

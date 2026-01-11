@@ -32,6 +32,18 @@ pub enum PlaybackCommand {
     /// Requests that the playback thread queue a list of files for playback after the current
     /// file. If there is no current file, the first file in the list will be played immediately.
     QueueList(Vec<QueueItemData>),
+    /// Requests that the playback thread insert the specified file at the given position in the
+    /// queue. If the position is greater than the queue length, it will be appended to the end.
+    InsertAt {
+        item: QueueItemData,
+        position: usize,
+    },
+    /// Requests that the playback thread insert a list of files at the given position in the
+    /// queue. If the position is greater than the queue length, they will be appended to the end.
+    InsertListAt {
+        items: Vec<QueueItemData>,
+        position: usize,
+    },
     /// Requests that the playback thread skip to the next file in the queue.
     Next,
     /// Requests that the playback thread skip to the previous file in the queue.

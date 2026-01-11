@@ -6,9 +6,12 @@ use rustc_hash::FxBuildHasher;
 
 use super::{
     OnSelectHandler,
-    table_data::{Column, TABLE_IMAGE_COLUMN_WIDTH, TABLE_MAX_WIDTH, TableData},
+    table_data::{Column, TABLE_IMAGE_COLUMN_WIDTH, TABLE_MAX_WIDTH, TableData, TableDragData},
 };
-use crate::ui::theme::Theme;
+use crate::ui::{
+    components::drag_drop::{AlbumDragData, DragPreview, TrackDragData},
+    theme::Theme,
+};
 
 /// Calculates the extra width to add to the final column to fill available space.
 /// This is required so that the table does not just appear to "end" before it logically should.
@@ -98,6 +101,9 @@ where
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let row_data = self.row.clone();
+
+        let drag_data = self.row.as_ref().and_then(|row| row.get_drag_data());
+
         let mut row = div()
             .w_full()
             .flex()
@@ -111,6 +117,24 @@ where
                 .hover(|this| this.bg(theme.nav_button_hover))
                 .active(|this| this.bg(theme.nav_button_active))
             });
+
+        row = match drag_data {
+            Some(TableDragData::Track(track_data)) => {
+                let display_name = track_data.display_name.clone();
+                row.on_drag(track_data, move |_, _, _, cx| {
+                    DragPreview::new(cx, display_name.clone())
+                })
+                .drag_over::<TrackDragData>(|style, _, _, _| style.bg(gpui::rgba(0x88888822)))
+            }
+            Some(TableDragData::Album(album_data)) => {
+                let display_name = album_data.display_name.clone();
+                row.on_drag(album_data, move |_, _, _, cx| {
+                    DragPreview::new(cx, display_name.clone())
+                })
+                .drag_over::<AlbumDragData>(|style, _, _, _| style.bg(gpui::rgba(0x88888822)))
+            }
+            None => row,
+        };
 
         if T::has_images() {
             row = row.child(

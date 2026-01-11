@@ -7,9 +7,10 @@ use crate::{
     ui::components::{
         context::context,
         drag_drop::{
-            DragData, DragDropItemState, DragDropListConfig, DragDropListManager, DragPreview,
-            DropIndicator, check_drag_cancelled, continue_edge_scroll, handle_drag_move,
-            handle_drop,
+            AlbumDragData, DragData, DragDropItemState, DragDropListConfig, DragDropListManager,
+            DragPreview, DropIndicator, TrackDragData, calculate_drop_target, check_drag_cancelled,
+            continue_edge_scroll, get_edge_scroll_direction, handle_drag_move, handle_drop,
+            perform_edge_scroll,
         },
         icons::{CROSS, SHUFFLE, TRASH, icon},
         menu::{menu, menu_item},
@@ -66,6 +67,7 @@ impl QueueItem {
 
             cx.observe(&queue, |this: &mut QueueItem, queue, cx| {
                 this.current = queue.read(cx).position;
+                cx.notify();
             })
             .detach();
 
@@ -407,6 +409,155 @@ impl Render for Queue {
                                     cx.notify();
                                 },
                             ))
+                            .on_drag_move::<TrackDragData>(cx.listener(
+                                move |this: &mut Queue,
+                                      event: &DragMoveEvent<TrackDragData>,
+                                      window,
+                                      cx| {
+                                    let scroll_handle: ScrollableHandle =
+                                        this.scroll_handle.clone().into();
+                                    let config = this.drag_drop_manager.read(cx).config.clone();
+                                    let mouse_pos = event.event.position;
+                                    let container_bounds = event.bounds;
+
+                                    this.drag_drop_manager.update(cx, |m, _| {
+                                        m.state.is_dragging = true;
+                                        m.state.set_mouse_y(mouse_pos.y);
+                                        m.container_bounds = Some(container_bounds);
+                                    });
+
+                                    let direction = get_edge_scroll_direction(
+                                        mouse_pos.y,
+                                        container_bounds,
+                                        &config.scroll_config,
+                                    );
+                                    let scrolled = perform_edge_scroll(
+                                        &scroll_handle,
+                                        direction,
+                                        &config.scroll_config,
+                                    );
+
+                                    if scrolled {
+                                        let entity = cx.entity().downgrade();
+                                        let manager = this.drag_drop_manager.clone();
+                                        let scroll_handle: ScrollableHandle =
+                                            this.scroll_handle.clone().into();
+
+                                        window.on_next_frame(move |window, cx| {
+                                            if let Some(entity) = entity.upgrade() {
+                                                entity.update(cx, |_, cx| {
+                                                    Self::schedule_edge_scroll(
+                                                        manager,
+                                                        scroll_handle,
+                                                        window,
+                                                        cx,
+                                                    );
+                                                });
+                                            }
+                                        });
+                                    }
+
+                                    if container_bounds.contains(&mouse_pos) {
+                                        let scroll_offset_y = scroll_handle.offset().y;
+                                        let drop_target = calculate_drop_target(
+                                            mouse_pos,
+                                            container_bounds,
+                                            scroll_offset_y,
+                                            config.item_height,
+                                            queue_len,
+                                        );
+
+                                        this.drag_drop_manager.update(cx, |m, _| {
+                                            if let Some((item_index, drop_position)) = drop_target {
+                                                m.state
+                                                    .update_drop_target(item_index, drop_position);
+                                            } else {
+                                                m.state.clear_drop_target();
+                                            }
+                                        });
+                                    } else {
+                                        this.drag_drop_manager
+                                            .update(cx, |m, _| m.state.clear_drop_target());
+                                    }
+
+                                    cx.notify();
+                                },
+                            ))
+                            .on_drag_move::<AlbumDragData>(cx.listener(
+                                move |this: &mut Queue,
+                                      event: &DragMoveEvent<AlbumDragData>,
+                                      window,
+                                      cx| {
+                                    let scroll_handle: ScrollableHandle =
+                                        this.scroll_handle.clone().into();
+                                    let config = this.drag_drop_manager.read(cx).config.clone();
+                                    let mouse_pos = event.event.position;
+                                    let container_bounds = event.bounds;
+
+                                    this.drag_drop_manager.update(cx, |m, _| {
+                                        m.state.is_dragging = true;
+                                        m.state.set_mouse_y(mouse_pos.y);
+                                        m.container_bounds = Some(container_bounds);
+                                    });
+
+                                    let direction = get_edge_scroll_direction(
+                                        mouse_pos.y,
+                                        container_bounds,
+                                        &config.scroll_config,
+                                    );
+                                    let scrolled = perform_edge_scroll(
+                                        &scroll_handle,
+                                        direction,
+                                        &config.scroll_config,
+                                    );
+
+                                    if scrolled {
+                                        let entity = cx.entity().downgrade();
+                                        let manager = this.drag_drop_manager.clone();
+                                        let scroll_handle: ScrollableHandle =
+                                            this.scroll_handle.clone().into();
+
+                                        window.on_next_frame(move |window, cx| {
+                                            if let Some(entity) = entity.upgrade() {
+                                                entity.update(cx, |_, cx| {
+                                                    Self::schedule_edge_scroll(
+                                                        manager,
+                                                        scroll_handle,
+                                                        window,
+                                                        cx,
+                                                    );
+                                                });
+                                            }
+                                        });
+                                    }
+
+
+                                    if container_bounds.contains(&mouse_pos) {
+                                        let scroll_offset_y = scroll_handle.offset().y;
+                                        let drop_target = calculate_drop_target(
+                                            mouse_pos,
+                                            container_bounds,
+                                            scroll_offset_y,
+                                            config.item_height,
+                                            queue_len,
+                                        );
+
+                                        this.drag_drop_manager.update(cx, |m, _| {
+                                            if let Some((item_index, drop_position)) = drop_target {
+                                                m.state
+                                                    .update_drop_target(item_index, drop_position);
+                                            } else {
+                                                m.state.clear_drop_target();
+                                            }
+                                        });
+                                    } else {
+                                        this.drag_drop_manager
+                                            .update(cx, |m, _| m.state.clear_drop_target());
+                                    }
+
+                                    cx.notify();
+                                },
+                            ))
                             .on_drop(cx.listener(
                                 move |this: &mut Queue, drag_data: &DragData, _, cx| {
                                     handle_drop(
@@ -420,6 +571,82 @@ impl Render for Queue {
                                     cx.notify();
                                 },
                             ))
+                            // track drops
+                            .on_drop(cx.listener(
+                                move |this: &mut Queue, drag_data: &TrackDragData, _, cx| {
+                                    use crate::ui::components::drag_drop::DropPosition;
+
+                                    let queue_item = QueueItemData::new(
+                                        cx,
+                                        drag_data.path.clone(),
+                                        drag_data.track_id,
+                                        drag_data.album_id,
+                                    );
+
+                                    let drop_target =
+                                        this.drag_drop_manager.read(cx).state.drop_target;
+
+                                    if let Some((target_index, position)) = drop_target {
+                                        let insert_pos = match position {
+                                            DropPosition::Before => target_index,
+                                            DropPosition::After => target_index + 1,
+                                        };
+                                        cx.global::<PlaybackInterface>()
+                                            .insert_at(queue_item, insert_pos);
+                                    } else {
+                                        cx.global::<PlaybackInterface>().queue(queue_item);
+                                    }
+
+                                    this.drag_drop_manager.update(cx, |m, _| m.state.end_drag());
+                                    cx.notify();
+                                },
+                            ))
+                            // album drops
+                            .on_drop(cx.listener(
+                                move |this: &mut Queue, drag_data: &AlbumDragData, _, cx| {
+                                    use crate::library::db::LibraryAccess;
+                                    use crate::ui::components::drag_drop::DropPosition;
+
+                                    if let Ok(tracks) = cx.list_tracks_in_album(drag_data.album_id)
+                                    {
+                                        let queue_items: Vec<QueueItemData> = tracks
+                                            .iter()
+                                            .map(|track| {
+                                                QueueItemData::new(
+                                                    cx,
+                                                    track.location.clone(),
+                                                    Some(track.id),
+                                                    Some(drag_data.album_id),
+                                                )
+                                            })
+                                            .collect();
+
+                                        let drop_target =
+                                            this.drag_drop_manager.read(cx).state.drop_target;
+
+                                        if let Some((target_index, position)) = drop_target {
+                                            let insert_pos = match position {
+                                                DropPosition::Before => target_index,
+                                                DropPosition::After => target_index + 1,
+                                            };
+                                            cx.global::<PlaybackInterface>()
+                                                .insert_list_at(queue_items, insert_pos);
+                                        } else {
+                                            cx.global::<PlaybackInterface>()
+                                                .queue_list(queue_items);
+                                        }
+                                    }
+\
+                                    this.drag_drop_manager.update(cx, |m, _| m.state.end_drag());
+                                    cx.notify();
+                                },
+                            ))
+                            .drag_over::<TrackDragData>(|style, _, _, _| {
+                                style.bg(gpui::rgba(0x3388ff22))
+                            })
+                            .drag_over::<AlbumDragData>(|style, _, _, _| {
+                                style.bg(gpui::rgba(0x3388ff22))
+                            })
                             .child(
                                 uniform_list("queue", queue_len, move |range, _, cx| {
                                     let start = range.start;
