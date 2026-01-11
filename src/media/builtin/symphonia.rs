@@ -53,6 +53,7 @@ pub struct SymphoniaStream {
 impl SymphoniaStream {
     fn break_metadata(&mut self, tags: &[Tag]) {
         let id3_position_in_set_regex = Regex::new(r"(\d+)/(\d+)").unwrap();
+        let vinyl_track_regex = Regex::new(r"(?i)^([A-Z])(\d+)$").unwrap();
 
         for tag in tags {
             match tag.std_key {
@@ -103,7 +104,20 @@ impl SymphoniaStream {
                 }
                 Some(StandardTagKey::TrackNumber) => match &tag.value {
                     Value::String(v) => {
-                        if let Some(captures) = id3_position_in_set_regex.captures(v) {
+                        // check for vinyl style numbers
+                        if let Some(captures) = vinyl_track_regex.captures(v) {
+                            if let Some(side) = captures.get(1) {
+                                let side_char =
+                                    side.as_str().to_uppercase().chars().next().unwrap();
+                                let side_num = (side_char as u64) - ('A' as u64) + 1;
+                                self.current_metadata.disc_current = Some(side_num);
+                                self.current_metadata.vinyl_numbering = true;
+                            }
+                            if let Some(track) = captures.get(2) {
+                                self.current_metadata.track_current = track.as_str().parse().ok();
+                            }
+                        // check for MP3-style numbers
+                        } else if let Some(captures) = id3_position_in_set_regex.captures(v) {
                             if let Some(track) = captures.get(1) {
                                 self.current_metadata.track_current = track.as_str().parse().ok();
                             }

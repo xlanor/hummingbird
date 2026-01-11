@@ -59,6 +59,7 @@ impl ReleaseView {
                 tracks.clone(),
                 px(f32::INFINITY), // render the whole thing
                 ArtistNameVisibility::OnlyIfDifferent(artist.as_ref().and_then(|v| v.name.clone())),
+                album.vinyl_numbering,
             );
 
             let release_info = {

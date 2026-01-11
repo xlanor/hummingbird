@@ -549,6 +549,7 @@ impl ScanThread {
                         .bind(&metadata.catalog)
                         .bind(&metadata.isrc)
                         .bind(&mbid)
+                        .bind(metadata.vinyl_numbering)
                         .fetch_one(&self.pool)
                         .await?;
 

@@ -264,11 +264,26 @@ impl TableData<TrackColumn> for Track {
 
     fn get_column(&self, cx: &mut App, column: TrackColumn) -> Option<SharedString> {
         match column {
-            TrackColumn::TrackNumber => match (self.disc_number, self.track_number) {
-                (Some(disc), Some(track)) => Some(format!("{}-{}", disc, track).into()),
-                (None, Some(track)) => Some(track.to_string().into()),
-                _ => None,
-            },
+            TrackColumn::TrackNumber => {
+                let vinyl_numbering = self
+                    .album_id
+                    .and_then(|id| cx.get_album_by_id(id, AlbumMethod::Thumbnail).ok())
+                    .map(|album| album.vinyl_numbering)
+                    .unwrap_or(false);
+
+                match (self.disc_number, self.track_number) {
+                    (Some(disc), Some(track)) => {
+                        if vinyl_numbering {
+                            let side = (b'A' + (disc - 1) as u8) as char;
+                            Some(format!("{}{}", side, track).into())
+                        } else {
+                            Some(format!("{}-{}", disc, track).into())
+                        }
+                    }
+                    (None, Some(track)) => Some(track.to_string().into()),
+                    _ => None,
+                }
+            }
             TrackColumn::Title => Some(self.title.0.clone()),
             TrackColumn::Album => {
                 if let Some(album_id) = self.album_id {

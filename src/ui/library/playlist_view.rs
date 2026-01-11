@@ -547,6 +547,7 @@ impl Render for PlaylistView {
                                                         id: pl_id,
                                                         item_id: playlist_item_id,
                                                     }),
+                                                    false, // vinyl_numbering - not applicable for playlists
                                                 );
 
                                                 PlaylistTrackItem::new(

@@ -42,6 +42,7 @@ pub struct TrackItem {
     pl_info: Option<TrackPlaylistInfo>,
     add_to: Entity<AddToPlaylist>,
     show_add_to: Entity<bool>,
+    vinyl_numbering: bool,
 }
 
 #[derive(Eq, PartialEq)]
@@ -58,6 +59,7 @@ impl TrackItem {
         anv: ArtistNameVisibility,
         left_field: TrackItemLeftField,
         pl_info: Option<TrackPlaylistInfo>,
+        vinyl_numbering: bool,
     ) -> Entity<Self> {
         cx.new(|cx| {
             let show_add_to = cx.new(|_| false);
@@ -87,6 +89,7 @@ impl TrackItem {
                 artist_name_visibility: anv,
                 left_field,
                 pl_info,
+                vinyl_numbering,
             }
         })
     }
@@ -138,7 +141,12 @@ impl Render for TrackItem {
                                 .mt(px(24.0))
                                 .pb(px(6.0))
                                 .when_some(self.track.disc_number, |this, num| {
-                                    this.child(format!("DISC {num}"))
+                                    if self.vinyl_numbering {
+                                        let side = (b'A' + (num - 1) as u8) as char;
+                                        this.child(format!("SIDE {side}"))
+                                    } else {
+                                        this.child(format!("DISC {num}"))
+                                    }
                                 }),
                         )
                     })

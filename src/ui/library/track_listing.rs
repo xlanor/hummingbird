@@ -23,6 +23,7 @@ pub struct TrackListing {
     tracks: Arc<Vec<Entity<TrackItem>>>,
     original_tracks: Arc<Vec<Track>>,
     track_list_state: ListState,
+    vinyl_numbering: bool,
 }
 
 impl TrackListing {
@@ -31,6 +32,7 @@ impl TrackListing {
         tracks: Arc<Vec<Track>>,
         overdraw: Pixels,
         artist_name_visibility: ArtistNameVisibility,
+        vinyl_numbering: bool,
     ) -> Self {
         let state = ListState::new(tracks.len(), ListAlignment::Top, overdraw);
 
@@ -47,12 +49,14 @@ impl TrackListing {
                             artist_name_visibility.clone(),
                             TrackItemLeftField::TrackNum,
                             None,
+                            vinyl_numbering,
                         )
                     })
                     .collect(),
             ),
             original_tracks: tracks,
             track_list_state: state,
+            vinyl_numbering,
         }
     }
 
