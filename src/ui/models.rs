@@ -25,7 +25,7 @@ use crate::{
     },
     settings::{
         SettingsGlobal,
-        storage::{DEFAULT_QUEUE_WIDTH, DEFAULT_SIDEBAR_WIDTH, StorageData},
+        storage::{DEFAULT_QUEUE_WIDTH, DEFAULT_SIDEBAR_WIDTH, StorageData, TableSettings},
     },
     ui::{app::get_dirs, data::Decode, library::ViewSwitchMessage},
 };
@@ -59,6 +59,7 @@ pub struct Models {
     pub playlist_tracker: Entity<PlaylistInfoTransfer>,
     pub sidebar_width: Entity<Pixels>,
     pub queue_width: Entity<Pixels>,
+    pub table_settings: Entity<std::collections::HashMap<String, TableSettings>>,
 }
 
 impl Global for Models {}
@@ -245,6 +246,8 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         }
     });
 
+    let table_settings = cx.new(|_| storage_data.table_settings.clone());
+
     cx.set_global(Models {
         metadata,
         albumart,
@@ -257,6 +260,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         playlist_tracker,
         sidebar_width,
         queue_width,
+        table_settings,
     });
 
     const DEFAULT_VOLUME: f64 = 1.0;

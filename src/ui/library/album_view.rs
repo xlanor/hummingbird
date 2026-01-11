@@ -29,12 +29,23 @@ impl AlbumView {
         cx.new(|cx| {
             let state = cx.global::<Models>().scan_state.clone();
 
+            let table_settings = cx.global::<Models>().table_settings.clone();
+            let initial_settings = table_settings
+                .read(cx)
+                .get(Table::<Album, AlbumColumn>::get_table_name())
+                .cloned();
+
             let handler = Rc::new(move |cx: &mut App, id: &(u32, String)| {
                 view_switch_model
                     .update(cx, |_, cx| cx.emit(ViewSwitchMessage::Release(id.0 as i64)))
             });
 
-            let table = Table::new(cx, Some(handler), initial_scroll_offset);
+            let table = Table::new(
+                cx,
+                Some(handler),
+                initial_scroll_offset,
+                initial_settings.as_ref(),
+            );
 
             let table_clone = table.clone();
 

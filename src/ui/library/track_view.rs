@@ -30,6 +30,12 @@ impl TrackView {
         cx.new(|cx| {
             let state = cx.global::<Models>().scan_state.clone();
 
+            let table_settings = cx.global::<Models>().table_settings.clone();
+            let initial_settings = table_settings
+                .read(cx)
+                .get(Table::<Track, TrackColumn>::get_table_name())
+                .cloned();
+
             let table_ref = Rc::new(RefCell::new(None::<Entity<Table<Track, TrackColumn>>>));
             let table_ref_clone = table_ref.clone();
 
@@ -61,7 +67,12 @@ impl TrackView {
                 },
             );
 
-            let table = Table::new(cx, Some(handler), initial_scroll_offset);
+            let table = Table::new(
+                cx,
+                Some(handler),
+                initial_scroll_offset,
+                initial_settings.as_ref(),
+            );
             *table_ref.borrow_mut() = Some(table.clone());
 
             let table_clone = table.clone();

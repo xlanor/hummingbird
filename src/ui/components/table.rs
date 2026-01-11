@@ -13,16 +13,20 @@ use table_data::{
 };
 use table_item::TableItem;
 
-use crate::ui::{
-    caching::hummingbird_cache,
-    components::{
-        context::context,
-        icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
-        menu::{menu, menu_check_item},
-        scrollbar::{RightPad, floating_scrollbar},
+use crate::{
+    settings::storage::TableSettings,
+    ui::{
+        caching::hummingbird_cache,
+        components::{
+            context::context,
+            icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
+            menu::{menu, menu_check_item},
+            scrollbar::{RightPad, floating_scrollbar},
+        },
+        models::Models,
+        theme::Theme,
+        util::{create_or_retrieve_view, prune_views},
     },
-    theme::Theme,
-    util::{create_or_retrieve_view, prune_views},
 };
 
 type RowMap<T, C> = FxHashMap<usize, Entity<TableItem<T, C>>>;
@@ -71,10 +75,14 @@ where
         cx: &mut App,
         on_select: Option<OnSelectHandler<T, C>>,
         initial_scroll_offset: Option<f32>,
+        initial_settings: Option<&TableSettings>,
     ) -> Entity<Self> {
         cx.new(|cx| {
-            let columns = cx.new(|_| Arc::new(T::default_columns()));
-            let hidden_column_widths = cx.new(|_| FxHashMap::default());
+            let (initial_columns, initial_hidden) =
+                Self::build_columns_from_settings(initial_settings);
+
+            let columns = cx.new(|_| Arc::new(initial_columns));
+            let hidden_column_widths = cx.new(|_| initial_hidden);
             let views = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
             let sort_method = cx.new(|_| None);
@@ -108,6 +116,13 @@ where
             cx.observe(&columns, |this: &mut Table<T, C>, _, cx| {
                 this.views = cx.new(|_| FxHashMap::default());
                 this.render_counter = cx.new(|_| 0);
+
+                let settings = this.get_settings(cx);
+                let table_settings_model = cx.global::<Models>().table_settings.clone();
+                table_settings_model.update(cx, |map, _| {
+                    map.insert(T::get_table_name().to_string(), settings);
+                });
+
                 cx.notify();
             })
             .detach();
@@ -213,9 +228,60 @@ where
         });
     }
 
-    #[allow(dead_code)]
-    pub fn is_column_visible(&self, column: C, cx: &App) -> bool {
-        self.columns.read(cx).contains_key(&column)
+    fn build_columns_from_settings(
+        settings: Option<&TableSettings>,
+    ) -> (IndexMap<C, f32, FxBuildHasher>, FxHashMap<C, f32>) {
+        let default_columns = T::default_columns();
+
+        let Some(settings) = settings else {
+            return (default_columns, FxHashMap::default());
+        };
+
+        let mut visible_columns = IndexMap::with_hasher(FxBuildHasher);
+        let mut hidden_widths = FxHashMap::default();
+
+        for (col, default_width) in &default_columns {
+            let col_name = col.get_column_name();
+            let width = settings
+                .column_widths
+                .get(col_name)
+                .copied()
+                .unwrap_or(*default_width);
+
+            if settings.hidden_columns.contains(&col_name.to_string()) && col.is_hideable() {
+                hidden_widths.insert(*col, width);
+            } else {
+                visible_columns.insert(*col, width);
+            }
+        }
+
+        (visible_columns, hidden_widths)
+    }
+
+    pub fn get_settings(&self, cx: &App) -> TableSettings {
+        let columns = self.columns.read(cx);
+        let hidden = self.hidden_column_widths.read(cx);
+
+        let mut column_widths = std::collections::HashMap::new();
+        let mut hidden_columns = Vec::new();
+
+        for (col, width) in columns.iter() {
+            column_widths.insert(col.get_column_name().to_string(), *width);
+        }
+
+        for (col, width) in hidden.iter() {
+            column_widths.insert(col.get_column_name().to_string(), *width);
+            hidden_columns.push(col.get_column_name().to_string());
+        }
+
+        TableSettings {
+            column_widths,
+            hidden_columns,
+        }
+    }
+
+    pub fn get_table_name() -> &'static str {
+        T::get_table_name()
     }
 }
 

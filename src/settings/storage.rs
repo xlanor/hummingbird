@@ -1,9 +1,9 @@
+use std::{collections::HashMap, fs, path::PathBuf};
+
 use gpui::{Pixels, px};
 use serde::{Deserialize, Serialize};
 
 use crate::ui::models::CurrentTrack;
-
-use std::{fs, path::PathBuf};
 
 pub const DEFAULT_SIDEBAR_WIDTH: Pixels = px(225.0);
 pub const DEFAULT_QUEUE_WIDTH: Pixels = px(275.0);
@@ -16,6 +16,18 @@ fn default_queue_width() -> f32 {
     f32::from(DEFAULT_QUEUE_WIDTH)
 }
 
+fn default_table_settings() -> HashMap<String, TableSettings> {
+    HashMap::new()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TableSettings {
+    #[serde(default)]
+    pub column_widths: HashMap<String, f32>,
+    #[serde(default)]
+    pub hidden_columns: Vec<String>,
+}
+
 /// Data to store while quitting the app
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageData {
@@ -26,6 +38,8 @@ pub struct StorageData {
     /// Width of the queue panel in pixels
     #[serde(default = "default_queue_width")]
     pub queue_width: f32,
+    #[serde(default = "default_table_settings")]
+    pub table_settings: HashMap<String, TableSettings>,
 }
 
 impl StorageData {
@@ -44,6 +58,7 @@ impl Default for StorageData {
             current_track: None,
             sidebar_width: f32::from(DEFAULT_SIDEBAR_WIDTH),
             queue_width: f32::from(DEFAULT_QUEUE_WIDTH),
+            table_settings: HashMap::new(),
         }
     }
 }
@@ -83,6 +98,7 @@ impl Storage {
                             // Preserve other settings when invalidating current_track
                             sidebar_width: data.sidebar_width,
                             queue_width: data.queue_width,
+                            table_settings: data.table_settings,
                         },
                         _ => data,
                     })
