@@ -531,7 +531,6 @@ impl Render for Queue {
                                         });
                                     }
 
-
                                     if container_bounds.contains(&mouse_pos) {
                                         let scroll_offset_y = scroll_handle.offset().y;
                                         let drop_target = calculate_drop_target(
@@ -636,7 +635,6 @@ impl Render for Queue {
                                                 .queue_list(queue_items);
                                         }
                                     }
-\
                                     this.drag_drop_manager.update(cx, |m, _| m.state.end_drag());
                                     cx.notify();
                                 },
