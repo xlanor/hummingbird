@@ -386,12 +386,12 @@ impl ScanThread {
                 Ok(entry) => match entry.path().canonicalize() {
                     Ok(p) => p,
                     Err(e) => {
-                        info!("Failed to canonicalize path {:?}: {:?}", entry.path(), e);
+                        error!("Failed to canonicalize path {:?}: {:?}", entry.path(), e);
                         continue;
                     }
                 },
                 Err(e) => {
-                    info!("Failed to read directory entry: {:?}", e);
+                    error!("Failed to read directory entry: {:?}", e);
                     continue;
                 }
             };

@@ -168,30 +168,53 @@ pub fn import_playlist(cx: &App, playlist_id: i64) {
 
             let span = tracing::debug_span!("import_playlist", playlist_id, path = %path.display());
             let ids: Vec<i64> = parse_m3u(File::open(path).await?)
-                .map_ok(|entry| {
-                    let lookup_query = include_str!("../../queries/playlist/lookup_track.sql");
-                    sqlx::query_scalar::<Sqlite, i64>(lookup_query)
-                        .bind(entry.location.to_string_lossy().into_owned())
-                        .bind(entry.track_title)
-                        .bind(entry.artist_name)
-                        .bind(entry.album_title)
-                        .bind(entry.track_artist_names)
-                        .bind(entry.duration)
-                        .bind(format!(
-                            "%{}%",
-                            entry
-                                .location
-                                .file_stem()
-                                .and_then(OsStr::to_str)
-                                .unwrap_or_default()
-                        ))
-                        .fetch_one(&pool)
-                        .err_into()
+                .map(|result| {
+                    let pool = pool.clone();
+                    async move {
+                        let entry = match result {
+                            Ok(entry) => entry,
+                            Err(err) => {
+                                error!(?err, "Error parsing M3U entry: {err}");
+                                return None;
+                            }
+                        };
+                        let location = entry.location.clone();
+                        let lookup_query = include_str!("../../queries/playlist/lookup_track.sql");
+                        match sqlx::query_scalar::<Sqlite, i64>(lookup_query)
+                            .bind(entry.location.to_string_lossy().into_owned())
+                            .bind(entry.track_title)
+                            .bind(entry.artist_name)
+                            .bind(entry.album_title)
+                            .bind(entry.track_artist_names)
+                            .bind(entry.duration)
+                            .bind(format!(
+                                "%{}%",
+                                entry
+                                    .location
+                                    .file_stem()
+                                    .and_then(OsStr::to_str)
+                                    .unwrap_or_default()
+                            ))
+                            .fetch_one(&pool)
+                            .await
+                        {
+                            Ok(id) => Some(id),
+                            Err(err) => {
+                                warn!(
+                                    ?err,
+                                    "Failed to find track for '{}': {err}",
+                                    location.display()
+                                );
+                                None
+                            }
+                        }
+                    }
                 })
-                .try_buffered(8)
-                .try_collect()
+                .buffered(8)
+                .filter_map(std::future::ready)
+                .collect()
                 .instrument(debug_span!(parent: &span, "lookup_tracks"))
-                .await?;
+                .await;
 
             let mut tx = pool.begin().await?;
 
