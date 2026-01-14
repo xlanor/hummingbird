@@ -82,7 +82,7 @@ type EnrichedInputHandler = Box<dyn Fn(EnrichedInputAction, &mut Window, &mut Ap
 pub struct TextInput {
     focus_handle: FocusHandle,
     scroll_handle: ScrollHandle,
-    content: SharedString,
+    pub content: SharedString,
     placeholder: SharedString,
     selected_range: Range<usize>,
     selection_reversed: bool,

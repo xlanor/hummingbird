@@ -83,6 +83,15 @@ pub struct Theme {
 
     pub scrollbar_background: Rgba,
     pub scrollbar_foreground: Rgba,
+
+    pub textbox_background: Rgba,
+    pub textbox_border: Rgba,
+
+    pub checkbox_background: Rgba,
+    pub checkbox_background_hover: Rgba,
+    pub checkbox_background_active: Rgba,
+    pub checkbox_border: Rgba,
+    pub checkbox_checked: Rgba,
 }
 
 impl Default for Theme {
@@ -163,6 +172,15 @@ impl Default for Theme {
 
             scrollbar_background: rgb(0x181C26),
             scrollbar_foreground: rgb(0x303843),
+
+            textbox_background: rgb(0x282F3D),
+            textbox_border: rgb(0x303843),
+
+            checkbox_background: rgb(0x282F3D),
+            checkbox_background_hover: rgb(0x303843),
+            checkbox_background_active: rgb(0x303843),
+            checkbox_border: rgb(0x303843),
+            checkbox_checked: rgb(0x0673C6),
         }
     }
 }

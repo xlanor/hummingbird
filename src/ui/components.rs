@@ -1,8 +1,10 @@
 pub mod button;
+pub mod checkbox;
 pub mod context;
 pub mod drag_drop;
 pub mod icons;
 pub mod input;
+pub mod label;
 pub mod menu;
 pub mod modal;
 pub mod nav_button;
@@ -13,3 +15,4 @@ pub mod sidebar;
 pub mod slider;
 pub mod styling;
 pub mod table;
+pub mod textbox;
