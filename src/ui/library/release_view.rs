@@ -6,7 +6,7 @@ use prelude::FluentBuilder;
 use crate::{
     library::{
         db::{AlbumMethod, LibraryAccess},
-        types::{Album, Artist, Track},
+        types::{Album, DBString, Track},
     },
     playback::{
         interface::{PlaybackInterface, replace_queue},
@@ -29,7 +29,7 @@ use crate::{
 
 pub struct ReleaseView {
     album: Arc<Album>,
-    artist: Option<Arc<Artist>>,
+    artist_name: Option<DBString>,
     tracks: Arc<Vec<Track>>,
     track_listing: TrackListing,
     release_info: Option<SharedString>,
@@ -47,7 +47,10 @@ impl ReleaseView {
             let tracks = cx
                 .list_tracks_in_album(album_id)
                 .expect("Failed to retrieve tracks");
-            let artist = cx.get_artist_by_id(album.artist_id).ok();
+            let artist_name = cx
+                .get_artist_name_by_id(album.artist_id)
+                .ok()
+                .map(|v| (*v).clone().into());
 
             cx.on_release(|this: &mut Self, cx: &mut App| {
                 ImageSource::Resource(Resource::Embedded(this.img_path.clone())).remove_asset(cx);
@@ -58,7 +61,7 @@ impl ReleaseView {
                 cx,
                 tracks.clone(),
                 px(f32::INFINITY), // render the whole thing
-                ArtistNameVisibility::OnlyIfDifferent(artist.as_ref().and_then(|v| v.name.clone())),
+                ArtistNameVisibility::OnlyIfDifferent(artist_name.clone()),
                 album.vinyl_numbering,
             );
 
@@ -86,7 +89,7 @@ impl ReleaseView {
 
             ReleaseView {
                 album,
-                artist,
+                artist_name,
                 tracks,
                 track_listing,
                 release_info,
@@ -175,8 +178,8 @@ impl Render for ReleaseView {
                                     .w_full()
                                     .overflow_x_hidden()
                                     .child(div().when_some(
-                                        self.artist.as_ref().map(|v| v.name.clone()),
-                                        |this, artist| this.child(artist.unwrap()),
+                                        self.artist_name.clone(),
+                                        |this, artist| this.child(artist),
                                     ))
                                     .child(
                                         div()

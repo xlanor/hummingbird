@@ -205,7 +205,9 @@ pub async fn get_album_by_id(
     method: AlbumMethod,
 ) -> sqlx::Result<Arc<Album>> {
     let query = match method {
-        AlbumMethod::Metadata => include_str!("../../queries/library/find_album_metadata_by_id.sql"),
+        AlbumMethod::Metadata => {
+            include_str!("../../queries/library/find_album_metadata_by_id.sql")
+        }
         _ => include_str!("../../queries/library/find_album_by_id.sql"),
     };
 

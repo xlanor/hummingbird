@@ -83,8 +83,8 @@ impl QueueItemData {
                     m.as_mut().unwrap().name = Some(track.title.clone().into());
                     m.as_mut().unwrap().image = album.thumb.clone().map(|v| v.0);
 
-                    if let Ok(artist) = cx.get_artist_by_id(album.artist_id) {
-                        m.as_mut().unwrap().artist_name = artist.name.clone().map(|v| v.into());
+                    if let Ok(artist_name) = cx.get_artist_name_by_id(album.artist_id) {
+                        m.as_mut().unwrap().artist_name = Some((*artist_name).clone().into());
                     }
                 }
 
