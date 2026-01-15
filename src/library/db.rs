@@ -92,6 +92,7 @@ pub enum TrackSortMethod {
 pub enum AlbumMethod {
     FullQuality,
     Thumbnail,
+    Metadata,
 }
 
 pub async fn list_albums(
@@ -203,7 +204,10 @@ pub async fn get_album_by_id(
     album_id: i64,
     method: AlbumMethod,
 ) -> sqlx::Result<Arc<Album>> {
-    let query = include_str!("../../queries/library/find_album_by_id.sql");
+    let query = match method {
+        AlbumMethod::Metadata => include_str!("../../queries/library/find_album_metadata_by_id.sql"),
+        _ => include_str!("../../queries/library/find_album_by_id.sql"),
+    };
 
     let album: Arc<Album> = Arc::new({
         let mut data: Album = sqlx::query_as(query).bind(album_id).fetch_one(pool).await?;
@@ -214,6 +218,9 @@ pub async fn get_album_by_id(
             }
             AlbumMethod::Thumbnail => {
                 data.image = None;
+            }
+            AlbumMethod::Metadata => {
+                // do nothing, thumb and image are already None
             }
         }
 

@@ -107,7 +107,7 @@ impl TableData<AlbumColumn> for Album {
     }
 
     fn get_row(cx: &mut gpui::App, id: Self::Identifier) -> anyhow::Result<Option<Arc<Self>>> {
-        Ok(cx.get_album_by_id(id.0 as i64, AlbumMethod::Thumbnail).ok())
+        Ok(cx.get_album_by_id(id.0 as i64, AlbumMethod::Metadata).ok())
     }
 
     fn get_column(&self, cx: &mut App, column: AlbumColumn) -> Option<SharedString> {
@@ -267,7 +267,7 @@ impl TableData<TrackColumn> for Track {
             TrackColumn::TrackNumber => {
                 let vinyl_numbering = self
                     .album_id
-                    .and_then(|id| cx.get_album_by_id(id, AlbumMethod::Thumbnail).ok())
+                    .and_then(|id| cx.get_album_by_id(id, AlbumMethod::Metadata).ok())
                     .map(|album| album.vinyl_numbering)
                     .unwrap_or(false);
 
@@ -287,7 +287,7 @@ impl TableData<TrackColumn> for Track {
             TrackColumn::Title => Some(self.title.0.clone()),
             TrackColumn::Album => {
                 if let Some(album_id) = self.album_id {
-                    cx.get_album_by_id(album_id, AlbumMethod::Thumbnail)
+                    cx.get_album_by_id(album_id, AlbumMethod::Metadata)
                         .ok()
                         .map(|v| v.title.0.clone())
                 } else {
@@ -298,7 +298,7 @@ impl TableData<TrackColumn> for Track {
                 if let Some(artist) = &self.artist_names {
                     Some(artist.0.clone())
                 } else if let Some(album_id) = self.album_id {
-                    cx.get_album_by_id(album_id, AlbumMethod::Thumbnail)
+                    cx.get_album_by_id(album_id, AlbumMethod::Metadata)
                         .ok()
                         .and_then(|album| {
                             cx.get_artist_name_by_id(album.artist_id)

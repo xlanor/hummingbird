@@ -107,7 +107,10 @@ zbus = "5"
 split-debuginfo = "unpacked"
 
 [profile.dev-optimized]
-inherits = "dev"
+inherits = "release"
+debug = "full"
+strip = "none"
+lto = "none"
 opt-level = "s"
 
 [profile.release]
