@@ -1079,12 +1079,7 @@ impl PlaybackThread {
             .expect("failed to get device format");
         let requested = channels.map(|channels| FormatInfo {
             channels,
-            sample_rate: if format.rate_channel_ratio.is_some() {
-                format.sample_rate
-            } else {
-                (format.sample_rate / u32::from(format.channels.count()))
-                    * u32::from(channels.count())
-            },
+            sample_rate: format.sample_rate,
             ..format
         });
         self.stream.replace(
@@ -1164,15 +1159,19 @@ impl PlaybackThread {
                 // Set up the resampler
                 let duration = media_stream.frame_duration().expect("can't get duration");
                 let &device_format = stream.get_current_format().unwrap();
-                let count = device_format.channels.count();
-
-                let resampler_sample_rate = 2
-                    * (device_format.sample_rate
-                        / u32::from(device_format.rate_channel_ratio.unwrap_or(count)));
+                let count = media_stream
+                    .channels()
+                    .expect("can't get channel count")
+                    .count();
 
                 self.format.replace(device_format);
 
-                Resampler::new(first_samples.rate, resampler_sample_rate, duration, count)
+                Resampler::new(
+                    first_samples.rate,
+                    device_format.sample_rate,
+                    duration,
+                    count,
+                )
             })
             .convert_formats(first_samples, &self.format.unwrap());
 

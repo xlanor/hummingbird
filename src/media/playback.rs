@@ -241,7 +241,6 @@ impl TryFrom<Samples> for Vec<Vec<bool>> {
 #[derive(Clone)]
 pub struct PlaybackFrame {
     pub samples: Samples,
-    /// The sample rate of the frame. This must always be the stereo sample rate (eg. if you have a
-    /// mono frame, the sample rate should be doubled).
+    /// The sample rate of the frame.
     pub rate: u32, // god forbid someone invents a PCM format that samples faster than 4 billion Hz
 }

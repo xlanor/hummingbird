@@ -282,7 +282,6 @@ impl Device for AudioGraphDevice {
             sample_rate,
             buffer_size: BufferSize::Fixed(buffer_size as u32),
             channels: ChannelSpec::Count(channels as u16),
-            rate_channel_ratio: Some(2),
         })
     }
 

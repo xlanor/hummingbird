@@ -92,7 +92,7 @@ fn cpal_config_from_info(format: &FormatInfo) -> Result<cpal::StreamConfig, ()> 
         Err(())
     } else {
         Ok(cpal::StreamConfig {
-            channels: 2,
+            channels: format.channels.count(),
             sample_rate: cpal::SampleRate(format.sample_rate),
             buffer_size: cpal::BufferSize::Default,
         })
@@ -213,11 +213,6 @@ impl Device for CpalDevice {
                 cpal::SupportedBufferSize::Unknown => BufferSize::Unknown,
             },
             channels: ChannelSpec::Count(format.channels()),
-            rate_channel_ratio: if cfg!(target_os = "windows") {
-                Some(2)
-            } else {
-                None
-            },
         })
     }
 
