@@ -1,6 +1,6 @@
 use gpui::{
-    App, Div, ElementId, Entity, FontWeight, InteractiveElement, IntoElement, ParentElement,
-    Pixels, RenderOnce, Stateful, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
+    App, Div, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, Pixels,
+    RenderOnce, Stateful, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder, px,
 };
 
@@ -12,7 +12,7 @@ use crate::{
 #[derive(IntoElement)]
 pub struct Sidebar {
     div: MaybeStateful<Div>,
-    width: Option<Entity<Pixels>>,
+    width: Option<Pixels>,
 }
 
 impl Sidebar {
@@ -25,7 +25,7 @@ impl Sidebar {
         self
     }
 
-    pub fn width(mut self, width: Entity<Pixels>) -> Self {
+    pub fn width(mut self, width: Pixels) -> Self {
         self.width = Some(width);
         self
     }
@@ -44,9 +44,9 @@ impl ParentElement for Sidebar {
 }
 
 impl RenderOnce for Sidebar {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let width: Pixels = match self.width {
-            Some(w) => *w.read(cx),
+            Some(w) => w,
             None => DEFAULT_SIDEBAR_WIDTH,
         };
         self.div.w(width).flex().flex_col()

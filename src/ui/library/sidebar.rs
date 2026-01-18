@@ -68,7 +68,7 @@ impl Render for Sidebar {
         .h_full()
         .child(
             sidebar()
-                .width(sidebar_width)
+                .width(*sidebar_width.read(cx))
                 .id("main-sidebar")
                 .h_full()
                 .max_h_full()

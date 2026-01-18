@@ -4,7 +4,18 @@ use gpui::{
     WindowKind, WindowOptions, div, px,
 };
 
-use crate::ui::components::{window_chrome::window_chrome, window_header::header};
+use crate::{
+    settings::storage::DEFAULT_SIDEBAR_WIDTH,
+    ui::{
+        components::{
+            icons::{BOOKS, PLAY},
+            sidebar::{sidebar, sidebar_item},
+            window_chrome::window_chrome,
+            window_header::header,
+        },
+        theme::Theme,
+    },
+};
 
 pub fn open_settings_window(cx: &mut App) {
     let bounds = WindowBounds::Windowed(gpui::Bounds::centered(
@@ -47,13 +58,32 @@ impl SettingsWindow {
 }
 
 impl Render for SettingsWindow {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+
         window_chrome(
             div()
                 .size_full()
                 .flex()
                 .flex_col()
-                .child(header().title(div().child(div().flex_grow()))),
+                .child(header().title(div().child(div().flex_grow())))
+                // sidebar
+                .child(
+                    sidebar()
+                        .width(DEFAULT_SIDEBAR_WIDTH)
+                        .h_full()
+                        .pt(px(8.0))
+                        .pb(px(8.0))
+                        .pl(px(8.0))
+                        .pr(px(7.0))
+                        .border_r_1()
+                        .border_color(theme.border_color)
+                        .overflow_hidden()
+                        .flex()
+                        .flex_col()
+                        .child(sidebar_item("library").icon(BOOKS).child("Library"))
+                        .child(sidebar_item("playback").icon(PLAY).child("Playback")),
+                ),
         )
     }
 }

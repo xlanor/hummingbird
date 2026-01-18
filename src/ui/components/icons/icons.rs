@@ -36,3 +36,4 @@ pub const SIDEBAR_INACTIVE: &str = "!bundled:icons/layout-sidebar-inactive.svg";
 pub const SEARCH: &str = "!bundled:icons/search.svg";
 pub const CHECK: &str = "!bundled:icons/check.svg";
 pub const LOCK: &str = "!bundled:icons/lock.svg";
+pub const BOOKS: &str = "!bundled:icons/books.svg";
