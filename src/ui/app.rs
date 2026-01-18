@@ -24,7 +24,6 @@ use crate::{
         assets::HummingbirdAssetSource,
         caching::HummingbirdImageCache,
         command_palette::{CommandPalette, CommandPaletteHolder},
-        constants::APP_SHADOW_SIZE,
         library,
     },
 };
@@ -32,8 +31,7 @@ use crate::{
 use super::{
     about::about_dialog,
     arguments::parse_args_and_prepare,
-    components::{input, modal},
-    constants::APP_ROUNDING,
+    components::{input, modal, window_chrome::window_chrome},
     controls::Controls,
     global_actions::register_actions,
     header::Header,
@@ -41,7 +39,7 @@ use super::{
     models::{self, Models, PlaybackInfo, build_models},
     queue::Queue,
     search::SearchView,
-    theme::{Theme, setup_theme},
+    theme::setup_theme,
     util::drop_image_from_app,
 };
 
@@ -58,133 +56,17 @@ struct WindowShadow {
 }
 
 impl Render for WindowShadow {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = cx.global::<Theme>();
-
-        let decorations = window.window_decorations();
-        let rounding = APP_ROUNDING;
-        let shadow_size = APP_SHADOW_SIZE;
-        let border_size = px(1.0);
-        window.set_client_inset(shadow_size);
-
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let queue = self.queue.clone();
         let show_about = *self.show_about.clone().read(cx);
 
-        let mut element = div()
+        div()
             .image_cache(self.image_cache.clone())
-            .id("window-backdrop")
             .key_context("app")
-            .bg(transparent_black())
-            .flex()
-            .map(|div| match decorations {
-                Decorations::Server => div,
-                Decorations::Client { tiling, .. } => div
-                    .bg(gpui::transparent_black())
-                    .child(
-                        canvas(
-                            |_bounds, window, _| {
-                                window.insert_hitbox(
-                                    Bounds::new(
-                                        point(px(0.0), px(0.0)),
-                                        window.window_bounds().get_bounds().size,
-                                    ),
-                                    HitboxBehavior::Normal,
-                                )
-                            },
-                            move |_bounds, hitbox, window, _| {
-                                let mouse = window.mouse_position();
-                                let size = window.window_bounds().get_bounds().size;
-                                let Some(edge) = resize_edge(mouse, px(30.0), size, tiling) else {
-                                    return;
-                                };
-                                window.set_cursor_style(
-                                    match edge {
-                                        ResizeEdge::Top | ResizeEdge::Bottom => {
-                                            CursorStyle::ResizeUpDown
-                                        }
-                                        ResizeEdge::Left | ResizeEdge::Right => {
-                                            CursorStyle::ResizeLeftRight
-                                        }
-                                        ResizeEdge::TopLeft | ResizeEdge::BottomRight => {
-                                            CursorStyle::ResizeUpLeftDownRight
-                                        }
-                                        ResizeEdge::TopRight | ResizeEdge::BottomLeft => {
-                                            CursorStyle::ResizeUpRightDownLeft
-                                        }
-                                    },
-                                    &hitbox,
-                                );
-                            },
-                        )
-                        .size_full()
-                        .absolute(),
-                    )
-                    .when(!(tiling.top || tiling.right), |div| {
-                        div.rounded_tr(rounding)
-                    })
-                    .when(!(tiling.top || tiling.left), |div| div.rounded_tl(rounding))
-                    .when(!(tiling.bottom || tiling.right), |div| {
-                        div.rounded_br(rounding)
-                    })
-                    .when(!(tiling.bottom || tiling.left), |div| {
-                        div.rounded_bl(rounding)
-                    })
-                    .when(!tiling.top, |div| div.pt(shadow_size))
-                    .when(!tiling.bottom, |div| div.pb(shadow_size))
-                    .when(!tiling.left, |div| div.pl(shadow_size))
-                    .when(!tiling.right, |div| div.pr(shadow_size))
-                    .on_mouse_down(MouseButton::Left, move |e, window, _| {
-                        let size = window.window_bounds().get_bounds().size;
-                        let pos = e.position;
-
-                        if let Some(edge) = resize_edge(pos, shadow_size, size, tiling) {
-                            window.start_window_resize(edge)
-                        };
-                    }),
-            })
             .size_full()
-            .child(
+            .child(window_chrome(
                 div()
-                    .font_family("Inter")
-                    .text_color(theme.text)
                     .cursor(CursorStyle::Arrow)
-                    .map(|div| match decorations {
-                        Decorations::Server => div,
-                        Decorations::Client { tiling } => div
-                            .when(cfg!(not(target_os = "macos")), |div| {
-                                div.border_color(rgba(0x64748b33))
-                            })
-                            .when(!(tiling.top || tiling.right), |div| {
-                                div.rounded_tr(rounding)
-                            })
-                            .when(!(tiling.top || tiling.left), |div| div.rounded_tl(rounding))
-                            .when(!(tiling.bottom || tiling.right), |div| {
-                                div.rounded_br(rounding)
-                            })
-                            .when(!(tiling.bottom || tiling.left), |div| {
-                                div.rounded_bl(rounding)
-                            })
-                            .when(!tiling.top, |div| div.border_t(border_size))
-                            .when(!tiling.bottom, |div| div.border_b(border_size))
-                            .when(!tiling.left, |div| div.border_l(border_size))
-                            .when(!tiling.right, |div| div.border_r(border_size))
-                            .when(!tiling.is_tiled(), |div| {
-                                div.shadow(vec![gpui::BoxShadow {
-                                    color: Hsla {
-                                        h: 0.,
-                                        s: 0.,
-                                        l: 0.,
-                                        a: 0.4,
-                                    },
-                                    blur_radius: shadow_size / 2.,
-                                    spread_radius: px(0.),
-                                    offset: point(px(0.0), px(0.0)),
-                                }])
-                            }),
-                    })
-                    .on_mouse_move(|_e, _, cx| {
-                        cx.stop_propagation();
-                    })
                     .on_drop(|ev: &ExternalPaths, _, cx| {
                         let items = ev
                             .paths()
@@ -196,7 +78,6 @@ impl Render for WindowShadow {
                         playback_interface.queue_list(items);
                     })
                     .overflow_hidden()
-                    .bg(theme.background_primary)
                     .size_full()
                     .flex()
                     .flex_col()
@@ -223,56 +104,8 @@ impl Render for WindowShadow {
                             show_about.write(cx, false);
                         }))
                     }),
-            );
-
-        let text_styles = element.text_style();
-
-        let ff = &mut text_styles.font_features;
-        *ff = Some(FontFeatures(Arc::new(vec![("tnum".to_string(), 1)])));
-
-        element
+            ))
     }
-}
-
-fn resize_edge(
-    pos: Point<Pixels>,
-    shadow_size: Pixels,
-    size: Size<Pixels>,
-    tiling: Tiling,
-) -> Option<ResizeEdge> {
-    let edge = if pos.y < shadow_size * 2 && pos.x < shadow_size * 2 && !tiling.top && !tiling.left
-    {
-        ResizeEdge::TopLeft
-    } else if pos.y < shadow_size * 2
-        && pos.x > size.width - shadow_size * 2
-        && !tiling.top
-        && !tiling.right
-    {
-        ResizeEdge::TopRight
-    } else if pos.y < shadow_size && !tiling.top {
-        ResizeEdge::Top
-    } else if pos.y > size.height - shadow_size * 2
-        && pos.x < shadow_size * 2
-        && !tiling.bottom
-        && !tiling.left
-    {
-        ResizeEdge::BottomLeft
-    } else if pos.y > size.height - shadow_size * 2
-        && pos.x > size.width - shadow_size * 2
-        && !tiling.bottom
-        && !tiling.right
-    {
-        ResizeEdge::BottomRight
-    } else if pos.y > size.height - shadow_size && !tiling.bottom {
-        ResizeEdge::Bottom
-    } else if pos.x < shadow_size && !tiling.left {
-        ResizeEdge::Left
-    } else if pos.x > size.width - shadow_size && !tiling.right {
-        ResizeEdge::Right
-    } else {
-        return None;
-    };
-    Some(edge)
 }
 
 pub fn find_fonts(cx: &mut App) -> gpui::Result<()> {

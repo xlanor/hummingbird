@@ -16,3 +16,5 @@ pub mod slider;
 pub mod styling;
 pub mod table;
 pub mod textbox;
+pub mod window_chrome;
+pub mod window_header;
