@@ -11,6 +11,7 @@ pub mod nav_button;
 pub mod palette;
 pub mod resizable_sidebar;
 pub mod scrollbar;
+pub mod section_header;
 pub mod sidebar;
 pub mod slider;
 pub mod styling;

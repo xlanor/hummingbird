@@ -34,7 +34,7 @@ pub enum ScanEvent {
     ScanCompleteIdle,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum ScanCommand {
     Scan,
     /// A force-scan is different to a regular scan in that it will ignore all previous data and
@@ -42,6 +42,7 @@ enum ScanCommand {
     /// database schema has been changed, or a bug has been fixed with in the scanning proccess,
     /// and is usually triggered by the scan version changing (see [SCAN_VERSION]).
     ForceScan,
+    UpdateSettings(ScanSettings),
     Stop,
 }
 
@@ -74,6 +75,12 @@ impl ScanInterface {
         self.cmd_tx
             .blocking_send(ScanCommand::Stop)
             .expect("could not send scan stop command");
+    }
+
+    pub fn update_settings(&self, settings: ScanSettings) {
+        self.cmd_tx
+            .blocking_send(ScanCommand::UpdateSettings(settings))
+            .expect("could not send scan settings update command");
     }
 
     pub fn start_broadcast(&mut self, cx: &mut App) {
@@ -318,6 +325,9 @@ impl ScanThread {
                             .send(ScanEvent::Cleaning)
                             .expect("could not send scan event");
                     }
+                }
+                ScanCommand::UpdateSettings(settings) => {
+                    self.scan_settings = settings;
                 }
                 ScanCommand::Stop => {
                     self.scan_state = ScanState::Idle;

@@ -31,8 +31,17 @@ pub fn create_settings(path: &PathBuf) -> Settings {
     }
 }
 
+pub fn save_settings(path: &PathBuf, settings: &Settings) {
+    let result = File::create(path)
+        .and_then(|file| serde_json::to_writer_pretty(file, settings).map_err(|e| e.into()));
+    if let Err(e) = result {
+        warn!("Failed to save settings file: {e:?}");
+    }
+}
+
 pub struct SettingsGlobal {
     pub model: Entity<Settings>,
+    pub path: PathBuf,
     #[allow(dead_code)]
     pub watcher: Option<Box<dyn Watcher>>,
 }
@@ -53,6 +62,7 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
 
         let global = SettingsGlobal {
             model: settings,
+            path: path.clone(),
             watcher: None,
         };
 
@@ -62,6 +72,9 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
     if let Err(e) = watcher.watch(path.parent().unwrap(), RecursiveMode::Recursive) {
         warn!("failed to watch settings file: {:?}", e);
     }
+
+    let settings_path = path.clone();
+    let path_for_watcher = path.clone();
 
     cx.spawn(async move |app: &mut AsyncApp| {
         loop {
@@ -74,7 +87,7 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
                         match v.kind {
                             notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
                                 info!("Settings changed, updating...");
-                                let settings = create_settings(&path);
+                                let settings = create_settings(&path_for_watcher);
                                 settings_model
                                     .update(app, |v, _| {
                                         *v = settings;
@@ -105,6 +118,7 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
 
     let global = SettingsGlobal {
         model: settings,
+        path: settings_path,
         watcher: Some(Box::new(watcher)),
     };
 
