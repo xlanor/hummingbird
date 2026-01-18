@@ -188,7 +188,7 @@ impl RenderOnce for WindowButton {
             )
             .when(self == WindowButton::Close, |this| this.rounded_tr(px(4.0)))
             .on_click(move |_, window, cx| match self {
-                WindowButton::Close => cx.quit(),
+                WindowButton::Close => window.remove_window(),
                 WindowButton::Minimize => window.minimize_window(),
                 WindowButton::Maximize => window.zoom_window(),
             })

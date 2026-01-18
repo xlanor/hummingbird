@@ -4,12 +4,12 @@ use tracing::{debug, info};
 use crate::{
     library::scan::ScanInterface,
     playback::{interface::PlaybackInterface, thread::PlaybackState},
-    ui::command_palette::OpenPalette,
+    ui::{command_palette::OpenPalette, settings::open_settings_window},
 };
 
 use super::models::{Models, PlaybackInfo};
 
-actions!(hummingbird, [Quit, About, Search]);
+actions!(hummingbird, [Quit, About, Search, Settings]);
 actions!(player, [PlayPause, Next, Previous]);
 actions!(scan, [ForceScan]);
 actions!(hummingbird, [HideSelf, HideOthers, ShowAll]);
@@ -25,6 +25,7 @@ pub fn register_actions(cx: &mut App) {
     cx.on_action(show_all);
     cx.on_action(about);
     cx.on_action(force_scan);
+    cx.on_action(open_settings);
     debug!("actions: {:?}", cx.all_action_names());
     debug!("action available: {:?}", cx.is_action_available(&Quit));
     if cfg!(target_os = "macos") {
@@ -33,8 +34,10 @@ pub fn register_actions(cx: &mut App) {
         cx.bind_keys([KeyBinding::new("cmd-left", Previous, None)]);
         cx.bind_keys([KeyBinding::new("cmd-h", HideSelf, None)]);
         cx.bind_keys([KeyBinding::new("cmd-alt-h", HideOthers, None)]);
+        cx.bind_keys([KeyBinding::new("cmd-,", Settings, None)]);
     } else {
         cx.bind_keys([KeyBinding::new("ctrl-w", Quit, None)]);
+        cx.bind_keys([KeyBinding::new("ctrl-,", Settings, None)]);
     }
 
     cx.bind_keys([KeyBinding::new("secondary-right", Next, None)]);
@@ -125,4 +128,8 @@ fn about(_: &About, cx: &mut App) {
 fn force_scan(_: &ForceScan, cx: &mut App) {
     let scanner = cx.global::<ScanInterface>();
     scanner.force_scan();
+}
+
+fn open_settings(_: &Settings, cx: &mut App) {
+    open_settings_window(cx);
 }

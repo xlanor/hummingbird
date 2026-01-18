@@ -14,7 +14,7 @@ use crate::ui::{
         modal::modal,
         palette::{FinderItemLeft, Palette, PaletteItem},
     },
-    global_actions::{About, ForceScan, Next, PlayPause, Previous, Quit, Search},
+    global_actions::{About, ForceScan, Next, PlayPause, Previous, Quit, Search, Settings},
 };
 
 actions!(hummingbird, [OpenPalette]);
@@ -154,6 +154,10 @@ impl CommandPalette {
             items.insert(
                 ("hummingbird::search", 0),
                 Command::new(Some("Hummingbird"), "Search", Search, None),
+            );
+            items.insert(
+                ("hummingbird::settings", 0),
+                Command::new(Some("Hummingbird"), "Settings", Settings, None),
             );
 
             items.insert(

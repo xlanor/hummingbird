@@ -14,5 +14,6 @@ mod library;
 pub mod models;
 mod queue;
 mod search;
+mod settings;
 mod theme;
 pub mod util;
