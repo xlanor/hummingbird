@@ -164,6 +164,13 @@ pub fn run() -> anyhow::Result<()> {
     Application::new()
         .with_assets(HummingbirdAssetSource::new(pool.clone()))
         .run(move |cx: &mut App| {
+            // Fontconfig isn't read currently so fall back to the most "okay" font rendering
+            // option - I'm sure people will disagree with this but Grayscale font rendering
+            // results in text that is at least displayed correctly on all screens, unlike
+            // sub-pixel AA
+            #[cfg(target_os = "linux")]
+            cx.set_text_rendering_mode(TextRenderingMode::Grayscale);
+
             let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
             find_fonts(cx).expect("unable to load fonts");
             register_actions(cx);
