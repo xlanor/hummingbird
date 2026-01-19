@@ -1,4 +1,5 @@
 mod library;
+mod playback;
 
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString,
@@ -11,12 +12,12 @@ use crate::{
     ui::{
         components::{
             icons::{BOOKS, PLAY},
-            section_header::section_header,
             sidebar::{sidebar, sidebar_item},
             window_chrome::window_chrome,
             window_header::header,
         },
         settings::library::LibrarySettings,
+        settings::playback::PlaybackSettings,
         theme::Theme,
     },
 };
@@ -56,7 +57,7 @@ pub fn open_settings_window(cx: &mut App) {
 #[derive(Clone, PartialEq)]
 enum SettingsSection {
     Library(Entity<LibrarySettings>),
-    Playback,
+    Playback(Entity<PlaybackSettings>),
 }
 
 struct SettingsWindow {
@@ -84,8 +85,11 @@ impl Render for SettingsWindow {
                 .gap(px(12.0))
                 .child(library.clone())
                 .into_any_element(),
-            SettingsSection::Playback => section_header("Playback")
-                .subtitle("Playback settings will be displayed here in the future")
+            SettingsSection::Playback(playback) => div()
+                .flex()
+                .flex_col()
+                .gap(px(12.0))
+                .child(playback.clone())
                 .into_any_element(),
         };
 
@@ -132,11 +136,13 @@ impl Render for SettingsWindow {
                                         .icon(PLAY)
                                         .child("Playback")
                                         .on_click(cx.listener(|this, _, _, cx| {
-                                            this.active = SettingsSection::Playback;
+                                            this.active = SettingsSection::Playback(
+                                                PlaybackSettings::new(cx),
+                                            );
                                             cx.notify();
                                         }))
                                         .when(
-                                            matches!(active, SettingsSection::Playback),
+                                            matches!(active, SettingsSection::Playback(_)),
                                             |this| this.active(),
                                         ),
                                 ),

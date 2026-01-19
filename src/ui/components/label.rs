@@ -9,6 +9,7 @@ use crate::ui::theme::Theme;
 
 type ClickEvHandler = Box<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 
+#[derive(IntoElement)]
 pub struct Label {
     id: ElementId,
     text: SharedString,
@@ -21,22 +22,25 @@ pub struct Label {
 }
 
 impl Label {
-    fn vertical(mut self) -> Self {
+    pub fn vertical(mut self) -> Self {
         self.vertical = true;
         self
     }
 
-    fn subtext(mut self, subtext: impl Into<SharedString>) -> Self {
+    pub fn subtext(mut self, subtext: impl Into<SharedString>) -> Self {
         self.subtext = Some(subtext.into());
         self
     }
 
-    fn group(mut self, group: impl Into<SharedString>) -> Self {
+    pub fn group(mut self, group: impl Into<SharedString>) -> Self {
         self.group = Some(group.into());
         self
     }
 
-    fn on_click(mut self, on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_click(
+        mut self,
+        on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_click = Some(Box::new(on_click));
         self
     }
@@ -61,24 +65,28 @@ impl RenderOnce for Label {
         self.div
             .id(self.id)
             .flex()
-            .gap(px(4.0))
+            .text_sm()
             .when_else(
                 self.vertical,
-                |this| this.flex_row(),
-                |this| this.flex_col(),
+                |this| this.flex_col().gap(px(6.0)),
+                |this| this.flex_row().gap(px(4.0)),
             )
-            .child(div().child(self.text))
+            .children(self.children)
+            .child(
+                div()
+                    .when(!self.vertical, |this| this.my_auto().ml(px(6.0)))
+                    .child(self.text),
+            )
             .when_some(self.subtext, |this, that| {
                 this.child(
                     div()
-                        .text_sm()
+                        .when(!self.vertical, |this| this.my_auto())
                         .text_color(theme.text_secondary)
                         .child(that)
                         .when(self.vertical, |this| this.my_auto()),
                 )
             })
             .when_some(self.on_click, |this, on_click| this.on_click(on_click))
-            .children(self.children)
     }
 }
 

@@ -26,8 +26,8 @@ impl RenderOnce for Checkbox {
             .id(self.id)
             .rounded(px(4.0))
             .flex()
-            .w(px(24.0))
-            .h(px(24.0))
+            .w(px(20.0))
+            .h(px(20.0))
             .items_center()
             .justify_center()
             .line_height(rems(1.25))
@@ -37,24 +37,28 @@ impl RenderOnce for Checkbox {
             .text_sm()
             .font_weight(FontWeight::MEDIUM)
             .cursor_pointer()
-            .hover(|this| this.bg(theme.checkbox_background_active))
-            .active(|this| this.bg(theme.checkbox_background_hover))
+            .when_else(
+                self.checked,
+                |this| {
+                    this.border_color(theme.checkbox_checked_border)
+                        .bg(theme.checkbox_checked_bg)
+                        .hover(|this| this.bg(theme.checkbox_checked_bg_hover))
+                        .active(|this| this.bg(theme.checkbox_checked_bg_active))
+                },
+                |this| {
+                    this.border_color(theme.checkbox_border)
+                        .bg(theme.checkbox_background)
+                        .hover(|this| this.bg(theme.checkbox_background_hover))
+                        .active(|this| this.bg(theme.checkbox_background_active))
+                },
+            )
             .when(self.checked, |this| {
                 this.child(
-                    div()
-                        .w(px(18.0))
-                        .h(px(18.0))
-                        .mr(px(7.0))
-                        .pt(px(0.5))
-                        .my_auto()
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child(
-                            icon(CHECK)
-                                .size(px(18.0))
-                                .text_color(theme.checkbox_checked),
-                        ),
+                    icon(CHECK)
+                        .size(px(16.0))
+                        .text_color(theme.checkbox_checked)
+                        .m_auto()
+                        .pr(px(2.0)),
                 )
             })
     }

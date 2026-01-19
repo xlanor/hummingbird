@@ -33,7 +33,7 @@ impl ParentElement for SectionHeader {
 }
 
 impl RenderOnce for SectionHeader {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl gpui::IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl gpui::IntoElement {
         let theme = cx.global::<Theme>();
 
         self.parent_div

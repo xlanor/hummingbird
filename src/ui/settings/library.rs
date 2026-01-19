@@ -12,7 +12,7 @@ use crate::{
         components::{
             button::{ButtonIntent, ButtonStyle, button},
             icons::{CIRCLE_PLUS, FOLDER_SEARCH, TRASH, icon},
-            section_header::{self, section_header},
+            section_header::section_header,
         },
         theme::Theme,
     },

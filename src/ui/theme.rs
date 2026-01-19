@@ -92,6 +92,10 @@ pub struct Theme {
     pub checkbox_background_active: Rgba,
     pub checkbox_border: Rgba,
     pub checkbox_checked: Rgba,
+    pub checkbox_checked_bg: Rgba,
+    pub checkbox_checked_bg_hover: Rgba,
+    pub checkbox_checked_bg_active: Rgba,
+    pub checkbox_checked_border: Rgba,
 }
 
 impl Default for Theme {
@@ -180,7 +184,11 @@ impl Default for Theme {
             checkbox_background_hover: rgb(0x303843),
             checkbox_background_active: rgb(0x303843),
             checkbox_border: rgb(0x303843),
-            checkbox_checked: rgb(0x0673C6),
+            checkbox_checked: rgb(0xF4F5F6),
+            checkbox_checked_bg: rgb(0x0673C6),
+            checkbox_checked_bg_hover: rgb(0x0673C6),
+            checkbox_checked_bg_active: rgb(0x0673C6),
+            checkbox_checked_border: rgb(0x0673C6),
         }
     }
 }
