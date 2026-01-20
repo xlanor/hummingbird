@@ -9,6 +9,8 @@ use notify::{Event, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
+use crate::{library::scan::ScanInterface, playback::interface::PlaybackInterface};
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Settings {
     #[serde(default)]
@@ -31,7 +33,15 @@ pub fn create_settings(path: &PathBuf) -> Settings {
     }
 }
 
-pub fn save_settings(path: &PathBuf, settings: &Settings) {
+pub fn save_settings(cx: &mut App, settings: &Settings) {
+    let playback = cx.global::<PlaybackInterface>();
+    playback.update_settings(settings.playback.clone());
+
+    let scan = cx.global::<ScanInterface>();
+    scan.update_settings(settings.scanning.clone());
+
+    let path = cx.global::<SettingsGlobal>().path.clone();
+
     let result = File::create(path)
         .and_then(|file| serde_json::to_writer_pretty(file, settings).map_err(|e| e.into()));
     if let Err(e) = result {

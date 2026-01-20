@@ -23,7 +23,6 @@ pub struct TrackListing {
     tracks: Arc<Vec<Entity<TrackItem>>>,
     original_tracks: Arc<Vec<Track>>,
     track_list_state: ListState,
-    vinyl_numbering: bool,
 }
 
 impl TrackListing {
@@ -56,7 +55,6 @@ impl TrackListing {
             ),
             original_tracks: tracks,
             track_list_state: state,
-            vinyl_numbering,
         }
     }
 

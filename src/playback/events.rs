@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::media::metadata::Metadata;
+use crate::{media::metadata::Metadata, settings::playback::PlaybackSettings};
 
 use super::{queue::QueueItemData, thread::PlaybackState};
 use std::path::PathBuf;
@@ -75,6 +75,8 @@ pub enum PlaybackCommand {
     /// Requests that an item be moved from one position to another in the queue.
     /// The first usize is the source index, the second is the destination index.
     MoveItem { from: usize, to: usize },
+    /// Informs the playback thread that the playback settings have changed.
+    SettingsChanged(PlaybackSettings),
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback

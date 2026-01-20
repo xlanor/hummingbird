@@ -118,6 +118,7 @@ pub struct PlaybackThread {
     last_volume: f64,
 }
 
+// magic numbers for piecewise volume % to float scale function
 pub const LN_50: f64 = 3.91202300543_f64;
 pub const LINEAR_SCALING_COEFFICIENT: f64 = 0.295751527165_f64;
 
@@ -318,6 +319,7 @@ impl PlaybackThread {
                 PlaybackCommand::SetRepeat(v) => self.set_repeat(v),
                 PlaybackCommand::RemoveItem(idx) => self.remove(idx),
                 PlaybackCommand::MoveItem { from, to } => self.move_item(from, to),
+                PlaybackCommand::SettingsChanged(settings) => self.settings_changed(settings),
             }
         }
     }
@@ -1051,6 +1053,15 @@ impl PlaybackThread {
             PlaybackState::Playing => self.pause(),
             PlaybackState::Paused => self.play(),
             _ => {}
+        }
+    }
+
+    /// Handles a change in playback settings.
+    fn settings_changed(&mut self, settings: PlaybackSettings) {
+        self.playback_settings = settings;
+
+        if self.playback_settings.always_repeat && self.repeat == RepeatState::NotRepeating {
+            self.repeat = RepeatState::Repeating;
         }
     }
 

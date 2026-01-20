@@ -7,6 +7,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
     playback::events::RepeatState,
+    settings::playback::PlaybackSettings,
     ui::models::{CurrentTrack, ImageEvent, MMBSEvent, Models, PlaybackInfo},
 };
 
@@ -134,6 +135,12 @@ impl PlaybackInterface {
     pub fn move_item(&self, from: usize, to: usize) {
         self.cmd_tx
             .send(PlaybackCommand::MoveItem { from, to })
+            .unwrap();
+    }
+
+    pub fn update_settings(&self, settings: PlaybackSettings) {
+        self.cmd_tx
+            .send(PlaybackCommand::SettingsChanged(settings))
             .unwrap();
     }
 

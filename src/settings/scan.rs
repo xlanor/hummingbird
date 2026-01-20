@@ -3,7 +3,7 @@ use std::{fs::exists, path::PathBuf};
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ScanSettings {
     #[serde(default = "retrieve_default_paths")]
     pub paths: Vec<PathBuf>,

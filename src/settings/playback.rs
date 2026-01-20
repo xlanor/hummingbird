@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// User-set playback settings, to be passed to the playback thread.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PlaybackSettings {
     /// Whether or not the playback thread should allow for repeating to be disabled.
     ///

@@ -29,8 +29,7 @@ impl PlaybackSettings {
         self.settings.update(cx, move |settings, cx| {
             update(&mut settings.playback);
 
-            let settings_path = cx.global::<SettingsGlobal>().path.clone();
-            save_settings(&settings_path, settings);
+            save_settings(cx, settings);
             cx.notify();
         });
     }

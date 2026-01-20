@@ -6,7 +6,6 @@ use gpui::{
 };
 
 use crate::{
-    library::scan::ScanInterface,
     settings::{Settings, SettingsGlobal, save_settings},
     ui::{
         components::{
@@ -59,10 +58,7 @@ impl LibrarySettings {
                             }
 
                             if updated {
-                                let settings_path = cx.global::<SettingsGlobal>().path.clone();
-                                save_settings(&settings_path, settings);
-                                cx.global::<ScanInterface>()
-                                    .update_settings(settings.scanning.clone());
+                                save_settings(cx, settings);
                                 cx.notify();
                             }
                         })
@@ -79,10 +75,7 @@ impl LibrarySettings {
             settings.scanning.paths.retain(|p| p != &path);
 
             if settings.scanning.paths.len() != before_len {
-                let settings_path = cx.global::<SettingsGlobal>().path.clone();
-                save_settings(&settings_path, settings);
-                cx.global::<ScanInterface>()
-                    .update_settings(settings.scanning.clone());
+                save_settings(cx, settings);
                 cx.notify();
             }
         });
