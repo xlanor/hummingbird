@@ -96,6 +96,9 @@ pub struct Theme {
     pub checkbox_checked_bg_hover: Rgba,
     pub checkbox_checked_bg_active: Rgba,
     pub checkbox_checked_border: Rgba,
+
+    pub callout_background: Rgba,
+    pub callout_text: Rgba,
 }
 
 impl Default for Theme {
@@ -189,6 +192,9 @@ impl Default for Theme {
             checkbox_checked_bg_hover: rgb(0x0673C6),
             checkbox_checked_bg_active: rgb(0x0673C6),
             checkbox_checked_border: rgb(0x0673C6),
+
+            callout_background: rgb(0xEDB407),
+            callout_text: rgb(0xF4F5F6),
         }
     }
 }
