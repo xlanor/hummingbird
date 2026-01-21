@@ -2,15 +2,17 @@ use std::path::PathBuf;
 
 use gpui::{
     App, AppContext, Context, Entity, InteractiveElement, IntoElement, ParentElement,
-    PathPromptOptions, Render, SharedString, Styled, Window, div, px,
+    PathPromptOptions, Render, SharedString, Styled, Window, div, prelude::FluentBuilder, px,
 };
 
 use crate::{
+    library::scan::ScanInterface,
     settings::{Settings, SettingsGlobal, save_settings},
     ui::{
         components::{
             button::{ButtonIntent, ButtonStyle, button},
-            icons::{CIRCLE_PLUS, FOLDER_SEARCH, TRASH, icon},
+            callout::callout,
+            icons::{ALERT_CIRCLE, CIRCLE_PLUS, FOLDER_SEARCH, TRASH, icon},
             section_header::section_header,
         },
         theme::Theme,
@@ -19,6 +21,7 @@ use crate::{
 
 pub struct LibrarySettings {
     settings: Entity<Settings>,
+    scanning_modified: bool,
 }
 
 impl LibrarySettings {
@@ -29,6 +32,7 @@ impl LibrarySettings {
 
             Self {
                 settings: cx.global::<SettingsGlobal>().model.clone(),
+                scanning_modified: false,
             }
         })
     }
@@ -128,13 +132,15 @@ impl Render for LibrarySettings {
                             .intent(ButtonIntent::Secondary)
                             .child(icon(TRASH).size(px(14.0)))
                             .id(format!("library-scan-remove-{idx}"))
-                            .on_click(move |_, _, cx| {
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.scanning_modified = true;
                                 LibrarySettings::remove_folder(
                                     settings.clone(),
                                     path_clone.clone(),
                                     cx,
                                 );
-                            }),
+                                cx.notify();
+                            })),
                     )
             });
 
@@ -161,10 +167,32 @@ impl Render for LibrarySettings {
                             )
                             .id("library-settings-add-folder")
                             .on_click(cx.listener(|this, _, _, cx| {
+                                this.scanning_modified = true;
                                 this.add_folder(cx);
+                                cx.notify();
                             })),
                     ),
             )
+            .when(self.scanning_modified, |this| {
+                this.child(
+                    callout("Your changes will be applied on your next scan.")
+                        .title("Rescan Required")
+                        .icon(ALERT_CIRCLE)
+                        .child(
+                            button()
+                                .id("settings-rescan-button")
+                                .intent(ButtonIntent::Warning)
+                                .child("Scan")
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.scanning_modified = false;
+
+                                    cx.global::<ScanInterface>().scan();
+
+                                    cx.notify();
+                                })),
+                        ),
+                )
+            })
             .child(list)
     }
 }

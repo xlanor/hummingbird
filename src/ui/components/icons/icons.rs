@@ -37,3 +37,4 @@ pub const SEARCH: &str = "!bundled:icons/search.svg";
 pub const CHECK: &str = "!bundled:icons/check.svg";
 pub const LOCK: &str = "!bundled:icons/lock.svg";
 pub const BOOKS: &str = "!bundled:icons/books.svg";
+pub const ALERT_CIRCLE: &str = "!bundled:icons/alert-circle.svg";

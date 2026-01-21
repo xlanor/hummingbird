@@ -193,7 +193,7 @@ impl Default for Theme {
             checkbox_checked_bg_active: rgb(0x0673C6),
             checkbox_checked_border: rgb(0x0673C6),
 
-            callout_background: rgb(0xEDB407),
+            callout_background: rgba(0xEDB40780),
             callout_text: rgb(0xF4F5F6),
         }
     }
