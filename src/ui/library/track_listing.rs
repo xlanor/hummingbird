@@ -35,6 +35,13 @@ impl TrackListing {
     ) -> Self {
         let state = ListState::new(tracks.len(), ListAlignment::Top, overdraw);
 
+        // find biggest track number and provide it to track item for measurement
+        let max_track_num_str = tracks
+            .iter()
+            .filter_map(|t| t.track_number)
+            .max()
+            .map(|n| format!("{}", n).into());
+
         Self {
             tracks: Arc::new(
                 tracks
@@ -49,6 +56,7 @@ impl TrackListing {
                             TrackItemLeftField::TrackNum,
                             None,
                             vinyl_numbering,
+                            max_track_num_str.clone(),
                         )
                     })
                     .collect(),

@@ -85,7 +85,7 @@ impl Render for Sidebar {
                     div()
                         .flex()
                         .mt(px(2.0))
-                        .mb(px(6.0))
+                        .mb(px(4.0))
                         .pb(px(6.0))
                         .border_b_1()
                         .border_color(theme.border_color)

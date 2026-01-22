@@ -1,5 +1,8 @@
 use gpui::prelude::{FluentBuilder, *};
-use gpui::{App, Entity, FontWeight, IntoElement, SharedString, Window, div, img, px};
+use gpui::{
+    App, Entity, FontWeight, IntoElement, Pixels, SharedString, TextAlign, TextRun, Window, div,
+    img, px,
+};
 
 use crate::ui::components::drag_drop::{DragPreview, TrackDragData};
 use crate::ui::components::icons::{
@@ -43,12 +46,33 @@ pub struct TrackItem {
     add_to: Entity<AddToPlaylist>,
     show_add_to: Entity<bool>,
     vinyl_numbering: bool,
+    max_track_num_str: Option<SharedString>,
 }
 
 #[derive(Eq, PartialEq)]
 pub enum TrackItemLeftField {
     TrackNum,
     Art,
+}
+
+fn measure_track_number_width(window: &mut Window, text: &SharedString) -> Pixels {
+    let style = window.text_style();
+    let font_size = style.font_size.to_pixels(window.rem_size());
+
+    let run = TextRun {
+        len: text.len(),
+        font: style.font(),
+        color: style.color,
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
+
+    let line = window
+        .text_system()
+        .shape_line(text.clone(), font_size, &[run], None);
+
+    line.x_for_index(line.len())
 }
 
 impl TrackItem {
@@ -60,6 +84,7 @@ impl TrackItem {
         left_field: TrackItemLeftField,
         pl_info: Option<TrackPlaylistInfo>,
         vinyl_numbering: bool,
+        max_track_num_str: Option<SharedString>,
     ) -> Entity<Self> {
         cx.new(|cx| {
             let show_add_to = cx.new(|_| false);
@@ -90,14 +115,21 @@ impl TrackItem {
                 left_field,
                 pl_info,
                 vinyl_numbering,
+                max_track_num_str,
             }
         })
     }
 }
 
 impl Render for TrackItem {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+
+        let track_num_width = self
+            .max_track_num_str
+            .as_ref()
+            .map(|max_num_str| measure_track_number_width(window, max_num_str))
+            .unwrap_or(px(22.0));
         let current_track = cx.global::<PlaybackInfo>().current_track.read(cx).clone();
 
         let track_location = self.track.location.clone();
@@ -134,18 +166,19 @@ impl Render for TrackItem {
                                 .text_color(theme.text_secondary)
                                 .text_sm()
                                 .font_weight(FontWeight::SEMIBOLD)
-                                .px(px(18.0))
+                                // 22px (from track # width) + 18 + 11
+                                .px(px(track_num_width.to_f64() as f32 + 18.0 + 13.0))
                                 .border_b_1()
                                 .w_full()
                                 .border_color(theme.border_color)
-                                .mt(px(24.0))
+                                .mt(px(18.0))
                                 .pb(px(6.0))
                                 .when_some(self.track.disc_number, |this, num| {
                                     if self.vinyl_numbering {
                                         let side = (b'A' + (num - 1) as u8) as char;
-                                        this.child(format!("SIDE {side}"))
+                                        this.child(format!("Side {side}"))
                                     } else {
-                                        this.child(format!("DISC {num}"))
+                                        this.child(format!("Disc {num}"))
                                     }
                                 }),
                         )
@@ -189,10 +222,18 @@ impl Render for TrackItem {
                             })
                             .max_w_full()
                             .when(self.left_field == TrackItemLeftField::TrackNum, |this| {
-                                this.child(div().w(px(62.0)).flex_shrink_0().child(format!(
-                                    "{}",
-                                    self.track.track_number.unwrap_or_default()
-                                )))
+                                this.child(
+                                    div()
+                                        .min_w(track_num_width)
+                                        .flex_shrink_0()
+                                        .text_align(TextAlign::Right)
+                                        .mr(px(13.0))
+                                        .text_color(theme.text_secondary)
+                                        .child(format!(
+                                            "{}",
+                                            self.track.track_number.unwrap_or_default()
+                                        )),
+                                )
                             })
                             .when(self.left_field == TrackItemLeftField::Art, |this| {
                                 this.child(

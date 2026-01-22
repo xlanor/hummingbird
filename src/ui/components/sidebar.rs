@@ -49,7 +49,7 @@ impl RenderOnce for Sidebar {
             Some(w) => w,
             None => DEFAULT_SIDEBAR_WIDTH,
         };
-        self.div.w(width).flex().flex_col()
+        self.div.w(width).flex().gap(px(2.0)).flex_col()
     }
 }
 
@@ -152,7 +152,7 @@ impl RenderOnce for SidebarSeparator {
 
         div()
             .w_full()
-            .my(px(6.0))
+            .my(px(2.0))
             .border_b_1()
             .border_color(theme.border_color)
     }

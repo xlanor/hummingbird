@@ -558,7 +558,7 @@ where
                 this.bg(theme.palette_item_hover)
                     .border_color(theme.palette_item_border_hover)
             })
-            .rounded(px(4.0))
+            .rounded(px(6.0))
             .on_click(cx.listener(move |_, _, _, cx| {
                 if let Some(override_fn) = on_accept_override.clone() {
                     override_fn(cx);

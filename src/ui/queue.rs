@@ -639,12 +639,6 @@ impl Render for Queue {
                                     cx.notify();
                                 },
                             ))
-                            .drag_over::<TrackDragData>(|style, _, _, _| {
-                                style.bg(gpui::rgba(0x3388ff22))
-                            })
-                            .drag_over::<AlbumDragData>(|style, _, _, _| {
-                                style.bg(gpui::rgba(0x3388ff22))
-                            })
                             .child(
                                 uniform_list("queue", queue_len, move |range, _, cx| {
                                     let start = range.start;

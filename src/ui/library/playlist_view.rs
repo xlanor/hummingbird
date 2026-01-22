@@ -548,6 +548,7 @@ impl Render for PlaylistView {
                                                         item_id: playlist_item_id,
                                                     }),
                                                     false, // vinyl_numbering - not applicable for playlists
+                                                    None, // max_track_num - not needed for Art left field
                                                 );
 
                                                 PlaylistTrackItem::new(
