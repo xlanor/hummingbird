@@ -107,15 +107,25 @@ impl RenderOnce for SidebarItem {
             .flex()
             .bg(theme.background_primary)
             .text_sm()
-            .when(self.active, |div| div.bg(theme.background_tertiary))
+            .border_1()
+            .when(self.active, |div| {
+                div.bg(theme.nav_button_pressed)
+                    .border_color(theme.nav_button_pressed_border)
+            })
             .rounded(px(4.0))
             .px(px(9.0))
             .py(px(7.0))
             .line_height(px(18.0))
             .gap(px(6.0))
             .font_weight(FontWeight::SEMIBOLD)
-            .hover(|this| this.bg(theme.nav_button_hover))
-            .active(|this| this.bg(theme.nav_button_active))
+            .hover(|this| {
+                this.bg(theme.nav_button_hover)
+                    .border_color(theme.nav_button_hover_border)
+            })
+            .active(|this| {
+                this.bg(theme.nav_button_active)
+                    .border_color(theme.nav_button_active_border)
+            })
             .when_none(&self.icon, |this| this.child(div().size(px(18.0))))
             .when_some(self.icon, |this, used_icon| {
                 this.child(icon(used_icon).size(px(18.0)))

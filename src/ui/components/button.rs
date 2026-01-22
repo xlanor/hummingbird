@@ -33,7 +33,7 @@ impl ButtonStyle {
         let div = dest.cursor_pointer().flex();
 
         match self {
-            ButtonStyle::Regular => div.shadow_md().rounded(px(4.0)),
+            ButtonStyle::Regular => div.shadow_md().rounded(px(4.0)).border_1(),
             ButtonStyle::Minimal => div.background_opacity(0.0).rounded(px(4.0)),
             ButtonStyle::MinimalNoRounding => div.background_opacity(0.0),
         }
@@ -99,16 +99,20 @@ impl ButtonIntent {
         match self {
             ButtonIntent::Primary => dest
                 .bg(theme.button_primary)
-                .text_color(theme.button_primary_text),
+                .text_color(theme.button_primary_text)
+                .border_color(theme.button_primary_border),
             ButtonIntent::Secondary => dest
                 .bg(theme.button_secondary)
-                .text_color(theme.button_secondary_text),
+                .text_color(theme.button_secondary_text)
+                .border_color(theme.button_secondary_border),
             ButtonIntent::Warning => dest
                 .bg(theme.button_warning)
-                .text_color(theme.button_warning_text),
+                .text_color(theme.button_warning_text)
+                .border_color(theme.button_warning_border),
             ButtonIntent::Danger => dest
                 .bg(theme.button_danger)
-                .text_color(theme.button_danger_text),
+                .text_color(theme.button_danger_text)
+                .border_color(theme.button_danger_border),
         }
     }
     fn hover<T>(&self, dest: T, cx: &mut App) -> T
@@ -118,10 +122,18 @@ impl ButtonIntent {
         let theme = cx.global::<Theme>();
 
         match self {
-            ButtonIntent::Primary => dest.bg(theme.button_primary_hover),
-            ButtonIntent::Secondary => dest.bg(theme.button_secondary_hover),
-            ButtonIntent::Warning => dest.bg(theme.button_warning_hover),
-            ButtonIntent::Danger => dest.bg(theme.button_danger_hover),
+            ButtonIntent::Primary => dest
+                .bg(theme.button_primary_hover)
+                .border_color(theme.button_primary_border_hover),
+            ButtonIntent::Secondary => dest
+                .bg(theme.button_secondary_hover)
+                .border_color(theme.button_secondary_border_hover),
+            ButtonIntent::Warning => dest
+                .bg(theme.button_warning_hover)
+                .border_color(theme.button_warning_border_hover),
+            ButtonIntent::Danger => dest
+                .bg(theme.button_danger_hover)
+                .border_color(theme.button_danger_border_hover),
         }
     }
     fn active<T>(&self, dest: T, cx: &mut App) -> T
@@ -131,10 +143,18 @@ impl ButtonIntent {
         let theme = cx.global::<Theme>();
 
         match self {
-            ButtonIntent::Primary => dest.bg(theme.button_primary_active),
-            ButtonIntent::Secondary => dest.bg(theme.button_secondary_active),
-            ButtonIntent::Warning => dest.bg(theme.button_warning_active),
-            ButtonIntent::Danger => dest.bg(theme.button_danger_active),
+            ButtonIntent::Primary => dest
+                .bg(theme.button_primary_active)
+                .border_color(theme.button_primary_border_active),
+            ButtonIntent::Secondary => dest
+                .bg(theme.button_secondary_active)
+                .border_color(theme.button_secondary_border_active),
+            ButtonIntent::Warning => dest
+                .bg(theme.button_warning_active)
+                .border_color(theme.button_warning_border_active),
+            ButtonIntent::Danger => dest
+                .bg(theme.button_danger_active)
+                .border_color(theme.button_danger_border_active),
         }
     }
 }

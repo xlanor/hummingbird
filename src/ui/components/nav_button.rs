@@ -37,8 +37,15 @@ impl RenderOnce for NavButton {
             .items_center()
             .rounded_sm()
             .text_sm()
-            .hover(|this| this.bg(theme.nav_button_hover))
-            .active(|this| this.bg(theme.nav_button_active))
+            .border_1()
+            .hover(|this| {
+                this.bg(theme.nav_button_hover)
+                    .border_color(theme.nav_button_hover_border)
+            })
+            .active(|this| {
+                this.bg(theme.nav_button_active)
+                    .border_color(theme.nav_button_active_border)
+            })
             .cursor_pointer()
             .child(icon(self.icon).size(px(16.0)))
     }

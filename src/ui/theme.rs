@@ -22,7 +22,11 @@ pub struct Theme {
     pub text_link: Rgba,
 
     pub nav_button_hover: Rgba,
+    pub nav_button_hover_border: Rgba,
     pub nav_button_active: Rgba,
+    pub nav_button_active_border: Rgba,
+    pub nav_button_pressed: Rgba,
+    pub nav_button_pressed_border: Rgba,
 
     pub playback_button: Rgba,
     pub playback_button_hover: Rgba,
@@ -44,23 +48,35 @@ pub struct Theme {
     pub queue_item_current: Rgba,
 
     pub button_primary: Rgba,
+    pub button_primary_border: Rgba,
     pub button_primary_hover: Rgba,
+    pub button_primary_border_hover: Rgba,
     pub button_primary_active: Rgba,
+    pub button_primary_border_active: Rgba,
     pub button_primary_text: Rgba,
 
     pub button_secondary: Rgba,
+    pub button_secondary_border: Rgba,
     pub button_secondary_hover: Rgba,
+    pub button_secondary_border_hover: Rgba,
     pub button_secondary_active: Rgba,
+    pub button_secondary_border_active: Rgba,
     pub button_secondary_text: Rgba,
 
     pub button_warning: Rgba,
+    pub button_warning_border: Rgba,
     pub button_warning_hover: Rgba,
+    pub button_warning_border_hover: Rgba,
     pub button_warning_active: Rgba,
+    pub button_warning_border_active: Rgba,
     pub button_warning_text: Rgba,
 
     pub button_danger: Rgba,
+    pub button_danger_border: Rgba,
     pub button_danger_hover: Rgba,
+    pub button_danger_border_hover: Rgba,
     pub button_danger_active: Rgba,
+    pub button_danger_border_active: Rgba,
     pub button_danger_text: Rgba,
 
     pub slider_foreground: Rgba,
@@ -71,7 +87,9 @@ pub struct Theme {
 
     pub menu_item: Rgba,
     pub menu_item_hover: Rgba,
+    pub menu_item_border_hover: Rgba,
     pub menu_item_active: Rgba,
+    pub menu_item_border_active: Rgba,
 
     pub modal_overlay_bg: Rgba,
 
@@ -79,7 +97,9 @@ pub struct Theme {
     pub caret_color: Rgba,
 
     pub palette_item_hover: Rgba,
+    pub palette_item_border_hover: Rgba,
     pub palette_item_active: Rgba,
+    pub palette_item_border_active: Rgba,
 
     pub scrollbar_background: Rgba,
     pub scrollbar_foreground: Rgba,
@@ -91,13 +111,18 @@ pub struct Theme {
     pub checkbox_background_hover: Rgba,
     pub checkbox_background_active: Rgba,
     pub checkbox_border: Rgba,
+    pub checkbox_border_hover: Rgba,
+    pub checkbox_border_active: Rgba,
     pub checkbox_checked: Rgba,
     pub checkbox_checked_bg: Rgba,
     pub checkbox_checked_bg_hover: Rgba,
     pub checkbox_checked_bg_active: Rgba,
     pub checkbox_checked_border: Rgba,
+    pub checkbox_checked_border_hover: Rgba,
+    pub checkbox_checked_border_active: Rgba,
 
     pub callout_background: Rgba,
+    pub callout_border: Rgba,
     pub callout_text: Rgba,
 }
 
@@ -118,7 +143,11 @@ impl Default for Theme {
             text_link: rgb(0x5279D4),
 
             nav_button_hover: rgb(0x161A22),
+            nav_button_hover_border: rgb(0x272D37),
             nav_button_active: rgb(0x0A0E12),
+            nav_button_active_border: rgb(0x272D37),
+            nav_button_pressed: rgb(0x222831),
+            nav_button_pressed_border: rgb(0x272D37),
 
             playback_button: rgba(0x282F3D00),
             playback_button_hover: rgb(0x282F3D),
@@ -140,23 +169,35 @@ impl Default for Theme {
             close_button_active: rgb(0x7A0606),
 
             button_primary: rgb(0x0667B2),
+            button_primary_border: rgb(0x055A99),
             button_primary_hover: rgb(0x087AD1),
+            button_primary_border_hover: rgb(0x066BB5),
             button_primary_active: rgb(0x065D9F),
+            button_primary_border_active: rgb(0x054F88),
             button_primary_text: rgb(0xE0F1FE),
 
             button_secondary: rgb(0x37404E),
+            button_secondary_border: rgb(0x303843),
             button_secondary_hover: rgb(0x495467),
+            button_secondary_border_hover: rgb(0x3A4352),
             button_secondary_active: rgb(0x262C36),
+            button_secondary_border_active: rgb(0x262C36),
             button_secondary_text: rgb(0xBEC4CA),
 
             button_warning: rgb(0xEDB407),
+            button_warning_border: rgb(0xC89606),
             button_warning_hover: rgb(0xF8C017),
+            button_warning_border_hover: rgb(0xE2AD0B),
             button_warning_active: rgb(0xD6A207),
+            button_warning_border_active: rgb(0xC29006),
             button_warning_text: rgb(0xFEF8E5),
 
             button_danger: rgb(0xCD0B0B),
+            button_danger_border: rgb(0xA00808),
             button_danger_hover: rgb(0xE80C0C),
+            button_danger_border_hover: rgb(0xCF0B0B),
             button_danger_active: rgb(0xB70A0A),
+            button_danger_border_active: rgb(0x990707),
             button_danger_text: rgb(0xFEE3E3),
 
             slider_foreground: rgb(0x0673C6),
@@ -167,7 +208,9 @@ impl Default for Theme {
 
             menu_item: rgba(0x282F3D00),
             menu_item_hover: rgb(0x282F3D),
+            menu_item_border_hover: rgb(0x303843),
             menu_item_active: rgb(0x0D1014),
+            menu_item_border_active: rgb(0x1F242D),
 
             modal_overlay_bg: rgba(0x0C111655),
 
@@ -175,7 +218,9 @@ impl Default for Theme {
             caret_color: rgb(0xF4F5F6),
 
             palette_item_hover: rgb(0x282F3D),
+            palette_item_border_hover: rgb(0x303843),
             palette_item_active: rgb(0x0D1014),
+            palette_item_border_active: rgb(0x1F242D),
 
             scrollbar_background: rgb(0x181C26),
             scrollbar_foreground: rgb(0x303843),
@@ -187,13 +232,18 @@ impl Default for Theme {
             checkbox_background_hover: rgb(0x303843),
             checkbox_background_active: rgb(0x303843),
             checkbox_border: rgb(0x303843),
+            checkbox_border_hover: rgb(0x3A4352),
+            checkbox_border_active: rgb(0x3A4352),
             checkbox_checked: rgb(0xF4F5F6),
             checkbox_checked_bg: rgb(0x0673C6),
             checkbox_checked_bg_hover: rgb(0x0673C6),
             checkbox_checked_bg_active: rgb(0x0673C6),
             checkbox_checked_border: rgb(0x0673C6),
+            checkbox_checked_border_hover: rgb(0x0780D8),
+            checkbox_checked_border_active: rgb(0x0565AE),
 
             callout_background: rgba(0xEDB40780),
+            callout_border: rgba(0xEDB407CC),
             callout_text: rgb(0xF4F5F6),
         }
     }

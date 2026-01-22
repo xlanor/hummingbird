@@ -94,68 +94,63 @@ impl Render for SettingsWindow {
         };
 
         window_chrome(
-            div()
-                .size_full()
-                .flex()
-                .flex_col()
-                .child(header().title(div().child(div().flex_grow())))
-                .child(
-                    div()
-                        .flex()
-                        .flex_row()
-                        .flex_grow()
-                        .child(
-                            sidebar()
-                                .width(DEFAULT_SIDEBAR_WIDTH)
-                                .h_full()
-                                .pt(px(8.0))
-                                .pb(px(8.0))
-                                .pl(px(8.0))
-                                .pr(px(7.0))
-                                .border_r_1()
-                                .border_color(theme.border_color)
-                                .overflow_hidden()
-                                .flex()
-                                .flex_col()
-                                .child(
-                                    sidebar_item("library")
-                                        .icon(BOOKS)
-                                        .child("Library")
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.active =
-                                                SettingsSection::Library(LibrarySettings::new(cx));
-                                            cx.notify();
-                                        }))
-                                        .when(
-                                            matches!(active, SettingsSection::Library(_)),
-                                            |this| this.active(),
-                                        ),
-                                )
-                                .child(
-                                    sidebar_item("playback")
-                                        .icon(PLAY)
-                                        .child("Playback")
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.active = SettingsSection::Playback(
-                                                PlaybackSettings::new(cx),
-                                            );
-                                            cx.notify();
-                                        }))
-                                        .when(
-                                            matches!(active, SettingsSection::Playback(_)),
-                                            |this| this.active(),
-                                        ),
-                                ),
-                        )
-                        .child(
-                            div()
-                                .flex()
-                                .flex_col()
-                                .flex_grow()
-                                .p(px(16.0))
-                                .child(content),
-                        ),
-                ),
+            div().size_full().flex().flex_col().child(header()).child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .flex_shrink_0()
+                    .child(
+                        sidebar()
+                            .width(DEFAULT_SIDEBAR_WIDTH)
+                            .h_full()
+                            .pt(px(8.0))
+                            .pb(px(8.0))
+                            .pl(px(8.0))
+                            .pr(px(7.0))
+                            .border_r_1()
+                            .border_color(theme.border_color)
+                            .overflow_hidden()
+                            .flex()
+                            .flex_col()
+                            .flex_shrink_0()
+                            .child(
+                                sidebar_item("library")
+                                    .icon(BOOKS)
+                                    .child("Library")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.active =
+                                            SettingsSection::Library(LibrarySettings::new(cx));
+                                        cx.notify();
+                                    }))
+                                    .when(matches!(active, SettingsSection::Library(_)), |this| {
+                                        this.active()
+                                    }),
+                            )
+                            .child(
+                                sidebar_item("playback")
+                                    .icon(PLAY)
+                                    .child("Playback")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.active =
+                                            SettingsSection::Playback(PlaybackSettings::new(cx));
+                                        cx.notify();
+                                    }))
+                                    .when(matches!(active, SettingsSection::Playback(_)), |this| {
+                                        this.active()
+                                    }),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .flex_grow()
+                            .flex_shrink()
+                            .overflow_hidden()
+                            .p(px(16.0))
+                            .child(content),
+                    ),
+            ),
         )
     }
 }

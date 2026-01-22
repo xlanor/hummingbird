@@ -45,29 +45,62 @@ impl RenderOnce for Callout {
 
         self.parent_div
             .rounded(px(6.0))
-            .py(px(8.0))
-            .px(px(12.0))
             .bg(theme.callout_background)
+            .border_1()
+            .border_color(theme.callout_border)
             .text_color(theme.callout_text)
+            .overflow_hidden()
             .flex()
-            .gap(px(8.0))
             .when_some(self.icon, |this, the_icon| {
-                this.child(icon(the_icon).size(px(16.0)).mt(px(4.0)))
+                this.child(
+                    div()
+                        .flex()
+                        .h_full()
+                        .border_r_1()
+                        .p(px(8.0))
+                        .border_color(theme.callout_border)
+                        .child(icon(the_icon).size(px(22.0))),
+                )
             })
             .child(
                 div()
                     .flex_col()
                     .flex()
                     .w_full()
+                    .flex_shrink()
+                    .pt(px(6.0))
+                    .pl(px(12.0))
+                    .pb(px(9.0))
                     .gap(px(3.0))
+                    .overflow_hidden()
                     .when_some(self.title, |this, title| {
-                        this.child(div().font_weight(FontWeight::BOLD).child(title))
+                        this.child(
+                            div()
+                                .flex_shrink()
+                                .overflow_hidden()
+                                .text_size(px(16.0))
+                                .font_weight(FontWeight::BOLD)
+                                .child(title),
+                        )
                     })
-                    .child(div().text_sm().child(self.caption))
-                    .when(!self.children.is_empty(), |this| {
-                        this.child(div().flex().ml_auto().py(px(4.0)).children(self.children))
-                    }),
+                    .child(
+                        div()
+                            .flex_shrink()
+                            .text_sm()
+                            .overflow_hidden()
+                            .child(self.caption),
+                    ),
             )
+            .when(!self.children.is_empty(), |this| {
+                this.child(
+                    div()
+                        .flex()
+                        .ml_auto()
+                        .items_end()
+                        .p(px(12.0))
+                        .children(self.children),
+                )
+            })
     }
 }
 
