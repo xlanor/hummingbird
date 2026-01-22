@@ -99,6 +99,7 @@ impl Render for SettingsWindow {
                     .flex()
                     .flex_row()
                     .flex_shrink_0()
+                    .flex_grow()
                     .child(
                         sidebar()
                             .width(DEFAULT_SIDEBAR_WIDTH)

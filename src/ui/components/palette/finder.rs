@@ -545,10 +545,18 @@ where
             .items_center()
             .cursor_pointer()
             .id(self.id.clone())
-            .hover(|this| this.bg(theme.palette_item_hover))
-            .active(|this| this.bg(theme.palette_item_active))
+            .border_1()
+            .hover(|this| {
+                this.bg(theme.palette_item_hover)
+                    .border_color(theme.palette_item_border_hover)
+            })
+            .active(|this| {
+                this.bg(theme.palette_item_active)
+                    .border_color(theme.palette_item_border_active)
+            })
             .when(self.current_selection == self.idx, |this| {
                 this.bg(theme.palette_item_hover)
+                    .border_color(theme.palette_item_border_hover)
             })
             .rounded(px(4.0))
             .on_click(cx.listener(move |_, _, _, cx| {

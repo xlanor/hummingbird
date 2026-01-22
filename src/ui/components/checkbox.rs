@@ -42,14 +42,26 @@ impl RenderOnce for Checkbox {
                 |this| {
                     this.border_color(theme.checkbox_checked_border)
                         .bg(theme.checkbox_checked_bg)
-                        .hover(|this| this.bg(theme.checkbox_checked_bg_hover))
-                        .active(|this| this.bg(theme.checkbox_checked_bg_active))
+                        .hover(|this| {
+                            this.bg(theme.checkbox_checked_bg_hover)
+                                .border_color(theme.checkbox_checked_border_hover)
+                        })
+                        .active(|this| {
+                            this.bg(theme.checkbox_checked_bg_active)
+                                .border_color(theme.checkbox_checked_border_active)
+                        })
                 },
                 |this| {
                     this.border_color(theme.checkbox_border)
                         .bg(theme.checkbox_background)
-                        .hover(|this| this.bg(theme.checkbox_background_hover))
-                        .active(|this| this.bg(theme.checkbox_background_active))
+                        .hover(|this| {
+                            this.bg(theme.checkbox_background_hover)
+                                .border_color(theme.checkbox_border_hover)
+                        })
+                        .active(|this| {
+                            this.bg(theme.checkbox_background_active)
+                                .border_color(theme.checkbox_border_active)
+                        })
                 },
             )
             .when(self.checked, |this| {

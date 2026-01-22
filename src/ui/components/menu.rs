@@ -46,12 +46,13 @@ impl RenderOnce for MenuItem {
             .id(self.id)
             .rounded(px(4.0))
             .flex()
-            .px(px(7.0))
-            .pt(px(6.0))
-            .pb(px(6.0))
+            .px(px(6.0))
+            .pt(px(5.0))
+            .pb(px(5.0))
             .line_height(rems(1.25))
             .min_w_full()
             .bg(theme.menu_item)
+            .border_1()
             .text_sm()
             .font_weight(FontWeight::MEDIUM)
             .child(
@@ -82,8 +83,14 @@ impl RenderOnce for MenuItem {
             base.cursor_default()
         } else {
             base.on_click(self.on_click)
-                .hover(|this| this.bg(theme.menu_item_hover))
-                .active(|this| this.bg(theme.menu_item_active))
+                .hover(|this| {
+                    this.bg(theme.menu_item_hover)
+                        .border_color(theme.menu_item_border_hover)
+                })
+                .active(|this| {
+                    this.bg(theme.menu_item_active)
+                        .border_color(theme.menu_item_border_active)
+                })
         }
     }
 }
@@ -135,12 +142,13 @@ impl RenderOnce for CheckMenuItem {
             .id(self.id)
             .rounded(px(4.0))
             .flex()
-            .px(px(7.0))
-            .pt(px(6.0))
-            .pb(px(6.0))
+            .px(px(6.0))
+            .pt(px(5.0))
+            .pb(px(5.0))
             .line_height(rems(1.25))
             .min_w_full()
             .bg(theme.menu_item)
+            .border_1()
             .text_sm()
             .font_weight(FontWeight::MEDIUM)
             .child(
@@ -171,8 +179,14 @@ impl RenderOnce for CheckMenuItem {
             base.cursor_default()
         } else {
             base.on_click(self.on_click)
-                .hover(|this| this.bg(theme.menu_item_hover))
-                .active(|this| this.bg(theme.menu_item_active))
+                .hover(|this| {
+                    this.bg(theme.menu_item_hover)
+                        .border_color(theme.menu_item_border_hover)
+                })
+                .active(|this| {
+                    this.bg(theme.menu_item_active)
+                        .border_color(theme.menu_item_border_active)
+                })
         }
     }
 }
@@ -237,7 +251,13 @@ impl Menu {
 
 impl RenderOnce for Menu {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        self.div.flex().flex_col().children(self.items)
+        self.div
+            .min_w(px(200.0))
+            .px(px(3.0))
+            .py(px(3.0))
+            .flex()
+            .flex_col()
+            .children(self.items)
     }
 }
 
@@ -245,6 +265,6 @@ impl RenderOnce for Menu {
 pub fn menu() -> Menu {
     Menu {
         items: vec![],
-        div: div().min_w(px(200.0)).px(px(2.0)).py(px(2.0)),
+        div: div(),
     }
 }

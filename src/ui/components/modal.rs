@@ -108,9 +108,9 @@ impl RenderOnce for Modal {
                     self.div
                         .occlude()
                         .m_auto()
-                        .border_color(theme.border_color)
+                        .border_color(theme.elevated_border_color)
                         .border_1()
-                        .bg(theme.background_secondary)
+                        .bg(theme.elevated_background)
                         .rounded(px(8.0))
                         .flex_col()
                         .on_any_mouse_down(|_, _, cx| {

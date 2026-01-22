@@ -111,7 +111,13 @@ impl Render for LibrarySettings {
                     .pl(px(12.0))
                     .pr(px(8.0))
                     .py(px(8.0))
-                    .rounded(px(4.0))
+                    .border_1()
+                    .border_b_0()
+                    .when(idx == 0, |this| this.rounded_t(px(6.0)))
+                    .when(idx == paths.len() - 1, |this| {
+                        this.rounded_b(px(6.0)).border_b_1()
+                    })
+                    .border_color(theme.border_color)
                     .bg(theme.background_secondary)
                     .child(
                         icon(FOLDER_SEARCH)
@@ -144,7 +150,7 @@ impl Render for LibrarySettings {
                     )
             });
 
-            div().flex().flex_col().gap(px(8.0)).children(rows)
+            div().flex().flex_col().children(rows)
         };
 
         div()

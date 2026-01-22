@@ -178,7 +178,7 @@ where
                     .h(px(40.0))
                     .text_sm()
                     .border_b(px(1.0))
-                    .border_color(theme.border_color)
+                    .border_color(theme.elevated_border_color)
                     .child(self.input.clone()),
             )
             .child(

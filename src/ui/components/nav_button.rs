@@ -31,7 +31,6 @@ impl RenderOnce for NavButton {
 
         self.div
             .flex()
-            .size(px(28.0))
             .flex()
             .justify_center()
             .items_center()
@@ -53,7 +52,7 @@ impl RenderOnce for NavButton {
 
 pub fn nav_button(id: impl Into<ElementId>, icon: &'static str) -> NavButton {
     NavButton {
-        div: div().id(id),
+        div: div().id(id).size(px(28.0)),
         icon,
     }
 }
