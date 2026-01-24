@@ -41,7 +41,7 @@ impl Header {
 
 impl Render for Header {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        let mut header = header().left(self.scan_status.clone());
+        let mut header = header().left(self.scan_status.clone()).main_window(true);
 
         if cfg!(not(target_os = "macos")) {
             let title = div()

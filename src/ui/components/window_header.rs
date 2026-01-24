@@ -13,6 +13,7 @@ pub struct WindowHeader {
     left: SmallVec<[AnyElement; 2]>,
     right: SmallVec<[AnyElement; 2]>,
     div: Div,
+    main_window: bool,
 }
 
 impl WindowHeader {
@@ -22,6 +23,7 @@ impl WindowHeader {
             left: SmallVec::new(),
             right: SmallVec::new(),
             div: div(),
+            main_window: false,
         }
     }
 
@@ -37,6 +39,11 @@ impl WindowHeader {
 
     pub fn right(mut self, element: impl IntoElement) -> Self {
         self.right.push(element.into_any_element());
+        self
+    }
+
+    pub fn main_window(mut self, main_window: bool) -> Self {
+        self.main_window = main_window;
         self
     }
 }
@@ -117,7 +124,7 @@ impl RenderOnce for WindowHeader {
                         .items_center()
                         .child(WindowButton::Minimize)
                         .child(WindowButton::Maximize)
-                        .child(WindowButton::Close),
+                        .child(WindowButton::Close(self.main_window)),
                 )
             })
     }
@@ -129,7 +136,7 @@ pub fn header() -> WindowHeader {
 
 #[derive(PartialEq, Clone, Copy, IntoElement)]
 pub enum WindowButton {
-    Close,
+    Close(bool),
     Minimize,
     Maximize,
 }
@@ -138,7 +145,7 @@ impl RenderOnce for WindowButton {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
-        let (bg, hover, active) = if self == WindowButton::Close {
+        let (bg, hover, active) = if matches!(self, WindowButton::Close(_)) {
             (
                 theme.close_button,
                 theme.close_button_hover,
@@ -161,7 +168,7 @@ impl RenderOnce for WindowButton {
             .justify_center()
             .cursor_pointer()
             .id(match self {
-                WindowButton::Close => "close",
+                WindowButton::Close(_) => "close",
                 WindowButton::Minimize => "minimize",
                 WindowButton::Maximize => "maximize",
             })
@@ -169,7 +176,7 @@ impl RenderOnce for WindowButton {
             .hover(|this| this.bg(hover))
             .active(|this| this.bg(active))
             .window_control_area(match self {
-                WindowButton::Close => WindowControlArea::Close,
+                WindowButton::Close(_) => WindowControlArea::Close,
                 WindowButton::Minimize => WindowControlArea::Min,
                 WindowButton::Maximize => WindowControlArea::Max,
             })
@@ -180,17 +187,18 @@ impl RenderOnce for WindowButton {
             })
             .child(
                 icon(match self {
-                    WindowButton::Close => CROSS,
+                    WindowButton::Close(_) => CROSS,
                     WindowButton::Minimize => MINUS,
                     WindowButton::Maximize => MAXIMIZE,
                 })
                 .size(px(14.0)),
             )
-            .when(self == WindowButton::Close, |this| {
+            .when(matches!(self, WindowButton::Close(_)), |this| {
                 this.rounded_tr(APP_ROUNDING)
             })
-            .on_click(move |_, window, _| match self {
-                WindowButton::Close => window.remove_window(),
+            .on_click(move |_, window, cx| match self {
+                WindowButton::Close(false) => window.remove_window(),
+                WindowButton::Close(true) => cx.quit(),
                 WindowButton::Minimize => window.minimize_window(),
                 WindowButton::Maximize => window.zoom_window(),
             })
