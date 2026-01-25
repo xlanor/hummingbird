@@ -101,7 +101,12 @@ impl Render for LibrarySettings {
             let rows = paths.iter().enumerate().map(|(idx, path)| {
                 let path_clone = path.clone();
                 let settings = self.settings.clone();
-                let path_text: SharedString = path.to_string_lossy().to_string().into();
+                let path_text: SharedString = path
+                    .display()
+                    .to_string()
+                    .trim_start_matches("\\\\?\\")
+                    .to_string()
+                    .into();
 
                 div()
                     .id(format!("library-scan-path-{idx}"))
