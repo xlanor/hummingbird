@@ -49,6 +49,8 @@ pub struct SymphoniaStream {
     decoder: Option<Box<dyn Decoder>>,
     pending_metadata_update: bool,
     last_image: Option<Visual>,
+    /// Pre-allocated buffer for sample format conversion, reused across decode calls
+    conversion_buffer: Vec<Vec<f64>>,
 }
 
 impl SymphoniaStream {
@@ -244,6 +246,7 @@ impl MediaProvider for SymphoniaProvider {
             decoder: None,
             pending_metadata_update: false,
             last_image: None,
+            conversion_buffer: Vec::new(),
         };
 
         stream.read_base_metadata(&mut probed);
@@ -299,6 +302,15 @@ impl MediaStream for SymphoniaStream {
             self.current_length = Some(tb.calc_time(frame_count).seconds);
             self.current_timebase = Some(tb);
         }
+
+        // Pre-allocate conversion buffer based on codec parameters
+        let channel_count = track.codec_params.channels.map(|c| c.count()).unwrap_or(2);
+        // Typical frame sizes: 1152 (MP3), 4096 (FLAC), 960-2880 (Opus)
+        let frame_capacity = track.codec_params.max_frames_per_packet.unwrap_or(8192) as usize;
+
+        self.conversion_buffer = (0..channel_count)
+            .map(|_| Vec::with_capacity(frame_capacity))
+            .collect();
 
         self.current_track = track.id;
 
@@ -530,92 +542,97 @@ impl MediaStream for SymphoniaStream {
                         self.current_position = tb.calc_time(packet.ts()).seconds;
                     }
 
-                    // Convert all formats to f64 and write to the output producers
+                    // prepare buffers
+                    while self.conversion_buffer.len() < channel_count {
+                        self.conversion_buffer
+                            .push(Vec::with_capacity(decoded.frames()));
+                    }
+
+                    for buf in &mut self.conversion_buffer[..channel_count] {
+                        buf.clear();
+                    }
+
+                    // convert - shouldn't lose any quality
                     let frames = match decoded {
                         AudioBufferRef::U8(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| v.chan(ch).iter().map(|&s| s.sample_into()).collect())
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch]
+                                    .extend(v.chan(ch).iter().map(|&s| s.sample_into()));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::U16(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| v.chan(ch).iter().map(|&s| s.sample_into()).collect())
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch]
+                                    .extend(v.chan(ch).iter().map(|&s| s.sample_into()));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::U24(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| {
-                                    v.chan(ch)
-                                        .iter()
-                                        .map(|s| {
-                                            U24::try_from(s.0).expect("u24 overflow").sample_into()
-                                        })
-                                        .collect()
-                                })
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch].extend(v.chan(ch).iter().map(|s| {
+                                    U24::try_from(s.0).expect("u24 overflow").sample_into()
+                                }));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::U32(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| v.chan(ch).iter().map(|&s| s.sample_into()).collect())
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch]
+                                    .extend(v.chan(ch).iter().map(|&s| s.sample_into()));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::S8(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| v.chan(ch).iter().map(|&s| s.sample_into()).collect())
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch]
+                                    .extend(v.chan(ch).iter().map(|&s| s.sample_into()));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::S16(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| v.chan(ch).iter().map(|&s| s.sample_into()).collect())
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch]
+                                    .extend(v.chan(ch).iter().map(|&s| s.sample_into()));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::S24(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| {
-                                    v.chan(ch)
-                                        .iter()
-                                        .map(|s| {
-                                            I24::try_from(s.0).expect("i24 overflow").sample_into()
-                                        })
-                                        .collect()
-                                })
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch].extend(v.chan(ch).iter().map(|s| {
+                                    I24::try_from(s.0).expect("i24 overflow").sample_into()
+                                }));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::S32(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| v.chan(ch).iter().map(|&s| s.sample_into()).collect())
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch]
+                                    .extend(v.chan(ch).iter().map(|&s| s.sample_into()));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::F32(v) => {
-                            let converted: Vec<Vec<f64>> = (0..channel_count)
-                                .map(|ch| v.chan(ch).iter().map(|&s| s.sample_into()).collect())
-                                .collect();
-                            output.write_vecs(&converted);
+                            for ch in 0..channel_count {
+                                self.conversion_buffer[ch]
+                                    .extend(v.chan(ch).iter().map(|&s| s.sample_into()));
+                            }
                             v.frames()
                         }
                         AudioBufferRef::F64(v) => {
-                            let slices: Vec<&[f64]> =
-                                (0..channel_count).map(|ch| v.chan(ch)).collect();
-                            output.write_slices(&slices);
-                            v.frames()
+                            // F64 can write directly without conversion
+                            let slices: [&[f64]; 8] = std::array::from_fn(|i| {
+                                if i < channel_count { v.chan(i) } else { &[] }
+                            });
+                            output.write_slices(&slices[..channel_count]);
+                            return Ok(DecodeResult::Decoded {
+                                frames: v.frames(),
+                                rate,
+                            });
                         }
                     };
+
+                    output.write_vecs(&self.conversion_buffer[..channel_count]);
 
                     return Ok(DecodeResult::Decoded { frames, rate });
                 }

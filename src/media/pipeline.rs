@@ -73,8 +73,16 @@ impl<T: Copy + Send + 'static> ChannelProducers<T> {
     }
 
     pub fn write_vecs(&self, samples: &[Vec<T>]) {
-        let slices: Vec<&[T]> = samples.iter().map(|v| v.as_slice()).collect();
-        self.write_slices(&slices);
+        assert_eq!(samples.len(), self.channel_count);
+
+        for (ch, producer) in self.producers.iter().enumerate() {
+            let mut slice = samples[ch].as_slice();
+            while !slice.is_empty() {
+                if let Some(written) = producer.write_blocking(slice) {
+                    slice = &slice[written..];
+                }
+            }
+        }
     }
 }
 
