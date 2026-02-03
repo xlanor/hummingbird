@@ -1,7 +1,8 @@
 use std::collections::VecDeque;
 
+use audioadapter_buffers::direct::SequentialSliceOfVecs;
 use intx::{I24, U24};
-use rubato::{FftFixedIn, VecResampler};
+use rubato::{Fft, FixedSync, Resampler as RubatoResampler};
 use tracing::info;
 
 use crate::media::pipeline::{ChannelConsumers, ChannelProducers};
@@ -162,11 +163,12 @@ impl SampleFrom<f32> for U24 {
 }
 
 pub struct Resampler {
-    resampler: FftFixedIn<f64>,
+    resampler: Fft<f64>,
     duration: u64,
     input_buffer: Vec<VecDeque<f64>>,
     output_buffer: Vec<Vec<f64>>,
     temp_input: Vec<Vec<f64>>,
+    temp_output: Vec<Vec<f64>>,
     channels: usize,
     source_rate: u32,
     target_rate: u32,
@@ -182,16 +184,18 @@ impl Resampler {
             );
         }
 
-        let resampler = FftFixedIn::<f64>::new(
+        let resampler = Fft::<f64>::new(
             orig_rate as usize,
             target_rate as usize,
             duration as usize,
             2,
             channels as usize,
+            FixedSync::Input,
         )
         .unwrap();
 
         let channels_usize = channels as usize;
+        let output_frames_max = resampler.output_frames_max();
 
         Resampler {
             resampler,
@@ -204,6 +208,9 @@ impl Resampler {
                 .collect(),
             temp_input: (0..channels_usize)
                 .map(|_| Vec::with_capacity(duration as usize))
+                .collect(),
+            temp_output: (0..channels_usize)
+                .map(|_| vec![0.0; output_frames_max])
                 .collect(),
             channels: channels_usize,
             source_rate: orig_rate,
@@ -243,6 +250,10 @@ impl Resampler {
         for buf in &mut self.temp_input {
             buf.clear();
         }
+        for buf in &mut self.temp_output {
+            buf.fill(0.0);
+        }
+        self.resampler.reset();
         self.eof = false;
     }
 
@@ -279,13 +290,30 @@ impl Resampler {
                 }
             }
 
-            let resampled = self
+            let input_frames = self.temp_input.first().map(|v| v.len()).unwrap_or(0);
+            let input_adapter =
+                SequentialSliceOfVecs::new(&self.temp_input, self.channels, input_frames).unwrap();
+            let output_frames_max = self.temp_output.first().map(|v| v.len()).unwrap_or(0);
+            let mut output_adapter = SequentialSliceOfVecs::new_mut(
+                &mut self.temp_output,
+                self.channels,
+                output_frames_max,
+            )
+            .unwrap();
+
+            let (_, frames_written) = self
                 .resampler
-                .process(&self.temp_input, None)
+                .process_into_buffer(&input_adapter, &mut output_adapter, None)
                 .expect("resampler error");
 
-            output.write_vecs(&resampled);
-            total_output += resampled.first().map(|v| v.len()).unwrap_or(0);
+            let slices: smallvec::SmallVec<[&[f64]; 8]> = self
+                .temp_output
+                .iter()
+                .map(|ch| &ch[..frames_written])
+                .collect();
+
+            output.write_slices(&slices);
+            total_output += frames_written;
         }
 
         // handle eofs
@@ -297,9 +325,40 @@ impl Resampler {
                 }
             }
 
-            if let Ok(resampled) = self.resampler.process_partial(Some(&self.temp_input), None) {
-                output.write_vecs(&resampled);
-                total_output += resampled.first().map(|v| v.len()).unwrap_or(0);
+            let input_frames = self.temp_input.first().map(|v| v.len()).unwrap_or(0);
+            if input_frames > 0 {
+                let input_adapter =
+                    SequentialSliceOfVecs::new(&self.temp_input, self.channels, input_frames)
+                        .unwrap();
+                let output_frames_max = self.temp_output.first().map(|v| v.len()).unwrap_or(0);
+                let mut output_adapter = SequentialSliceOfVecs::new_mut(
+                    &mut self.temp_output,
+                    self.channels,
+                    output_frames_max,
+                )
+                .unwrap();
+
+                let indexing = rubato::Indexing {
+                    input_offset: 0,
+                    output_offset: 0,
+                    active_channels_mask: None,
+                    partial_len: Some(input_frames),
+                };
+
+                if let Ok((_, frames_written)) = self.resampler.process_into_buffer(
+                    &input_adapter,
+                    &mut output_adapter,
+                    Some(&indexing),
+                ) {
+                    let slices: smallvec::SmallVec<[&[f64]; 8]> = self
+                        .temp_output
+                        .iter()
+                        .map(|ch| &ch[..frames_written])
+                        .collect();
+
+                    output.write_slices(&slices);
+                    total_output += frames_written;
+                }
             }
         }
 

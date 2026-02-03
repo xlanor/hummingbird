@@ -13,6 +13,7 @@ console = ["dep:console-subscriber", "tokio/tracing"]
 
 [dependencies]
 anyhow = "1"
+audioadapter-buffers = "2"
 async-trait = "0.1"
 base64 = "0.22"
 bitflags = "2"
@@ -41,7 +42,7 @@ rand = "0.9"
 raw-window-handle = "0.6"
 rb = "0.4"
 regex = "1"
-rubato = "0.16"
+rubato = "1"
 rust-embed = "8"
 rustc-hash = "2"
 serde = { version = "1", features = ["derive"] }
