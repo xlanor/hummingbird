@@ -305,19 +305,15 @@ pub fn setup_theme(cx: &mut App, path: PathBuf) {
                                     notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
                                         info!("Theme changed, updating...");
                                         let theme = create_theme(&path);
-                                        theme_transmitter
-                                            .update(cx, move |_, m| {
-                                                m.emit(theme);
-                                            })
-                                            .expect("could not send theme to main thread");
+                                        theme_transmitter.update(cx, move |_, m| {
+                                            m.emit(theme);
+                                        });
                                     }
                                     notify::EventKind::Remove(_) => {
                                         info!("Theme file removed, resetting to default...");
-                                        theme_transmitter
-                                            .update(cx, |_, m| {
-                                                m.emit(Theme::default());
-                                            })
-                                            .expect("could not send theme to main thread");
+                                        theme_transmitter.update(cx, |_, m| {
+                                            m.emit(Theme::default());
+                                        });
                                     }
                                     _ => (),
                                 }

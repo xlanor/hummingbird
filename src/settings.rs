@@ -98,19 +98,15 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
                             notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
                                 info!("Settings changed, updating...");
                                 let settings = create_settings(&path_for_watcher);
-                                settings_model
-                                    .update(app, |v, _| {
-                                        *v = settings;
-                                    })
-                                    .expect("settings model could not be updated");
+                                settings_model.update(app, |v, _| {
+                                    *v = settings;
+                                });
                             }
                             notify::EventKind::Remove(_) => {
                                 info!("Settings file removed, using default settings");
-                                settings_model
-                                    .update(app, |v, _| {
-                                        *v = Settings::default();
-                                    })
-                                    .expect("settings model could not be updated");
+                                settings_model.update(app, |v, _| {
+                                    *v = Settings::default();
+                                });
                             }
                             _ => (),
                         }

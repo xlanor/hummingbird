@@ -95,12 +95,10 @@ impl ScanInterface {
         cx.spawn(async move |cx| {
             loop {
                 while let Some(event) = events_rx.recv().await {
-                    state_model
-                        .update(cx, |m, cx| {
-                            *m = event;
-                            cx.notify()
-                        })
-                        .expect("failed to update scan state model");
+                    state_model.update(cx, |m, cx| {
+                        *m = event;
+                        cx.notify()
+                    });
                 }
             }
         })

@@ -100,12 +100,10 @@ impl Decode for App {
             let task = crate::RUNTIME.spawn_blocking(move || decode_image(data, thumb));
             match task.err_into().await.flatten() {
                 Err(err) => error!(?err, "Failed to decode image: {err}"),
-                Ok(img) => entity
-                    .update(cx, |m, cx| {
-                        *m = Some(img);
-                        cx.notify();
-                    })
-                    .expect("Failed to update RenderImage entity"),
+                Ok(img) => entity.update(cx, |m, cx| {
+                    *m = Some(img);
+                    cx.notify();
+                }),
             }
         })
     }
@@ -116,12 +114,10 @@ impl Decode for App {
             let task = crate::RUNTIME.spawn_blocking(move || read_metadata(&path));
             match task.err_into().await.flatten() {
                 Err(err) => error!(parent: span, ?err, "Failed to read metadata: {err}"),
-                Ok(metadata) => entity
-                    .update(cx, |m, cx| {
-                        *m = Some(metadata);
-                        cx.notify();
-                    })
-                    .expect("Failed to update metadata entity"),
+                Ok(metadata) => entity.update(cx, |m, cx| {
+                    *m = Some(metadata);
+                    cx.notify();
+                }),
             }
         })
     }

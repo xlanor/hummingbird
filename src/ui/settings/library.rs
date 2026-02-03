@@ -52,21 +52,19 @@ impl LibrarySettings {
                 if let Some(path) = paths.pop() {
                     let path = path.canonicalize().unwrap_or(path);
 
-                    settings
-                        .update(cx, move |settings, cx| {
-                            let mut updated = false;
+                    settings.update(cx, move |settings, cx| {
+                        let mut updated = false;
 
-                            if !settings.scanning.paths.contains(&path) {
-                                settings.scanning.paths.push(path);
-                                updated = true;
-                            }
+                        if !settings.scanning.paths.contains(&path) {
+                            settings.scanning.paths.push(path);
+                            updated = true;
+                        }
 
-                            if updated {
-                                save_settings(cx, settings);
-                                cx.notify();
-                            }
-                        })
-                        .expect("settings model could not be updated");
+                        if updated {
+                            save_settings(cx, settings);
+                            cx.notify();
+                        }
+                    });
                 }
             }
         })

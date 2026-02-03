@@ -125,12 +125,10 @@ fn get_token(cx: &mut App, state: Entity<LastFMState>) {
             );
         }
 
-        state
-            .update(cx, move |m, cx| {
-                *m = LastFMState::AwaitingFinalization(token);
-                cx.notify();
-            })
-            .expect("failed to update lastfm state");
+        state.update(cx, move |m, cx| {
+            *m = LastFMState::AwaitingFinalization(token);
+            cx.notify();
+        });
 
         anyhow::Ok(())
     })
@@ -150,11 +148,9 @@ fn confirm(cx: &mut App, state: Entity<LastFMState>, token: String) {
             error!(?err, "error getting last.fm session: {err}");
         })?;
 
-        state
-            .update(cx, move |_, cx| {
-                cx.emit(session);
-            })
-            .expect("failed to emit session event");
+        state.update(cx, move |_, cx| {
+            cx.emit(session);
+        });
 
         anyhow::Ok(())
     })

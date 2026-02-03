@@ -175,148 +175,107 @@ impl PlaybackInterface {
                         PlaybackEvent::MetadataUpdate(v) => {
                             let metadata = Arc::new(*v.clone());
 
-                            metadata_model
-                                .update(cx, |m, cx| {
-                                    *m = *v;
-                                    cx.notify()
-                                })
-                                .expect("failed to update metadata");
+                            metadata_model.update(cx, |m, cx| {
+                                *m = *v;
+                                cx.notify()
+                            });
 
-                            mmbs_model
-                                .update(cx, |_, cx| {
-                                    cx.emit(MMBSEvent::MetadataRecieved(metadata));
-                                })
-                                .expect("failed to broadcast MMBS event MetadataRecieved");
+                            mmbs_model.update(cx, |_, cx| {
+                                cx.emit(MMBSEvent::MetadataRecieved(metadata));
+                            });
                         }
                         PlaybackEvent::AlbumArtUpdate(v) => {
-                            albumart_model
-                                .update(cx, |m, cx| {
-                                    if let Some(v) = v {
-                                        cx.emit(ImageEvent(v))
-                                    } else {
-                                        *m = None;
-                                        cx.notify()
-                                    }
-                                })
-                                .expect("failed to update albumart");
+                            albumart_model.update(cx, |m, cx| {
+                                if let Some(v) = v {
+                                    cx.emit(ImageEvent(v))
+                                } else {
+                                    *m = None;
+                                    cx.notify()
+                                }
+                            });
                         }
                         PlaybackEvent::StateChanged(v) => {
-                            playback_info
-                                .playback_state
-                                .update(cx, |m, cx| {
-                                    *m = v;
-                                    cx.notify()
-                                })
-                                .expect("failed to update playback state");
+                            playback_info.playback_state.update(cx, |m, cx| {
+                                *m = v;
+                                cx.notify()
+                            });
 
                             if v == PlaybackState::Stopped {
-                                playback_info
-                                    .current_track
-                                    .update(cx, |m, cx| {
-                                        *m = None;
-                                        cx.notify()
-                                    })
-                                    .expect("failed to update current track");
+                                playback_info.current_track.update(cx, |m, cx| {
+                                    *m = None;
+                                    cx.notify()
+                                });
                             }
 
-                            mmbs_model
-                                .update(cx, |_, cx| {
-                                    cx.emit(MMBSEvent::StateChanged(v));
-                                })
-                                .expect("failed to broadcast MMBS event StateChanged");
+                            mmbs_model.update(cx, |_, cx| {
+                                cx.emit(MMBSEvent::StateChanged(v));
+                            });
                         }
                         PlaybackEvent::PositionChanged(v) => {
-                            playback_info
-                                .position
-                                .update(cx, |m, cx| {
-                                    *m = v;
-                                    cx.notify()
-                                })
-                                .expect("failed to update position");
-                            mmbs_model
-                                .update(cx, |_, cx| {
-                                    cx.emit(MMBSEvent::PositionChanged(v));
-                                })
-                                .expect("failed to broadcast MMBS event PositionChanged");
+                            playback_info.position.update(cx, |m, cx| {
+                                *m = v;
+                                cx.notify()
+                            });
+                            mmbs_model.update(cx, |_, cx| {
+                                cx.emit(MMBSEvent::PositionChanged(v));
+                            });
                         }
                         PlaybackEvent::DurationChanged(v) => {
-                            playback_info
-                                .duration
-                                .update(cx, |m, cx| {
-                                    *m = v;
-                                    cx.notify()
-                                })
-                                .expect("failed to update duration");
-                            mmbs_model
-                                .update(cx, |_, cx| {
-                                    cx.emit(MMBSEvent::DurationChanged(v));
-                                })
-                                .expect("failed to broadcast MMBS event DurationChanged");
+                            playback_info.duration.update(cx, |m, cx| {
+                                *m = v;
+                                cx.notify()
+                            });
+                            mmbs_model.update(cx, |_, cx| {
+                                cx.emit(MMBSEvent::DurationChanged(v));
+                            });
                         }
                         PlaybackEvent::SongChanged(path) => {
-                            playback_info
-                                .current_track
-                                .update(cx, |m, cx| {
-                                    *m = Some(CurrentTrack::new(path.clone()));
-                                    cx.notify()
-                                })
-                                .expect("failed to update current track");
-                            mmbs_model
-                                .update(cx, |_, cx| {
-                                    cx.emit(MMBSEvent::NewTrack(path));
-                                })
-                                .expect("failed to broadcast MMBS event NewTrack");
+                            playback_info.current_track.update(cx, |m, cx| {
+                                *m = Some(CurrentTrack::new(path.clone()));
+                                cx.notify()
+                            });
+                            mmbs_model.update(cx, |_, cx| {
+                                cx.emit(MMBSEvent::NewTrack(path));
+                            });
                         }
                         PlaybackEvent::QueueUpdated => {
-                            queue_model
-                                .update(cx, |_, cx| cx.notify())
-                                .expect("failed to update queue");
+                            queue_model.update(cx, |_, cx| cx.notify());
                         }
                         PlaybackEvent::ShuffleToggled(v, _) => {
-                            playback_info
-                                .shuffling
-                                .update(cx, |m, cx| {
-                                    *m = v;
-                                    cx.notify()
-                                })
-                                .expect("failed to update shuffle state");
+                            playback_info.shuffling.update(cx, |m, cx| {
+                                *m = v;
+                                cx.notify()
+                            });
                         }
                         PlaybackEvent::VolumeChanged(v) => {
-                            playback_info
-                                .volume
-                                .update(cx, |m, cx| {
-                                    *m = v;
-                                    cx.notify()
-                                })
-                                .expect("failed to update volume model");
+                            playback_info.volume.update(cx, |m, cx| {
+                                *m = v;
+                                cx.notify()
+                            });
 
                             // Note: `prev_volume` should not be to small.
                             // Its value needs to be visible in UI
                             // while toggling volume `on` / `off` and even
                             // an user used a slider to move volume to `0`
                             if v > 0.05 {
-                                playback_info
-                                    .prev_volume
-                                    .update(cx, |m, cx| {
-                                        *m = v;
-                                        cx.notify()
-                                    })
-                                    .expect("failed to update volume model");
+                                playback_info.prev_volume.update(cx, |m, cx| {
+                                    *m = v;
+                                    cx.notify()
+                                });
                             }
                         }
-                        PlaybackEvent::QueuePositionChanged(v) => queue_model
-                            .update(cx, |m, cx| {
+                        PlaybackEvent::QueuePositionChanged(v) => {
+                            queue_model.update(cx, |m, cx| {
                                 m.position = v;
                                 cx.notify();
                             })
-                            .expect("failed to update queue position"),
-                        PlaybackEvent::RepeatChanged(v) => playback_info
-                            .repeating
-                            .update(cx, |m, cx| {
+                        }
+                        PlaybackEvent::RepeatChanged(v) => {
+                            playback_info.repeating.update(cx, |m, cx| {
                                 *m = v;
                                 cx.notify();
                             })
-                            .expect("failed to update repeat model"),
+                        }
                     }
                 }
             }

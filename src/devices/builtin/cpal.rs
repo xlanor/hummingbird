@@ -55,7 +55,13 @@ impl DeviceProvider for CpalProvider {
     fn get_device_by_uid(&mut self, id: &str) -> Result<Box<dyn Device>, FindError> {
         self.host
             .devices()?
-            .find(|dev| id == dev.name().as_deref().unwrap_or("NULL"))
+            .find(|dev| {
+                id == dev
+                    .description()
+                    .map(|v| v.name().to_string())
+                    .as_deref()
+                    .unwrap_or("NULL")
+            })
             .ok_or(FindError::DeviceDoesNotExist)
             .map(|dev| Box::new(CpalDevice::from(dev)) as Box<dyn Device>)
     }
@@ -95,7 +101,7 @@ fn cpal_config_from_info(format: &FormatInfo) -> Result<cpal::StreamConfig, ()> 
     } else {
         Ok(cpal::StreamConfig {
             channels: format.channels.count(),
-            sample_rate: cpal::SampleRate(format.sample_rate),
+            sample_rate: format.sample_rate,
             buffer_size: cpal::BufferSize::Default,
         })
     }
@@ -151,7 +157,7 @@ impl CpalDevice {
             _ => panic!("non cpal device"),
         };
 
-        let buffer_size = ((200 * config.sample_rate.0 as usize) / 1000) * channels as usize;
+        let buffer_size = ((200 * config.sample_rate as usize) / 1000) * channels as usize;
 
         let volume = Arc::new(AtomicF64::new(1.0));
 
@@ -199,7 +205,7 @@ impl Device for CpalDevice {
                 Some(SupportedFormat {
                     originating_provider: "cpal",
                     sample_type,
-                    sample_rates: (c.min_sample_rate().0, c.max_sample_rate().0),
+                    sample_rates: (c.min_sample_rate(), c.max_sample_rate()),
                     buffer_size: match c.buffer_size() {
                         &cpal::SupportedBufferSize::Range { min, max } => {
                             BufferSize::Range(min, max)
@@ -217,7 +223,7 @@ impl Device for CpalDevice {
         Ok(FormatInfo {
             originating_provider: "cpal",
             sample_type: format.sample_format().try_into()?,
-            sample_rate: format.sample_rate().0,
+            sample_rate: format.sample_rate(),
             buffer_size: match format.buffer_size() {
                 &cpal::SupportedBufferSize::Range { min, max } => BufferSize::Range(min, max),
                 cpal::SupportedBufferSize::Unknown => BufferSize::Unknown,
@@ -227,11 +233,17 @@ impl Device for CpalDevice {
     }
 
     fn get_name(&self) -> Result<String, InfoError> {
-        self.device.name().map_err(|v| v.into())
+        self.device
+            .description()
+            .map_err(|v| v.into())
+            .map(|v| v.name().to_string())
     }
 
     fn get_uid(&self) -> Result<String, InfoError> {
-        self.device.name().map_err(|v| v.into())
+        self.device
+            .description()
+            .map_err(|v| v.into())
+            .map(|v| v.name().to_string())
     }
 
     fn requires_matching_format(&self) -> bool {

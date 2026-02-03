@@ -241,11 +241,12 @@ pub fn import_playlist(cx: &App, playlist_id: i64) {
 
         if let Err(err) = task.err_into().await.flatten() {
             error!(?err, "Failed to import playlist: {err}");
-        } else if let Err(err) = playlist_tracker.update(cx, |_, cx| {
-            cx.emit(PlaylistEvent::PlaylistUpdated(playlist_id));
-        }) {
-            error!(?err, "Failed to update playlist tracker: {err}");
+            return;
         }
+
+        playlist_tracker.update(cx, |_, cx| {
+            cx.emit(PlaylistEvent::PlaylistUpdated(playlist_id));
+        })
     })
     .detach();
 }
