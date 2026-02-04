@@ -1160,6 +1160,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "cntp_i18n_gen"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70fbf6b66bc0e1a68e65fbc7e6c4a33458d0c4ee6091844a7b7a31e59b8c9f80"
+dependencies = [
+ "cntp_i18n_build_core",
+ "cntp_i18n_core",
+ "cntp_i18n_parse",
+ "icu",
+ "itertools 0.14.0",
+ "proc-macro2",
+ "serde_json",
+ "syn 2.0.114",
+ "tracing",
+ "walkdir",
+]
+
+[[package]]
 name = "cntp_i18n_macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3068,6 +3086,7 @@ dependencies = [
  "chrono",
  "clap",
  "cntp_i18n",
+ "cntp_i18n_gen",
  "compact_str",
  "console-subscriber",
  "core-text",

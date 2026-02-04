@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, Entity, InteractiveElement, IntoElement, ParentElement,
     PathPromptOptions, Render, SharedString, Styled, Window, div, prelude::FluentBuilder, px,
@@ -42,7 +43,7 @@ impl LibrarySettings {
             files: false,
             directories: true,
             multiple: false,
-            prompt: Some("Select a folder to scan...".into()),
+            prompt: Some(tr!("SCANNING_SELECT_FOLDER", "Select a folder to scan...").into()),
         });
 
         let settings = self.settings.clone();
@@ -94,7 +95,10 @@ impl Render for LibrarySettings {
                 .mt(px(12.0))
                 .text_sm()
                 .text_color(theme.text_secondary)
-                .child("No folders are currently scanned.")
+                .child(tr!(
+                    "SCANNING_NO_FOLDERS",
+                    "No folders are currently scanned."
+                ))
         } else {
             let rows = paths.iter().enumerate().map(|(idx, path)| {
                 let path_clone = path.clone();
@@ -161,8 +165,11 @@ impl Render for LibrarySettings {
             .flex_col()
             .gap(px(12.0))
             .child(
-                section_header("Scanning")
-                    .subtitle("Changes apply on your next scan. Duplicate folders are ignored.")
+                section_header(tr!("SCANNING", "Scanning"))
+                    .subtitle(tr!(
+                        "SCANNING_SUBTITLE",
+                        "Changes apply on your next scan. Duplicate folders are ignored."
+                    ))
                     .child(
                         button()
                             .style(ButtonStyle::Regular)
@@ -172,7 +179,7 @@ impl Render for LibrarySettings {
                                     .flex()
                                     .gap(px(6.0))
                                     .child(icon(CIRCLE_PLUS).my_auto().size(px(14.0)))
-                                    .child("Add Folder"),
+                                    .child(tr!("SCANNING_ADD_FOLDER", "Add Folder")),
                             )
                             .id("library-settings-add-folder")
                             .on_click(cx.listener(|this, _, _, cx| {
@@ -184,22 +191,25 @@ impl Render for LibrarySettings {
             )
             .when(self.scanning_modified, |this| {
                 this.child(
-                    callout("Your changes will be applied on your next scan.")
-                        .title("Rescan Required")
-                        .icon(ALERT_CIRCLE)
-                        .child(
-                            button()
-                                .id("settings-rescan-button")
-                                .intent(ButtonIntent::Warning)
-                                .child("Scan")
-                                .on_click(cx.listener(|this, _, _, cx| {
-                                    this.scanning_modified = false;
+                    callout(tr!(
+                        "SCANNING_RESCAN_REQUIRED",
+                        "Your changes will be applied on your next scan."
+                    ))
+                    .title(tr!("SCANNING_RESCAN_REQUIRED_TITLE", "Rescan Required"))
+                    .icon(ALERT_CIRCLE)
+                    .child(
+                        button()
+                            .id("settings-rescan-button")
+                            .intent(ButtonIntent::Warning)
+                            .child(tr!("SCAN", "Scan"))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.scanning_modified = false;
 
-                                    cx.global::<ScanInterface>().scan();
+                                cx.global::<ScanInterface>().scan();
 
-                                    cx.notify();
-                                })),
-                        ),
+                                cx.notify();
+                            })),
+                    ),
                 )
             })
             .child(list)

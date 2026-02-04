@@ -33,7 +33,7 @@ impl TrackView {
             let table_settings = cx.global::<Models>().table_settings.clone();
             let initial_settings = table_settings
                 .read(cx)
-                .get(Table::<Track, TrackColumn>::get_table_name())
+                .get(Table::<Track, TrackColumn>::get_table_name().as_str())
                 .cloned();
 
             let table_ref = Rc::new(RefCell::new(None::<Entity<Table<Track, TrackColumn>>>));

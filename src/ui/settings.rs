@@ -1,6 +1,7 @@
 mod library;
 mod playback;
 
+use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString,
     StatefulInteractiveElement, Styled, TitlebarOptions, Window, WindowBackgroundAppearance,
@@ -36,7 +37,7 @@ pub fn open_settings_window(cx: &mut App) {
             window_decorations: Some(WindowDecorations::Client),
             window_min_size: Some(gpui::size(px(640.0), px(420.0))),
             titlebar: Some(TitlebarOptions {
-                title: Some(SharedString::from("Settings")),
+                title: Some(SharedString::from(tr!("SETTINGS", "Settings"))),
                 appears_transparent: true,
                 traffic_light_position: Some(gpui::Point {
                     x: px(12.0),
@@ -47,7 +48,7 @@ pub fn open_settings_window(cx: &mut App) {
             ..Default::default()
         },
         |window, cx| {
-            window.set_window_title("Settings");
+            window.set_window_title(tr!("SETTINGS").to_string().as_str());
             SettingsWindow::new(cx)
         },
     )
@@ -117,7 +118,7 @@ impl Render for SettingsWindow {
                             .child(
                                 sidebar_item("library")
                                     .icon(BOOKS)
-                                    .child("Library")
+                                    .child(tr!("LIBRARY", "Library"))
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         this.active =
                                             SettingsSection::Library(LibrarySettings::new(cx));
@@ -130,7 +131,7 @@ impl Render for SettingsWindow {
                             .child(
                                 sidebar_item("playback")
                                     .icon(PLAY)
-                                    .child("Playback")
+                                    .child(tr!("PLAYBACK", "Playback"))
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         this.active =
                                             SettingsSection::Playback(PlaybackSettings::new(cx));

@@ -1,5 +1,6 @@
 use std::{f32, sync::Arc};
 
+use cntp_i18n::tr;
 use gpui::*;
 use prelude::FluentBuilder;
 
@@ -248,9 +249,9 @@ impl Render for ReleaseView {
                                                     )
                                                     .child(div().child(
                                                         if current_track_in_album && is_playing {
-                                                            "Pause"
+                                                            tr!("PAUSE", "Pause")
                                                         } else {
-                                                            "Play"
+                                                            tr!("PLAY", "Play")
                                                         },
                                                     )),
                                             )
@@ -353,13 +354,11 @@ impl Render for ReleaseView {
                                         this.child(div().child(release_info))
                                     })
                                     .when_some(self.album.release_date, |this, date| {
-                                        this.child(div().child(format!(
-                                            "Released {}",
-                                            date.format("%B %-e, %Y")
-                                        )))
+                                        this.child(tr!("RELEASED_DATE", "Released {{date}}", date:date("YMD", length="long")=date))
                                     })
                                     .when_some(self.album.release_year, |this, year| {
-                                        this.child(div().child(format!("Released {year}")))
+                                        // TODO: fix this to use proper numerals
+                                        this.child(tr!("RELEASED_YEAR", "Released {{year}}", year=year.to_string()))
                                     })
                                     .when_some(self.album.isrc.as_ref(), |this, isrc| {
                                         this.child(div().child(isrc.clone()))

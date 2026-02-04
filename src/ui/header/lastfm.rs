@@ -1,3 +1,4 @@
+use cntp_i18n::tr;
 use futures::{FutureExt, TryFutureExt};
 use gpui::*;
 use tracing::error;
@@ -76,14 +77,14 @@ impl Render for LastFM {
             )
             .child(
                 div().child(match self.state.read(cx) {
-                    LastFMState::Disconnected => "Sign in".into_any_element(),
+                    LastFMState::Disconnected => tr!("SIGN_IN", "Sign in").into_any_element(),
                     LastFMState::AwaitingFinalization(_) => {
-                        "Click to confirm sign in".into_any_element()
+                        tr!("CLICK_TO_CONFIRM", "Click to confirm sign in").into_any_element()
                     }
                     LastFMState::Connected(_) => self
                         .name
                         .clone()
-                        .unwrap_or(SharedString::new_static("Connected"))
+                        .unwrap_or(tr!("CONNECTED", "Connected").into())
                         .into_any_element(),
                 }),
             )

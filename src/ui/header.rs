@@ -1,5 +1,6 @@
 mod lastfm;
 
+use cntp_i18n::tr;
 use gpui::*;
 
 use tracing::{info, warn};
@@ -55,7 +56,7 @@ impl Render for Header {
                     let show_about = cx.global::<Models>().show_about.clone();
                     show_about.write(cx, true);
                 })
-                .child("Hummingbird");
+                .child(tr!("APP_NAME"));
 
             header = header.title(title);
         }
@@ -108,18 +109,23 @@ impl Render for ScanStatus {
             )
             .text_color(theme.text_secondary)
             .child(match status {
-                ScanEvent::ScanCompleteIdle => "".to_string(),
-                ScanEvent::ScanProgress { current, total } => {
-                    format!(
-                        "Scanning ({}%)",
-                        (*current as f64 / *total as f64 * 100.0).round()
-                    )
+                ScanEvent::ScanCompleteIdle => SharedString::from(""),
+                ScanEvent::ScanProgress { current, total } => tr!(
+                    "SCAN_PROGRESS_SCANNING",
+                    "Scanning {{percentage}}%",
+                    percentage = (*current as f64 / *total as f64 * 100.0).round()
+                )
+                .into(),
+                ScanEvent::DiscoverProgress(progress) => tr!(
+                    "SCAN_PROGRESS_DISCOVERING",
+                    "Discovering files {{progress}}",
+                    progress = progress
+                )
+                .into(),
+                ScanEvent::Cleaning => SharedString::from(""),
+                ScanEvent::ScanCompleteWatching => {
+                    tr!("SCAN_COMPLETE_WATCHING", "Watching for updates").into()
                 }
-                ScanEvent::DiscoverProgress(progress) => {
-                    format!("Discovering files ({progress})")
-                }
-                ScanEvent::Cleaning => "".to_string(),
-                ScanEvent::ScanCompleteWatching => "Watching for updates".to_string(),
             })
     }
 }

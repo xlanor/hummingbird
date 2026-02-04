@@ -1,3 +1,4 @@
+use cntp_i18n::tr;
 use gpui::{
     FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
     StatefulInteractiveElement, Styled, div, img, px,
@@ -41,7 +42,7 @@ impl RenderOnce for AboutDialog {
                                             .text_size(px(36.0))
                                             .line_height(px(36.0))
                                             .ml(px(-2.0))
-                                            .child("Hummingbird"),
+                                            .child(tr!("APP_NAME")),
                                     )
                                     .child(
                                         div()
@@ -62,6 +63,15 @@ impl RenderOnce for AboutDialog {
                                     .child(
                                         div()
                                             .flex()
+                                            .child(tr!(
+                                                "ABOUT_LINKS_START",
+                                                "\u{200B}",
+                                                #description="Because the UI framework we use \
+                                                    doesn't support inline elements, we have to \
+                                                    use a seperate string for each part of this \
+                                                    text. Use a zero-width space (U+200B) if a \
+                                                    part isn't needed."
+                                            ))
                                             .child(
                                                 div()
                                                     .id("about-bug-link")
@@ -74,9 +84,9 @@ impl RenderOnce for AboutDialog {
                                                     .on_click(|_, _, cx| {
                                                         cx.open_url(ISSUES_URL);
                                                     })
-                                                    .child("Report a bug"),
+                                                    .child(tr!("ABOUT_LINKS_BUG", "Report a bug")),
                                             )
-                                            .child(" or ")
+                                            .child(tr!("ABOUT_LINKS_MIDDLE", " or "))
                                             .child(
                                                 div()
                                                     .id("about-source-link")
@@ -89,20 +99,25 @@ impl RenderOnce for AboutDialog {
                                                     .on_click(|_, _, cx| {
                                                         cx.open_url(SOURCE_URL);
                                                     })
-                                                    .child("view the source code"),
+                                                    .child(tr!(
+                                                        "ABOUT_LINKS_CODE",
+                                                        "view the source code"
+                                                    )),
                                             )
-                                            .child(" on GitHub."),
+                                            .child(tr!("ABOUT_LINKS_END", " on GitHub.")),
                                     )
-                                    .child(div().child(
-                                        "Copyright © 2024 - 2026 William Whittaker and \
-                                        contributors.",
-                                    ))
+                                    .child(div().child(tr!(
+                                        "ABOUT_COPYRIGHT",
+                                        "Copyright © 2024 - 2026 William \
+                                            Whittaker and contributors."
+                                    )))
                                     .child(
                                         div()
                                             .flex()
-                                            .child(
-                                                "Licensed under the Apache License, version 2.0. ",
-                                            )
+                                            .child(tr!(
+                                                "ABOUT_LICENSE_BEFORE_LINK",
+                                                "Licensed under the Apache License, version 2.0. "
+                                            ))
                                             .child(
                                                 div()
                                                     .id("about-rights-link")
@@ -115,8 +130,12 @@ impl RenderOnce for AboutDialog {
                                                     .on_click(|_, _, cx| {
                                                         cx.open_url(LICENSE_URL);
                                                     })
-                                                    .child("Learn more about your rights."),
-                                            ),
+                                                    .child(tr!(
+                                                        "ABOUT_LICENSE_LINK",
+                                                        "Learn more about your rights."
+                                                    )),
+                                            )
+                                            .child(tr!("ABOUT_LICENSE_AFTER_LINK", "\u{200B}")),
                                     ),
                             ),
                         ),

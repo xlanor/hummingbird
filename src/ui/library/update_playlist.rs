@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString, Styled,
     Window, div, px,
@@ -28,7 +29,12 @@ impl PaletteItem for PlaylistWithCount {
     }
 
     fn middle_content(&self, _: &mut App) -> SharedString {
-        format!("Update {}", self.name).into()
+        tr!(
+            "UPDATE_PLAYLIST",
+            "Update {{name}}",
+            name = self.name.0.as_str()
+        )
+        .into()
     }
 
     fn right_content(&self, _: &mut App) -> Option<SharedString> {
@@ -89,7 +95,12 @@ impl UpdatePlaylist {
                 }
 
                 let name_string = name.to_string();
-                let display = format!("Create new playlist '{}'", name_string);
+
+                let display = tr!(
+                    "CREATE_PLAYLIST",
+                    "Create new playlist '{{name}}'",
+                    name = name
+                );
 
                 let show_clone2 = show_for_create.clone();
 

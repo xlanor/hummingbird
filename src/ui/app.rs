@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use cntp_i18n::tr;
 use directories::ProjectDirs;
 use gpui::*;
 use prelude::FluentBuilder;
@@ -239,7 +240,7 @@ pub fn run() -> anyhow::Result<()> {
                     window_decorations: Some(WindowDecorations::Client),
                     window_min_size: Some(size(px(800.0), px(600.0))),
                     titlebar: Some(TitlebarOptions {
-                        title: Some(SharedString::from("Hummingbird")),
+                        title: Some(tr!("APP_NAME").into()),
                         appears_transparent: true,
                         traffic_light_position: Some(Point {
                             x: px(12.0),
@@ -251,7 +252,7 @@ pub fn run() -> anyhow::Result<()> {
                     ..Default::default()
                 },
                 |window, cx| {
-                    window.set_window_title("Hummingbird");
+                    window.set_window_title(tr!("APP_NAME").to_string().as_str());
 
                     register_pbc_event_handlers(cx);
                     init_pbc_task(cx, window);

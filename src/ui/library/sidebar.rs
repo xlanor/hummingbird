@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use cntp_i18n::{tr, trn};
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render,
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
@@ -53,7 +54,6 @@ impl Render for Sidebar {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let stats_minutes = self.track_stats.total_duration / 60;
-        let stats_hours = stats_minutes / 60;
         let current_view = self.nav_model.read(cx);
         let sidebar_width = cx.global::<Models>().sidebar_width.clone();
 
@@ -98,7 +98,7 @@ impl Render for Sidebar {
                 .child(
                     sidebar_item("albums")
                         .icon(DISC)
-                        .child("Albums")
+                        .child(tr!("ALBUMS", "Albums"))
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.nav_model.update(cx, |_, cx| {
                                 cx.emit(ViewSwitchMessage::Albums);
@@ -116,7 +116,7 @@ impl Render for Sidebar {
                 .child(
                     sidebar_item("tracks")
                         .icon(MENU)
-                        .child("Tracks")
+                        .child(tr!("TRACKS", "Tracks"))
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.nav_model.update(cx, |_, cx| {
                                 cx.emit(ViewSwitchMessage::Tracks);
@@ -137,15 +137,17 @@ impl Render for Sidebar {
                         .text_xs()
                         .pt(px(8.0))
                         .text_color(theme.text_secondary)
-                        .child(if self.track_stats.track_count != 1 {
-                            format!("{} tracks", self.track_stats.track_count)
-                        } else {
-                            format!("{} track", self.track_stats.track_count)
-                        })
-                        .child(format!(
-                            "{} hours, {} minutes",
-                            stats_hours,
-                            stats_minutes % 60
+                        .child(trn!(
+                            "STATS_TRACKS",
+                            "{{count}} track",
+                            "{{count}} tracks",
+                            count = self.track_stats.track_count
+                        ))
+                        .child(trn!(
+                            "STATS_TOTAL_LENGTH",
+                            "{{count}} minute",
+                            "{{count}} minutes",
+                            count = stats_minutes
                         )),
                 ),
         )

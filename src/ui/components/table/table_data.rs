@@ -23,7 +23,7 @@ pub const TABLE_HEADER_GROUP: &str = "table-header-group";
 
 pub trait Column: Clone + Copy + Debug + Hash + PartialEq + Eq {
     /// Retrieves the friendly name text of the column.
-    fn get_column_name(&self) -> &'static str;
+    fn get_column_name(&self) -> SharedString;
 
     /// Returns whether this column can be resized by the user.
     /// Defaults to true.
@@ -61,7 +61,7 @@ where
     type Identifier: Clone + Debug;
 
     /// Retrieves the name of the table.
-    fn get_table_name() -> &'static str;
+    fn get_table_name() -> SharedString;
 
     /// Retrieves the rows of the table. The rows are returned as a vector of identifiers, which
     /// can be used to retrieve the full row data. The sort parameter can be used to specify the

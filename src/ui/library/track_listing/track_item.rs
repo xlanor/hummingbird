@@ -1,3 +1,4 @@
+use cntp_i18n::tr;
 use gpui::prelude::{FluentBuilder, *};
 use gpui::{
     App, Entity, FontWeight, IntoElement, Pixels, SharedString, TextAlign, TextRun, Window, div,
@@ -177,9 +178,10 @@ impl Render for TrackItem {
                                 .when_some(self.track.disc_number, |this, num| {
                                     if self.vinyl_numbering {
                                         let side = (b'A' + (num - 1) as u8) as char;
-                                        this.child(format!("Side {side}"))
+                                        let side = side.to_string(); // TODO: fix this upstream
+                                        this.child(tr!("TRACK_SIDE", "Side {{side}}", side = side))
                                     } else {
-                                        this.child(format!("Disc {num}"))
+                                        this.child(tr!("TRACK_DISC", "Disc {{num}}", num = num))
                                     }
                                 }),
                         )
@@ -230,6 +232,7 @@ impl Render for TrackItem {
                                         .text_align(TextAlign::Right)
                                         .mr(px(13.0))
                                         .text_color(theme.text_secondary)
+                                        // TODO: handle these numerals better
                                         .child(format!(
                                             "{}",
                                             self.track.track_number.unwrap_or_default()
@@ -360,7 +363,7 @@ impl Render for TrackItem {
                         .item(menu_item(
                             "track_play_from_here",
                             None::<&str>,
-                            "Play from here",
+                            tr!("PLAY_FROM_HERE", "Play from here"),
                             {
                                 let plid = self.pl_info.as_ref().map(|pl| pl.id);
                                 move |_, _, cx| play_from_track(cx, &track, plid)
@@ -369,7 +372,7 @@ impl Render for TrackItem {
                         .item(menu_item(
                             "track_add_to_queue",
                             Some(PLUS),
-                            "Add to queue",
+                            tr!("ADD_TO_QUEUE", "Add to queue"),
                             move |_, _, cx| {
                                 let data = QueueItemData::new(
                                     cx,
@@ -385,7 +388,7 @@ impl Render for TrackItem {
                         .item(menu_item(
                             "track_add_to_playlist",
                             Some(PLAYLIST_ADD),
-                            "Add to playlist",
+                            tr!("ADD_TO_PLAYLIST", "Add to playlist"),
                             move |_, _, cx| show_clone.write(cx, true),
                         ))
                         .when_some(self.pl_info.as_ref(), |menu, info| {
@@ -396,7 +399,7 @@ impl Render for TrackItem {
                             menu.item(menu_item(
                                 "track_remove_from_playlist",
                                 Some(PLAYLIST_REMOVE),
-                                "Remove from playlist",
+                                tr!("REMOVE_FROM_PLAYLIST", "Remove from playlist"),
                                 move |_, _, cx| {
                                     cx.remove_playlist_item(item_id).unwrap();
                                     playlist_tracker.update(cx, |_, cx| {

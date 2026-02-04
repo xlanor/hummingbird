@@ -1,3 +1,4 @@
+use cntp_i18n::tr;
 use gpui::{App, KeyBinding, Menu, MenuItem, SharedString, actions};
 use tracing::{debug, info};
 
@@ -49,28 +50,36 @@ pub fn register_actions(cx: &mut App) {
     cx.bind_keys([KeyBinding::new("space", PlayPause, None)]);
     cx.set_menus(vec![
         Menu {
-            name: SharedString::from("Hummingbird"),
+            name: SharedString::from(tr!("APP_NAME")),
             items: vec![
-                MenuItem::action("About Hummingbird", About),
+                MenuItem::action(tr!("ABOUT", "About Hummingbird"), About),
                 MenuItem::separator(),
                 MenuItem::submenu(Menu {
                     name: SharedString::from("Services"),
                     items: vec![],
                 }),
                 MenuItem::separator(),
-                MenuItem::action("Hide Hummingbird", HideSelf),
-                MenuItem::action("Hide Others", HideOthers),
-                MenuItem::action("Show All", ShowAll),
+                MenuItem::action(tr!("HIDE", "Hide Hummingbird"), HideSelf),
+                MenuItem::action(tr!("HIDE_OTHERS", "Hide Others"), HideOthers),
+                MenuItem::action(tr!("SHOW_ALL", "Show All"), ShowAll),
                 MenuItem::separator(),
-                MenuItem::action("Quit Hummingbird", Quit),
+                MenuItem::action(tr!("QUIT", "Quit Hummingbird"), Quit),
             ],
         },
         Menu {
-            name: SharedString::from("View"),
+            name: SharedString::from(tr!(
+                "VIEW",
+                "View",
+                #description="The View menu. Must *exactly* match the text required by macOS."
+            )),
             items: vec![],
         },
         Menu {
-            name: SharedString::from("Window"),
+            name: SharedString::from(tr!(
+                "WINDOW",
+                "Window",
+                #description="The Window menu. Must *exactly* match the text required by macOS."
+            )),
             items: vec![],
         },
     ]);

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cntp_i18n::tr;
 use gpui::{App, SharedString};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
@@ -23,13 +24,13 @@ pub enum AlbumColumn {
 }
 
 impl Column for AlbumColumn {
-    fn get_column_name(&self) -> &'static str {
+    fn get_column_name(&self) -> SharedString {
         match self {
-            AlbumColumn::Title => "Title",
-            AlbumColumn::Artist => "Artist",
-            AlbumColumn::Date => "Date",
-            AlbumColumn::Label => "Label",
-            AlbumColumn::CatalogNumber => "Catalog Number",
+            AlbumColumn::Title => tr!("COLUMN_TITLE", "Title").into(),
+            AlbumColumn::Artist => tr!("COLUMN_ARTIST", "Artist").into(),
+            AlbumColumn::Date => tr!("COLUMN_DATE", "Date").into(),
+            AlbumColumn::Label => tr!("COLUMN_LABEL", "Label").into(),
+            AlbumColumn::CatalogNumber => tr!("COLUMN_CATALOG_NUMBER", "Catalog Number").into(),
         }
     }
 
@@ -51,8 +52,8 @@ impl Column for AlbumColumn {
 impl TableData<AlbumColumn> for Album {
     type Identifier = (u32, String);
 
-    fn get_table_name() -> &'static str {
-        "Albums"
+    fn get_table_name() -> SharedString {
+        tr!("TABLE_ALBUMS", "Albums").into()
     }
 
     fn get_rows(
@@ -175,13 +176,13 @@ pub enum TrackColumn {
 }
 
 impl Column for TrackColumn {
-    fn get_column_name(&self) -> &'static str {
+    fn get_column_name(&self) -> SharedString {
         match self {
-            TrackColumn::TrackNumber => "#",
-            TrackColumn::Title => "Title",
-            TrackColumn::Album => "Album",
-            TrackColumn::Artist => "Artist",
-            TrackColumn::Length => "Length",
+            TrackColumn::TrackNumber => tr!("TRACK_NUMBER", "#").into(),
+            TrackColumn::Title => tr!("COLUMN_TITLE").into(),
+            TrackColumn::Album => tr!("COLUMN_ALBUM", "Album").into(),
+            TrackColumn::Artist => tr!("COLUMN_ARTIST").into(),
+            TrackColumn::Length => tr!("COLUMN_LENGTH", "Length").into(),
         }
     }
 
@@ -203,8 +204,8 @@ impl Column for TrackColumn {
 impl TableData<TrackColumn> for Track {
     type Identifier = (i64, String, Option<i64>, String);
 
-    fn get_table_name() -> &'static str {
-        "Tracks"
+    fn get_table_name() -> SharedString {
+        tr!("TABLE_TRACKS", "Tracks").into()
     }
 
     fn get_rows(

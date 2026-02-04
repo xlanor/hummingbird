@@ -10,6 +10,7 @@ use crate::{
         menu::{menu, menu_item},
     },
 };
+use cntp_i18n::tr;
 use gpui::*;
 use prelude::FluentBuilder;
 
@@ -163,7 +164,12 @@ impl Render for InfoSection {
                                 .h_full()
                                 .items_center()
                                 .pb(px(6.0))
-                                .child("Hummingbird"),
+                                .child(tr!(
+                                    "APP_NAME",
+                                    "Hummingbird",
+                                    #description="Use the english name everywhere unless this \
+                                        is strictly disagreeable.
+                                ")),
                         )
                     })
                     .when(*state != PlaybackState::Stopped, |e| {
@@ -180,11 +186,9 @@ impl Render for InfoSection {
                                         .overflow_x_hidden()
                                         .font_weight(FontWeight::EXTRA_BOLD)
                                         .text_ellipsis()
-                                        .child(
-                                            self.track_name
-                                                .clone()
-                                                .unwrap_or("Unknown Track".into()),
-                                        ),
+                                        .child(self.track_name.clone().unwrap_or(
+                                            tr!("UNKNOWN_TRACK", "Unknown Track").into(),
+                                        )),
                                 )
                                 .child(
                                     div()
@@ -192,11 +196,9 @@ impl Render for InfoSection {
                                         .pb(px(6.0))
                                         .text_ellipsis()
                                         .overflow_x_hidden()
-                                        .child(
-                                            self.artist_name
-                                                .clone()
-                                                .unwrap_or("Unknown Artist".into()),
-                                        ),
+                                        .child(self.artist_name.clone().unwrap_or(
+                                            tr!("UNKNOWN_ARTIST", "Unknown Artist").into(),
+                                        )),
                                 ),
                         )
                     }),
@@ -409,7 +411,7 @@ impl Render for PlaybackSection {
                                         menu.item(menu_item(
                                             "repeat-not-repeat",
                                             Some(REPEAT_OFF),
-                                            "Off",
+                                            tr!("REPEAT_OFF", "Off"),
                                             move |_, _, cx| {
                                                 cx.global::<PlaybackInterface>()
                                                     .set_repeat(RepeatState::NotRepeating);
@@ -419,7 +421,7 @@ impl Render for PlaybackSection {
                                     .item(menu_item(
                                         "repeat-repeat",
                                         Some(REPEAT),
-                                        "Repeat",
+                                        tr!("REPEAT", "Repeat"),
                                         move |_, _, cx| {
                                             cx.global::<PlaybackInterface>()
                                                 .set_repeat(RepeatState::Repeating);
@@ -428,7 +430,7 @@ impl Render for PlaybackSection {
                                     .item(menu_item(
                                         "repeat-repeat-one",
                                         Some(REPEAT_ONCE),
-                                        "Repeat One",
+                                        tr!("REPEAT_ONE", "Repeat One"),
                                         move |_, _, cx| {
                                             cx.global::<PlaybackInterface>()
                                                 .set_repeat(RepeatState::RepeatingOne);

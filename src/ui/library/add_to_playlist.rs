@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString, Styled,
     Window, div, px,
@@ -28,9 +29,19 @@ impl PaletteItem for (i64, PlaylistWithCount) {
         let has_track = cx.playlist_has_track(self.1.id, self.0).ok().flatten();
 
         if has_track.is_none() {
-            format!("Add to {}", self.1.name).into()
+            tr!(
+                "ADD_TO_SELECTED_PLAYLIST",
+                "Add to {{name}}",
+                name = self.1.name.0.as_str()
+            )
+            .into()
         } else {
-            format!("Remove from {}", self.1.name).into()
+            tr!(
+                "REMOVE_FROM_SELECTED_PLAYLIST",
+                "Remove from {{name}}",
+                name = self.1.name.0.as_str()
+            )
+            .into()
         }
     }
 
@@ -110,7 +121,7 @@ impl AddToPlaylist {
                 }
 
                 let name_string = name.to_string();
-                let display = format!("Create new playlist '{}'", name_string);
+                let display = tr!("CREATE_PLAYLIST", name = name_string);
 
                 let show_clone2 = show_for_create.clone();
 

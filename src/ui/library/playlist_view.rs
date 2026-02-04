@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, DragMoveEvent, Entity, FocusHandle, FontWeight, InteractiveElement,
     IntoElement, KeyBinding, ParentElement, Render, SharedString, StatefulInteractiveElement,
@@ -183,8 +184,8 @@ impl PlaylistView {
             cx.register_command(
                 ("playlist::export", playlist_id),
                 Command::new(
-                    Some("Playlist"),
-                    "Export Playlist to M3U",
+                    Some(tr!("ACTION_GROUP_PLAYLIST")),
+                    tr!("EXPORT_PLAYLIST_TO_M3U", "Export Playlist to M3U"),
                     Export,
                     Some(focus_handle.clone()),
                 ),
@@ -329,7 +330,7 @@ impl Render for PlaylistView {
                                             .font_weight(FontWeight::SEMIBOLD)
                                             .intent(ButtonIntent::Primary)
                                             .child(icon(PLAY).size(px(16.0)).my_auto())
-                                            .child("Play")
+                                            .child(tr!("PLAY"))
                                             .on_click(cx.listener(|this, _, _, cx| {
                                                 let tracks = cx
                                                     .get_playlist_track_files(this.playlist.id)

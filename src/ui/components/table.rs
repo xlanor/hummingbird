@@ -244,7 +244,7 @@ where
             let col_name = col.get_column_name();
             let width = settings
                 .column_widths
-                .get(col_name)
+                .get(col_name.as_str())
                 .copied()
                 .unwrap_or(*default_width);
 
@@ -280,7 +280,7 @@ where
         }
     }
 
-    pub fn get_table_name() -> &'static str {
+    pub fn get_table_name() -> SharedString {
         T::get_table_name()
     }
 }
@@ -362,7 +362,7 @@ where
                     .border_b_1()
                     .border_color(theme.border_color)
                     .font_weight(FontWeight::BOLD)
-                    .child(SharedString::new_static(column_id.get_column_name()))
+                    .child(column_id.get_column_name())
                     .when_some(sort_method.as_ref(), |this, method| {
                         this.when(method.column == column_id, |this| {
                             this.child(
@@ -416,7 +416,7 @@ where
 
             column_menu = column_menu.item(
                 menu_check_item(
-                    SharedString::from(col.get_column_name()),
+                    col.get_column_name(),
                     is_visible,
                     col.get_column_name(),
                     cx.listener(move |this, _, _, cx| {

@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use cntp_i18n::{tr, trn};
 use gpui::{
     App, AppContext, Context, Entity, FontWeight, InteractiveElement, ParentElement, Render,
     ScrollHandle, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
@@ -92,11 +93,12 @@ impl Render for PlaylistList {
                         .text_color(theme.text_secondary)
                         .text_xs()
                         .mt(px(2.0))
-                        .child(if playlist.track_count == 1 {
-                            format!("{} song", playlist.track_count)
-                        } else {
-                            format!("{} songs", playlist.track_count)
-                        }),
+                        .child(trn!(
+                            "PLAYLIST_TRACK_COUNT",
+                            "{{count}} track",
+                            "{{count}} tracks",
+                            count = playlist.track_count
+                        )),
                 )
                 .on_click(cx.listener(move |this, _, _, cx| {
                     this.nav_model.update(cx, move |_, cx| {
@@ -116,7 +118,7 @@ impl Render for PlaylistList {
                             .child(menu().item(menu_item(
                                 "delete_playlist",
                                 Some(CROSS),
-                                "Delete playlist",
+                                tr!("DELETE_PLAYLIST", "Delete playlist"),
                                 move |_, _, cx| {
                                     if let Err(err) = cx.delete_playlist(pl_id) {
                                         error!("Failed to delete playlist: {}", err);

@@ -19,6 +19,7 @@ use crate::{
         scrollbar::{RightPad, ScrollableHandle, floating_scrollbar},
     },
 };
+use cntp_i18n::tr;
 use gpui::*;
 use prelude::FluentBuilder;
 use rustc_hash::FxHashMap;
@@ -110,7 +111,10 @@ impl Render for QueueItem {
             let item_state =
                 DragDropItemState::for_index(self.drag_drop_manager.read(cx), self.idx);
 
-            let track_name = item.name.clone().unwrap_or_else(|| "Unknown Track".into());
+            let track_name = item
+                .name
+                .clone()
+                .unwrap_or_else(|| tr!("UNKNOWN_TRACK").into());
 
             context(ElementId::View(cx.entity_id()))
                 .with(
@@ -180,23 +184,25 @@ impl Render for QueueItem {
                                     div()
                                         .text_ellipsis()
                                         .font_weight(FontWeight::EXTRA_BOLD)
-                                        .when_some(item.name.clone(), |this, string| {
-                                            this.child(string)
-                                        }),
+                                        .child(
+                                            item.name
+                                                .clone()
+                                                .unwrap_or_else(|| tr!("UNKNOWN_TRACK").into()),
+                                        ),
                                 )
                                 .child(
-                                    div()
-                                        .text_ellipsis()
-                                        .when_some(item.artist_name.clone(), |this, string| {
-                                            this.child(string)
-                                        }),
+                                    div().text_ellipsis().child(
+                                        item.artist_name
+                                            .clone()
+                                            .unwrap_or_else(|| tr!("UNKNOWN_ARTIST").into()),
+                                    ),
                                 ),
                         ),
                 )
                 .child(menu().item(menu_item(
                     "remove-item",
                     Some(CROSS),
-                    "Remove from queue",
+                    tr!("REMOVE_FROM_QUEUE", "Remove from queue"),
                     move |_, _, cx| {
                         let playback = cx.global::<PlaybackInterface>();
                         playback.remove_item(idx);
@@ -326,7 +332,7 @@ impl Render for Queue {
                                     .line_height(px(26.0))
                                     .font_weight(FontWeight::BOLD)
                                     .text_size(px(26.0))
-                                    .child("Queue"),
+                                    .child(tr!("QUEUE_TITLE", "Queue")),
                             ),
                     )
                     .child(
@@ -341,7 +347,7 @@ impl Render for Queue {
                                     .style(ButtonStyle::MinimalNoRounding)
                                     .size(ButtonSize::Large)
                                     .child(icon(TRASH).size(px(14.0)).my_auto())
-                                    .child("Clear")
+                                    .child(tr!("CLEAR_QUEUE", "Clear"))
                                     .w_full()
                                     .id("clear-queue")
                                     .on_click(|_, _, cx| {
@@ -354,8 +360,10 @@ impl Render for Queue {
                                     .style(ButtonStyle::MinimalNoRounding)
                                     .size(ButtonSize::Large)
                                     .child(icon(SHUFFLE).size(px(14.0)).my_auto())
-                                    .when(*shuffling, |this| this.child("Shuffling"))
-                                    .when(!shuffling, |this| this.child("Shuffle"))
+                                    .when(*shuffling, |this| {
+                                        this.child(tr!("SHUFFLING", "Shuffling"))
+                                    })
+                                    .when(!shuffling, |this| this.child(tr!("SHUFFLE", "Shuffle")))
                                     .w_full()
                                     .id("queue-shuffle")
                                     .on_click(|_, _, cx| {

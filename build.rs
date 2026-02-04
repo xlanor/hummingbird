@@ -1,3 +1,5 @@
+use std::{env, path::PathBuf};
+
 use anyhow::{Context as _, Result};
 
 fn read_or_create_file(path: &str) -> Result<String> {
@@ -50,6 +52,13 @@ fn main() -> Result<()> {
     while let Some((key, _)) = vars.next().transpose()? {
         println!("cargo:rustc-env={key}={}", std::env::var(&key)?);
     }
+
+    // generate translations
+    let path: PathBuf = env::var("CARGO_MANIFEST_DIR")
+        .expect("CARGO_MANIFEST_DIR is not set")
+        .into();
+
+    cntp_i18n_gen::generate_default(&path);
 
     // prefer env over file, default to `dev`. fails if non-utf8 or io fails
     let channel = option_env("HUMMINGBIRD_RELEASE_CHANNEL").unwrap_or_else(|| {

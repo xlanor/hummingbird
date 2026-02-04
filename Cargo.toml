@@ -71,6 +71,7 @@ gpui = { git = "https://github.com/zed-industries/zed" }
 [build-dependencies]
 anyhow = "1"
 dotenvy = "0.15"
+cntp_i18n_gen = "0.1"
 
 [target.'cfg(not(all(target_os = "windows", target_arch = "aarch64")))'.dependencies]
 symphonia-adapter-fdk-aac = "0.1"

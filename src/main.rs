@@ -6,6 +6,7 @@
 
 use std::sync::LazyLock;
 
+use cntp_i18n::{I18N_MANAGER, tr_load};
 use tracing_subscriber::{fmt::format::FmtSpan, prelude::*};
 
 mod devices;
@@ -28,6 +29,8 @@ static RUNTIME: LazyLock<tokio::runtime::Runtime> = LazyLock::new(|| {
 });
 
 fn main() -> anyhow::Result<()> {
+    I18N_MANAGER.write().unwrap().load_source(tr_load!());
+
     let reg = tracing_subscriber::registry();
 
     #[cfg(feature = "console")]

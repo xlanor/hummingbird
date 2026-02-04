@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use album_view::AlbumView;
+use cntp_i18n::tr;
 use gpui::*;
 use navigation::NavigationView;
 use release_view::ReleaseView;
@@ -163,8 +164,8 @@ impl Library {
             cx.register_command(
                 ("playlist::import", 0),
                 Command::new(
-                    Some("Playlist"),
-                    "Import M3U Playlist",
+                    Some(tr!("ACTION_GROUP_PLAYLIST", "Playlist")),
+                    tr!("ACTION_IMPORT_PLAYLIST", "Import M3U Playlist"),
                     Import,
                     Some(focus_handle.clone()),
                 ),

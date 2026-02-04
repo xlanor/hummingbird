@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cntp_i18n::tr;
 use gpui::{
     Action, App, AppContext, Context, Entity, EventEmitter, FocusHandle, Global, IntoElement,
     ParentElement, Render, SharedString, Styled, Window, actions, div, px,
@@ -145,42 +146,77 @@ impl CommandPalette {
             // add basic items
             items.insert(
                 ("hummingbird::quit", 0),
-                Command::new(Some("Hummingbird"), "Quit", Quit, None),
+                Command::new(
+                    Some(tr!("ACTION_GROUP_HUMMINGBIRD", "Hummingbird")),
+                    tr!("ACTION_QUIT", "Quit"),
+                    Quit,
+                    None,
+                ),
             );
             items.insert(
                 ("hummingbird::about", 0),
-                Command::new(Some("Hummingbird"), "About", About, None),
+                Command::new(
+                    Some(tr!("ACTION_GROUP_HUMMINGBIRD")),
+                    tr!("ACTION_ABOUT", "About"),
+                    About,
+                    None,
+                ),
             );
             items.insert(
                 ("hummingbird::search", 0),
-                Command::new(Some("Hummingbird"), "Search", Search, None),
+                Command::new(
+                    Some(tr!("ACTION_GROUP_HUMMINGBIRD")),
+                    tr!("ACTION_SEARCH", "Search"),
+                    Search,
+                    None,
+                ),
             );
             items.insert(
                 ("hummingbird::settings", 0),
-                Command::new(Some("Hummingbird"), "Settings", Settings, None),
+                Command::new(
+                    Some(tr!("ACTION_GROUP_HUMMINGBIRD")),
+                    tr!("ACTION_SETTINGS", "Settings"),
+                    Settings,
+                    None,
+                ),
             );
 
             items.insert(
                 ("player::playpause", 0),
                 Command::new(
-                    Some("Playback"),
-                    "Pause/Resume Current Track",
+                    Some(tr!("ACTION_GROUP_PLAYBACK", "Playback")),
+                    tr!("ACTION_PLAYPAUSE", "Pause/Resume Current Track"),
                     PlayPause,
                     None,
                 ),
             );
             items.insert(
                 ("player::next", 0),
-                Command::new(Some("Playback"), "Next Track", Next, None),
+                Command::new(
+                    Some(tr!("ACTION_GROUP_PLAYBACK")),
+                    tr!("ACTION_NEXT", "Next Track"),
+                    Next,
+                    None,
+                ),
             );
             items.insert(
                 ("player::previous", 0),
-                Command::new(Some("Playback"), "Previous Track", Previous, None),
+                Command::new(
+                    Some(tr!("ACTION_GROUP_PLAYBACK")),
+                    tr!("ACTION_PREVIOUS", "Previous Track"),
+                    Previous,
+                    None,
+                ),
             );
 
             items.insert(
                 ("scan::forcescan", 0),
-                Command::new(Some("Scan"), "Rescan Entire Library", ForceScan, None),
+                Command::new(
+                    Some(tr!("ACTION_GROUP_SCAN", "Scan")),
+                    tr!("ACTION_FORCESCAN", "Rescan Entire Library"),
+                    ForceScan,
+                    None,
+                ),
             );
 
             let palette = Palette::new(

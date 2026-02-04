@@ -1,3 +1,4 @@
+use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window, div, px,
 };
@@ -43,27 +44,36 @@ impl Render for PlaybackSettings {
             .flex()
             .flex_col()
             .gap(px(12.0))
-            .child(section_header("Playback"))
+            .child(section_header(tr!("PLAYBACK")))
             .child(
-                label("playback-always-repeat", "Always repeat")
-                    .subtext("Disables the \"Off\" repeat mode.")
-                    .cursor_pointer()
-                    .w_full()
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.update_playback(cx, |playback| {
-                            playback.always_repeat = !playback.always_repeat;
-                        });
-                    }))
-                    .child(checkbox(
-                        "playback-always-repeat-check",
-                        playback.always_repeat,
-                    )),
+                label(
+                    "playback-always-repeat",
+                    tr!("PLAYBACK_ALWAYS_REPEAT", "Always repeat"),
+                )
+                .subtext(tr!(
+                    "PLAYBACK_ALWAYS_REPEAT_SUBTEXT",
+                    "Disables the \"Off\" repeat mode."
+                ))
+                .cursor_pointer()
+                .w_full()
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.update_playback(cx, |playback| {
+                        playback.always_repeat = !playback.always_repeat;
+                    });
+                }))
+                .child(checkbox(
+                    "playback-always-repeat-check",
+                    playback.always_repeat,
+                )),
             )
             .child(
                 label(
                     "playback-prev-track-jump-first",
-                    "Previous button jumps to the beginning of the track if less than 5 seconds \
-                    has elapsed",
+                    tr!(
+                        "PLAYBACK_PREVIOUS_JUMPS",
+                        "Previous button jumps to the beginning of the track if \
+                        more than 5 seconds has elapsed"
+                    ),
                 )
                 .cursor_pointer()
                 .w_full()

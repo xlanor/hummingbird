@@ -19,13 +19,7 @@ impl Textbox {
             Self {
                 style,
                 handle: handle.clone(),
-                input: TextInput::new(
-                    cx,
-                    handle,
-                    None,
-                    Some("Enter an absolute path or select a folder".into()),
-                    None,
-                ),
+                input: TextInput::new(cx, handle, None, None, None),
             }
         })
     }

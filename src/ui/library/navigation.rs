@@ -70,27 +70,7 @@ impl Render for NavigationView {
                             cx.emit(ViewSwitchMessage::Back);
                         })
                     })),
-                ), // .child(
-                   //     div()
-                   //         .pt(px(5.0))
-                   //         .flex()
-                   //         .child(div().text_sm().child(match self.current_message {
-                   //             ViewSwitchMessage::Albums => "Albums",
-                   //             ViewSwitchMessage::Release(_) => "Release",
-                   //             ViewSwitchMessage::Back => {
-                   //                 panic!("back should not be in VecDeque<ViewSwitchMessage>")
-                   //             }
-                   //         }))
-                   //         .when_some(self.description.clone(), |this, description| {
-                   //             this.child(
-                   //                 div()
-                   //                     .ml(px(8.0))
-                   //                     .font_weight(FontWeight::BOLD)
-                   //                     .text_sm()
-                   //                     .child(description),
-                   //             )
-                   //         }),
-                   // ),
+                ),
         )
     }
 }

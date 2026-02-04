@@ -32,7 +32,7 @@ impl AlbumView {
             let table_settings = cx.global::<Models>().table_settings.clone();
             let initial_settings = table_settings
                 .read(cx)
-                .get(Table::<Album, AlbumColumn>::get_table_name())
+                .get(Table::<Album, AlbumColumn>::get_table_name().as_str())
                 .cloned();
 
             let handler = Rc::new(move |cx: &mut App, id: &(u32, String)| {
