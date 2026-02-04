@@ -239,10 +239,11 @@ impl DeviceController {
         let current_uid = self.device.as_ref().and_then(|d| d.get_uid().ok());
 
         // Only skip recreation if not forced and device hasn't changed
-        if !force && new_uid == current_uid {
-            if let Some(format) = self.current_format {
-                return Ok(format);
-            }
+        if !force
+            && new_uid == current_uid
+            && let Some(format) = self.current_format
+        {
+            return Ok(format);
         }
 
         // Need to drop the new_device before calling create_stream since it will
@@ -254,10 +255,10 @@ impl DeviceController {
 
     /// Close the current stream.
     pub fn close_stream(&mut self) {
-        if let Some(mut stream) = self.stream.take() {
-            if let Err(e) = stream.close_stream() {
-                warn!("Failed to close stream: {:?}", e);
-            }
+        if let Some(mut stream) = self.stream.take()
+            && let Err(e) = stream.close_stream()
+        {
+            warn!("Failed to close stream: {:?}", e);
         }
         self.current_format = None;
     }

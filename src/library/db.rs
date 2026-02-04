@@ -441,6 +441,8 @@ pub async fn playlist_has_track(
 
 pub trait LibraryAccess {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> sqlx::Result<Vec<(u32, String)>>;
+    // TODO: handle this better
+    #[allow(clippy::type_complexity)]
     fn list_tracks(
         &self,
         sort_method: TrackSortMethod,

@@ -211,10 +211,10 @@ where
 
             let mut insert_idx = 0;
             for (idx, key) in new_cols.keys().enumerate() {
-                if let Some(pos) = default_order.iter().position(|c| c == key) {
-                    if pos < target_idx {
-                        insert_idx = idx + 1;
-                    }
+                if let Some(pos) = default_order.iter().position(|c| c == key)
+                    && pos < target_idx
+                {
+                    insert_idx = idx + 1;
                 }
             }
 

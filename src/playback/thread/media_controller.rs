@@ -21,6 +21,11 @@ pub struct MediaInfo {
     pub duration_secs: Option<u64>,
 }
 
+pub struct CompleteMetadata {
+    pub metadata: Box<Metadata>,
+    pub album_art: Option<Box<[u8]>>,
+}
+
 /// Controller for media stream management.
 ///
 /// This component handles all interactions with media providers and streams,
@@ -136,7 +141,7 @@ impl MediaController {
     ///
     /// Returns a tuple of (metadata, optional album art) if there's an update,
     /// or None if there's no update.
-    pub fn check_metadata_update(&mut self) -> Option<(Box<Metadata>, Option<Box<[u8]>>)> {
+    pub fn check_metadata_update(&mut self) -> Option<CompleteMetadata> {
         let stream = self.media_stream.as_mut()?;
 
         if !stream.metadata_updated() {
@@ -146,7 +151,10 @@ impl MediaController {
         let metadata = stream.read_metadata().ok()?.clone();
         let image = stream.read_image().ok().flatten();
 
-        Some((Box::new(metadata), image))
+        Some(CompleteMetadata {
+            metadata: Box::new(metadata),
+            album_art: image,
+        })
     }
 
     pub fn position_secs(&self) -> Result<u64, TrackDurationError> {

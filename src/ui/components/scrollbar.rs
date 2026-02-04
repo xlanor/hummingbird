@@ -314,9 +314,7 @@ impl Element for Scrollbar {
                 drop(state_read);
 
                 // handle opacity and fades
-                let opacity = if is_dragging {
-                    1.0
-                } else if currently_hovered {
+                let opacity = if is_dragging || currently_hovered {
                     1.0
                 } else if let Some(interaction_time) = last_interaction {
                     let elapsed = now.duration_since(interaction_time);
@@ -347,7 +345,7 @@ impl Element for Scrollbar {
                     let bg_color = background.opacity(opacity);
                     let thumb_color = foreground.opacity(opacity);
 
-                    window.set_cursor_style(CursorStyle::Arrow, &hitbox_for_events);
+                    window.set_cursor_style(CursorStyle::Arrow, hitbox_for_events);
 
                     // background
                     window.paint_quad(quad(

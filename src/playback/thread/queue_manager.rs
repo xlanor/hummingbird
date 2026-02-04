@@ -203,12 +203,13 @@ impl QueueManager {
     pub fn next(&mut self, user_initiated: bool) -> QueueNavigationResult {
         let mut queue = self.queue.write().expect("poisoned queue lock");
 
-        if self.repeat == RepeatState::RepeatingOne && !user_initiated {
-            if let Some(path) = queue.get(self.queue_next.saturating_sub(1)) {
-                return QueueNavigationResult::Unchanged {
-                    path: path.get_path().clone(),
-                };
-            }
+        if self.repeat == RepeatState::RepeatingOne
+            && !user_initiated
+            && let Some(path) = queue.get(self.queue_next.saturating_sub(1))
+        {
+            return QueueNavigationResult::Unchanged {
+                path: path.get_path().clone(),
+            };
         }
 
         if self.queue_next < queue.len() {
@@ -302,9 +303,7 @@ impl QueueManager {
         };
 
         let queue = self.queue.read().expect("poisoned queue lock");
-        let pos = queue
-            .iter()
-            .position(|item| item == &original_item);
+        let pos = queue.iter().position(|item| item == &original_item);
         drop(queue);
 
         match pos {

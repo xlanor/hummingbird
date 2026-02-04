@@ -48,24 +48,24 @@ impl LibrarySettings {
         let settings = self.settings.clone();
 
         cx.spawn(async move |cx| {
-            if let Ok(Ok(Some(mut paths))) = path_future.await {
-                if let Some(path) = paths.pop() {
-                    let path = path.canonicalize().unwrap_or(path);
+            if let Ok(Ok(Some(mut paths))) = path_future.await
+                && let Some(path) = paths.pop()
+            {
+                let path = path.canonicalize().unwrap_or(path);
 
-                    settings.update(cx, move |settings, cx| {
-                        let mut updated = false;
+                settings.update(cx, move |settings, cx| {
+                    let mut updated = false;
 
-                        if !settings.scanning.paths.contains(&path) {
-                            settings.scanning.paths.push(path);
-                            updated = true;
-                        }
+                    if !settings.scanning.paths.contains(&path) {
+                        settings.scanning.paths.push(path);
+                        updated = true;
+                    }
 
-                        if updated {
-                            save_settings(cx, settings);
-                            cx.notify();
-                        }
-                    });
-                }
+                    if updated {
+                        save_settings(cx, settings);
+                        cx.notify();
+                    }
+                });
             }
         })
         .detach();

@@ -108,7 +108,7 @@ where
 
                     if needs_update {
                         if let Some(entity) = weak_self.upgrade() {
-                            let _ = entity.update(cx, |this: &mut Self, cx| {
+                            entity.update(cx, |this: &mut Self, cx| {
                                 this.tick(10);
 
                                 let matches: Vec<Arc<T>> = this.get_matches();

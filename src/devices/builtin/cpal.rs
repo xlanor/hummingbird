@@ -306,6 +306,7 @@ where
         Ok(())
     }
 
+    #[allow(clippy::needless_range_loop)]
     fn consume_from(
         &mut self,
         input: &mut ChannelConsumers<f64>,
@@ -324,8 +325,6 @@ where
 
         let channel_count = staging.len();
 
-        // Interleave and convert to target format
-        // Reuse the persistent interleave buffer
         self.interleave_buffer.clear();
         self.interleave_buffer.reserve(read * channel_count);
 
@@ -347,6 +346,7 @@ where
         Ok(read)
     }
 
+    #[allow(clippy::needless_range_loop)]
     fn consume_from_f32(
         &mut self,
         input: &mut ChannelConsumers<f32>,

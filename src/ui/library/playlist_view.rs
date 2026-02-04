@@ -68,6 +68,7 @@ pub struct PlaylistTrackItem {
 }
 
 impl PlaylistTrackItem {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         cx: &mut App,
         track_item: Entity<TrackItem>,
@@ -104,7 +105,7 @@ impl PlaylistTrackItem {
 impl Render for PlaylistTrackItem {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
-        let item_state = DragDropItemState::for_index(&self.drag_drop_manager.read(cx), self.idx);
+        let item_state = DragDropItemState::for_index(self.drag_drop_manager.read(cx), self.idx);
 
         let idx = self.idx;
         let track_title = self.track_title.clone();
@@ -214,7 +215,7 @@ impl PlaylistView {
         window: &mut Window,
         cx: &mut App,
     ) {
-        let should_continue = continue_edge_scroll(&manager.read(cx), &scroll_handle);
+        let should_continue = continue_edge_scroll(manager.read(cx), &scroll_handle);
 
         if should_continue {
             let manager_clone = manager.clone();

@@ -125,9 +125,9 @@ impl PlaybackThread {
 
     /// Check for updated metadata and album art, and broadcast it to the UI.
     pub fn broadcast_events(&mut self) {
-        if let Some((metadata, image)) = self.engine.check_metadata_update() {
-            self.send_event(PlaybackEvent::MetadataUpdate(metadata));
-            self.send_event(PlaybackEvent::AlbumArtUpdate(image));
+        if let Some(metadata) = self.engine.check_metadata_update() {
+            self.send_event(PlaybackEvent::MetadataUpdate(metadata.metadata));
+            self.send_event(PlaybackEvent::AlbumArtUpdate(metadata.album_art));
         }
     }
 
@@ -206,16 +206,17 @@ impl PlaybackThread {
         }
 
         // If stopped and queue is not empty, start playing from the beginning
-        if current_state == PlaybackState::Stopped && !self.queue.is_empty() {
-            if let Some(first) = self.queue.first() {
-                let path = first.get_path().clone();
+        if current_state == PlaybackState::Stopped
+            && !self.queue.is_empty()
+            && let Some(first) = self.queue.first()
+        {
+            let path = first.get_path().clone();
 
-                if let Err(err) = self.open(&path) {
-                    error!(path = %path.display(), ?err, "Unable to open file: {err}");
-                }
-                self.queue.set_position(0);
-                self.send_event(PlaybackEvent::QueuePositionChanged(0));
+            if let Err(err) = self.open(&path) {
+                error!(path = %path.display(), ?err, "Unable to open file: {err}");
             }
+            self.queue.set_position(0);
+            self.send_event(PlaybackEvent::QueuePositionChanged(0));
         }
     }
 
@@ -355,16 +356,16 @@ impl PlaybackThread {
         let first_index = self.queue.queue_items(items);
 
         // If stopped, start playing the first item
-        if self.state() == PlaybackState::Stopped {
-            if let Some(first) = first {
-                let path = first.get_path();
+        if self.state() == PlaybackState::Stopped
+            && let Some(first) = first
+        {
+            let path = first.get_path();
 
-                if let Err(err) = self.open(path) {
-                    error!(path = %path.display(), ?err, "Unable to open file: {err}");
-                }
-                self.queue.set_position(first_index);
-                self.send_event(PlaybackEvent::QueuePositionChanged(first_index));
+            if let Err(err) = self.open(path) {
+                error!(path = %path.display(), ?err, "Unable to open file: {err}");
             }
+            self.queue.set_position(first_index);
+            self.send_event(PlaybackEvent::QueuePositionChanged(first_index));
         }
 
         self.send_event(PlaybackEvent::QueueUpdated);
@@ -391,10 +392,10 @@ impl PlaybackThread {
                 self.send_event(PlaybackEvent::QueueUpdated);
 
                 // If position changed, notify
-                if let Some(current) = self.queue.current_position() {
-                    if current != new_position {
-                        self.send_event(PlaybackEvent::QueuePositionChanged(new_position));
-                    }
+                if let Some(current) = self.queue.current_position()
+                    && current != new_position
+                {
+                    self.send_event(PlaybackEvent::QueuePositionChanged(new_position));
                 }
             }
             DequeueResult::RemovedCurrent { new_path } => {
@@ -475,16 +476,16 @@ impl PlaybackThread {
         match self.queue.insert_items(position, items) {
             InsertResult::Inserted { first_index } => {
                 // If stopped, start playing the first inserted item
-                if self.state() == PlaybackState::Stopped {
-                    if let Some(first) = first {
-                        let path = first.get_path();
+                if self.state() == PlaybackState::Stopped
+                    && let Some(first) = first
+                {
+                    let path = first.get_path();
 
-                        if let Err(err) = self.open(path) {
-                            error!(path = %path.display(), ?err, "Unable to open file: {err}");
-                        }
-                        self.queue.set_position(first_index);
-                        self.send_event(PlaybackEvent::QueuePositionChanged(first_index));
+                    if let Err(err) = self.open(path) {
+                        error!(path = %path.display(), ?err, "Unable to open file: {err}");
                     }
+                    self.queue.set_position(first_index);
+                    self.send_event(PlaybackEvent::QueuePositionChanged(first_index));
                 }
             }
             InsertResult::InsertedMovedCurrent {
@@ -494,16 +495,16 @@ impl PlaybackThread {
                 self.send_event(PlaybackEvent::QueuePositionChanged(new_position));
 
                 // If stopped, start playing the first inserted item
-                if self.state() == PlaybackState::Stopped {
-                    if let Some(first) = first {
-                        let path = first.get_path();
+                if self.state() == PlaybackState::Stopped
+                    && let Some(first) = first
+                {
+                    let path = first.get_path();
 
-                        if let Err(err) = self.open(path) {
-                            error!(path = %path.display(), ?err, "Unable to open file: {err}");
-                        }
-                        self.queue.set_position(first_index);
-                        self.send_event(PlaybackEvent::QueuePositionChanged(first_index));
+                    if let Err(err) = self.open(path) {
+                        error!(path = %path.display(), ?err, "Unable to open file: {err}");
                     }
+                    self.queue.set_position(first_index);
+                    self.send_event(PlaybackEvent::QueuePositionChanged(first_index));
                 }
             }
             InsertResult::Unchanged => {}

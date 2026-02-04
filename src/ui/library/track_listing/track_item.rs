@@ -76,6 +76,7 @@ fn measure_track_number_width(window: &mut Window, text: &SharedString) -> Pixel
 }
 
 impl TrackItem {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         cx: &mut App,
         track: Track,

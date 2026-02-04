@@ -108,7 +108,7 @@ impl Render for QueueItem {
             let idx = self.idx;
 
             let item_state =
-                DragDropItemState::for_index(&self.drag_drop_manager.read(cx), self.idx);
+                DragDropItemState::for_index(self.drag_drop_manager.read(cx), self.idx);
 
             let track_name = item.name.clone().unwrap_or_else(|| "Unknown Track".into());
 
@@ -717,7 +717,7 @@ impl Queue {
         window: &mut Window,
         cx: &mut App,
     ) {
-        let should_continue = continue_edge_scroll(&manager.read(cx), &scroll_handle);
+        let should_continue = continue_edge_scroll(manager.read(cx), &scroll_handle);
 
         if should_continue {
             let manager_clone = manager.clone();

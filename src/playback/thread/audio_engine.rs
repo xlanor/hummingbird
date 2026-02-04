@@ -9,10 +9,10 @@ use crate::{
     },
     media::{
         errors::{PlaybackStartError, SeekError},
-        metadata::Metadata,
         pipeline::{AudioPipeline, DEFAULT_BUFFER_FRAMES, DecodeResult},
         traits::F32DecodeResult,
     },
+    playback::thread::media_controller::CompleteMetadata,
     settings::playback::PlaybackSettings,
 };
 
@@ -124,18 +124,19 @@ impl AudioEngine {
         // Handle paused state - reset device if needed
         let mut recreation_required = false;
 
-        if self.state == EngineState::Paused && self.device.has_stream() {
-            if let Err(err) = self.device.reset() {
-                warn!("Failed to reset device, forcing recreation: {:?}", err);
-                recreation_required = true;
-            }
+        if self.state == EngineState::Paused
+            && self.device.has_stream()
+            && let Err(err) = self.device.reset()
+        {
+            warn!("Failed to reset device, forcing recreation: {:?}", err);
+            recreation_required = true;
         }
 
-        if self.device.has_stream() {
-            if let Err(err) = self.device.play() {
-                warn!("Failed to play device, forcing recreation: {:?}", err);
-                recreation_required = true;
-            }
+        if self.device.has_stream()
+            && let Err(err) = self.device.play()
+        {
+            warn!("Failed to play device, forcing recreation: {:?}", err);
+            recreation_required = true;
         }
 
         // Clear the pipeline for the new track, but preserve the resampler for gapless playback
@@ -231,13 +232,13 @@ impl AudioEngine {
                 Ok(())
             }
             EngineState::Ready => {
-                if self.device.has_stream() {
-                    if let Err(err) = self.device.play() {
-                        return Err(EngineError::DeviceError(format!(
-                            "Failed to start playback: {:?}",
-                            err
-                        )));
-                    }
+                if self.device.has_stream()
+                    && let Err(err) = self.device.play()
+                {
+                    return Err(EngineError::DeviceError(format!(
+                        "Failed to start playback: {:?}",
+                        err
+                    )));
                 }
                 self.state = EngineState::Playing;
                 Ok(())
@@ -291,7 +292,7 @@ impl AudioEngine {
     }
 
     /// Check for metadata updates and return them if available.
-    pub fn check_metadata_update(&mut self) -> Option<(Box<Metadata>, Option<Box<[u8]>>)> {
+    pub fn check_metadata_update(&mut self) -> Option<CompleteMetadata> {
         self.media.check_metadata_update()
     }
 
@@ -376,7 +377,7 @@ impl AudioEngine {
             AudioPipeline::F32Passthrough(p) => {
                 // Try f32 passthrough first
                 match self.device.consume_from_f32(&mut p.device_input) {
-                    Some(result) => result.map_err(|e| e),
+                    Some(result) => result,
                     None => {
                         // Device doesn't support f32 passthrough, this shouldn't happen
                         // if pipeline was set up correctly
@@ -408,7 +409,7 @@ impl AudioEngine {
                 AudioPipeline::F32Passthrough(p) => self
                     .device
                     .consume_from_f32(&mut p.device_input)
-                    .unwrap_or_else(|| Err(super::device_controller::DeviceError::NoStream)),
+                    .unwrap_or(Err(super::device_controller::DeviceError::NoStream)),
             };
 
             if let Err(err) = retry_result {

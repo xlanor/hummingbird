@@ -341,6 +341,7 @@ impl OutputStream for AudioGraphStream {
         self.node.SetOutgoingGain(volume).map_err(|e| e.into())
     }
 
+    #[allow(clippy::needless_range_loop)]
     fn consume_from(
         &mut self,
         input: &mut ChannelConsumers<f64>,
