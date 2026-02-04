@@ -479,8 +479,6 @@ impl MediaStream for SymphoniaStream {
 
         let codec_params = decoder.codec_params();
 
-        println!("Codec: {:?}", codec_params.codec);
-
         match codec_params.codec {
             CODEC_TYPE_PCM_ALAW => Ok(SampleFormat::Unsigned8),
             CODEC_TYPE_PCM_F32BE => Ok(SampleFormat::Float32),
