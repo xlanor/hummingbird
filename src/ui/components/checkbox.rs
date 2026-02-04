@@ -23,6 +23,7 @@ impl RenderOnce for Checkbox {
         let theme = cx.global::<Theme>();
 
         div()
+            .flex_shrink_0()
             .id(self.id)
             .rounded(px(4.0))
             .flex()

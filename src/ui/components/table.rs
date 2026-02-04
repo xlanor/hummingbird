@@ -351,6 +351,7 @@ where
 
             header = header.child(
                 div()
+                    .overflow_hidden()
                     .flex()
                     .w(px(width))
                     .h(px(36.0))
@@ -362,7 +363,13 @@ where
                     .border_b_1()
                     .border_color(theme.border_color)
                     .font_weight(FontWeight::BOLD)
-                    .child(column_id.get_column_name())
+                    .child(
+                        div()
+                            .flex_shrink()
+                            .overflow_hidden()
+                            .text_ellipsis()
+                            .child(column_id.get_column_name()),
+                    )
                     .when_some(sort_method.as_ref(), |this, method| {
                         this.when(method.column == column_id, |this| {
                             this.child(
@@ -373,6 +380,7 @@ where
                                 })
                                 .size(px(14.0))
                                 .ml(px(4.0))
+                                .flex_shrink_0()
                                 .my_auto(),
                             )
                         })

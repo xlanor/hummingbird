@@ -65,6 +65,7 @@ impl RenderOnce for Label {
         self.div
             .id(self.id)
             .flex()
+            .overflow_hidden()
             .text_sm()
             .when_else(
                 self.vertical,
@@ -74,12 +75,14 @@ impl RenderOnce for Label {
             .children(self.children)
             .child(
                 div()
+                    .overflow_hidden()
                     .when(!self.vertical, |this| this.my_auto().ml(px(6.0)))
                     .child(self.text),
             )
             .when_some(self.subtext, |this, that| {
                 this.child(
                     div()
+                        .overflow_hidden()
                         .when(!self.vertical, |this| this.my_auto())
                         .text_color(theme.text_secondary)
                         .child(that)
