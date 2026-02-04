@@ -1,0 +1,11 @@
+{
+  "name": "Hummingbird",
+  "subprojects": [
+    {
+      "name": "Hummingbird",
+      "type": "cntp-rs",
+      "path": "/translations/{lang}.json",
+      "baseLang": "en"
+    }
+  ]
+}
