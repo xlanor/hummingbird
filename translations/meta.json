@@ -235,7 +235,7 @@
   },
   "DELETE_PLAYLIST": {
     "context": "playlists.rs",
-    "definedIn": "src/ui/library/sidebar/playlists.rs:121",
+    "definedIn": "src/ui/library/sidebar/playlists.rs:129",
     "plural": false,
     "description": null
   },
@@ -260,6 +260,12 @@
   "LIBRARY": {
     "context": "settings.rs",
     "definedIn": "src/ui/settings.rs:121",
+    "plural": false,
+    "description": null
+  },
+  "LIKED_SONGS": {
+    "context": "playlists.rs",
+    "definedIn": "src/ui/library/sidebar/playlists.rs:93",
     "plural": false,
     "description": null
   },
@@ -301,7 +307,7 @@
   },
   "PLAYLIST_TRACK_COUNT": {
     "context": "playlists.rs",
-    "definedIn": "src/ui/library/sidebar/playlists.rs:97",
+    "definedIn": "src/ui/library/sidebar/playlists.rs:105",
     "plural": true,
     "description": null
   },
@@ -434,6 +440,12 @@
   "SCAN_PROGRESS_SCANNING": {
     "context": "header.rs",
     "definedIn": "src/ui/header.rs:114",
+    "plural": false,
+    "description": null
+  },
+  "SELECT_M3U": {
+    "context": "playlist.rs",
+    "definedIn": "src/library/playlist.rs:157",
     "plural": false,
     "description": null
   },

@@ -1,6 +1,7 @@
 use std::{ffi::OsStr, path::PathBuf};
 
 use anyhow::Context as _;
+use cntp_i18n::tr;
 use compact_str::CompactString;
 use futures::{StreamExt as _, TryFutureExt as _, TryStreamExt as _};
 use gpui::{App, PathPromptOptions};
@@ -153,7 +154,7 @@ pub fn import_playlist(cx: &App, playlist_id: i64) {
         files: true,
         directories: false,
         multiple: false,
-        prompt: Some("Select a M3U file...".into()),
+        prompt: Some(tr!("SELECT_M3U", "Select a M3U file...").into()),
     });
 
     let pool = cx.global::<Pool>().0.clone();

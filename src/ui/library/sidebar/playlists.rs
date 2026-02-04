@@ -86,7 +86,15 @@ impl Render for PlaylistList {
                 } else {
                     PLAYLIST
                 })
-                .child(playlist.name.clone())
+                .child(
+                    if playlist.playlist_type == PlaylistType::System
+                        && playlist.name.0.as_str() == "Liked Songs"
+                    {
+                        div().child(tr!("LIKED_SONGS", "Liked Songs"))
+                    } else {
+                        div().child(playlist.name.clone())
+                    },
+                )
                 .child(
                     div()
                         .font_weight(FontWeight::NORMAL)
