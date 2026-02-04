@@ -479,6 +479,8 @@ impl MediaStream for SymphoniaStream {
 
         let codec_params = decoder.codec_params();
 
+        println!("Codec: {:?}", codec_params.codec);
+
         match codec_params.codec {
             CODEC_TYPE_PCM_ALAW => Ok(SampleFormat::Unsigned8),
             CODEC_TYPE_PCM_F32BE => Ok(SampleFormat::Float32),
@@ -518,7 +520,26 @@ impl MediaStream for SymphoniaStream {
             CODEC_TYPE_PCM_U32LE_PLANAR => Ok(SampleFormat::Unsigned32),
             CODEC_TYPE_PCM_U8 => Ok(SampleFormat::Unsigned8),
             CODEC_TYPE_PCM_U8_PLANAR => Ok(SampleFormat::Unsigned8),
-            _ => Err(ChannelRetrievalError::InvalidState),
+            _ => match codec_params.sample_format {
+                Some(symphonia::core::sample::SampleFormat::U8) => Ok(SampleFormat::Unsigned8),
+                Some(symphonia::core::sample::SampleFormat::U16) => Ok(SampleFormat::Unsigned16),
+                Some(symphonia::core::sample::SampleFormat::U24) => Ok(SampleFormat::Unsigned24),
+                Some(symphonia::core::sample::SampleFormat::U32) => Ok(SampleFormat::Unsigned32),
+                Some(symphonia::core::sample::SampleFormat::S8) => Ok(SampleFormat::Signed8),
+                Some(symphonia::core::sample::SampleFormat::S16) => Ok(SampleFormat::Signed16),
+                Some(symphonia::core::sample::SampleFormat::S24) => Ok(SampleFormat::Signed24),
+                Some(symphonia::core::sample::SampleFormat::S32) => Ok(SampleFormat::Signed32),
+                Some(symphonia::core::sample::SampleFormat::F32) => Ok(SampleFormat::Float32),
+                Some(symphonia::core::sample::SampleFormat::F64) => Ok(SampleFormat::Float64),
+                _ => match codec_params.bits_per_sample {
+                    Some(8) => Ok(SampleFormat::Unsigned8),
+                    Some(16) => Ok(SampleFormat::Signed16),
+                    Some(24) => Ok(SampleFormat::Signed24),
+                    Some(32) => Ok(SampleFormat::Float32),
+                    Some(64) => Ok(SampleFormat::Float64),
+                    _ => Err(ChannelRetrievalError::InvalidState),
+                },
+            },
         }
     }
 
