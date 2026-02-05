@@ -239,6 +239,12 @@
     "plural": false,
     "description": null
   },
+  "DROPDOWN_PLACEHOLDER": {
+    "context": "dropdown.rs",
+    "definedIn": "src/ui/components/dropdown.rs:205",
+    "plural": false,
+    "description": null
+  },
   "EXPORT_PLAYLIST_TO_M3U": {
     "context": "playlist_view.rs",
     "definedIn": "src/ui/library/playlist_view.rs:188",
@@ -257,9 +263,33 @@
     "plural": false,
     "description": null
   },
+  "INTERFACE": {
+    "context": "settings.rs",
+    "definedIn": "src/ui/settings.rs:130",
+    "plural": false,
+    "description": null
+  },
+  "LANGUAGE": {
+    "context": "interface.rs",
+    "definedIn": "src/ui/settings/interface.rs:110",
+    "plural": false,
+    "description": null
+  },
+  "LANGUAGE_SUBTEXT": {
+    "context": "interface.rs",
+    "definedIn": "src/ui/settings/interface.rs:112",
+    "plural": false,
+    "description": null
+  },
+  "LANGUAGE_SYSTEM_DEFAULT": {
+    "context": "interface.rs",
+    "definedIn": "src/ui/settings/interface.rs:27",
+    "plural": false,
+    "description": null
+  },
   "LIBRARY": {
     "context": "settings.rs",
-    "definedIn": "src/ui/settings.rs:121",
+    "definedIn": "src/ui/settings.rs:144",
     "plural": false,
     "description": null
   },
@@ -283,7 +313,7 @@
   },
   "PLAYBACK": {
     "context": "settings.rs",
-    "definedIn": "src/ui/settings.rs:134",
+    "definedIn": "src/ui/settings.rs:157",
     "plural": false,
     "description": null
   },
@@ -451,7 +481,7 @@
   },
   "SETTINGS": {
     "context": "settings.rs",
-    "definedIn": "src/ui/settings.rs:40",
+    "definedIn": "src/ui/settings.rs:42",
     "plural": false,
     "description": null
   },

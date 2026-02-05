@@ -1,3 +1,4 @@
+mod interface;
 mod library;
 mod playback;
 
@@ -12,11 +13,12 @@ use crate::{
     settings::storage::DEFAULT_SIDEBAR_WIDTH,
     ui::{
         components::{
-            icons::{BOOKS, PLAY},
+            icons::{BOOKS, PLAY, WORLD},
             sidebar::{sidebar, sidebar_item},
             window_chrome::window_chrome,
             window_header::header,
         },
+        settings::interface::InterfaceSettings,
         settings::library::LibrarySettings,
         settings::playback::PlaybackSettings,
         theme::Theme,
@@ -57,6 +59,7 @@ pub fn open_settings_window(cx: &mut App) {
 
 #[derive(Clone, PartialEq)]
 enum SettingsSection {
+    Interface(Entity<InterfaceSettings>),
     Library(Entity<LibrarySettings>),
     Playback(Entity<PlaybackSettings>),
 }
@@ -67,9 +70,9 @@ struct SettingsWindow {
 
 impl SettingsWindow {
     fn new(cx: &mut App) -> gpui::Entity<Self> {
-        let library = library::LibrarySettings::new(cx);
+        let interface = interface::InterfaceSettings::new(cx);
         cx.new(|_| Self {
-            active: SettingsSection::Library(library),
+            active: SettingsSection::Interface(interface),
         })
     }
 }
@@ -80,6 +83,12 @@ impl Render for SettingsWindow {
         let active = &self.active;
 
         let content = match active {
+            SettingsSection::Interface(interface) => div()
+                .flex()
+                .flex_col()
+                .gap(px(12.0))
+                .child(interface.clone())
+                .into_any_element(),
             SettingsSection::Library(library) => div()
                 .flex()
                 .flex_col()
@@ -115,6 +124,20 @@ impl Render for SettingsWindow {
                             .flex()
                             .flex_col()
                             .flex_shrink_0()
+                            .child(
+                                sidebar_item("interface")
+                                    .icon(WORLD)
+                                    .child(tr!("INTERFACE", "Interface"))
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.active =
+                                            SettingsSection::Interface(InterfaceSettings::new(cx));
+                                        cx.notify();
+                                    }))
+                                    .when(
+                                        matches!(active, SettingsSection::Interface(_)),
+                                        |this| this.active(),
+                                    ),
+                            )
                             .child(
                                 sidebar_item("library")
                                     .icon(BOOKS)

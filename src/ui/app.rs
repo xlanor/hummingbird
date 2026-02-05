@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use cntp_i18n::tr;
+use cntp_i18n::{I18N_MANAGER, Locale, tr};
 use directories::ProjectDirs;
 use gpui::*;
 use prelude::FluentBuilder;
@@ -25,6 +25,7 @@ use crate::{
         assets::HummingbirdAssetSource,
         caching::HummingbirdImageCache,
         command_palette::{CommandPalette, CommandPaletteHolder},
+        components::dropdown,
         library,
     },
 };
@@ -195,8 +196,15 @@ pub fn run() -> anyhow::Result<()> {
             input::bind_actions(cx);
             modal::bind_actions(cx);
             library::bind_actions(cx);
+            dropdown::bind_actions(cx);
 
             let settings = cx.global::<SettingsGlobal>().model.read(cx);
+
+            if !settings.interface.language.is_empty() {
+                I18N_MANAGER.write().unwrap().locale =
+                    Locale::new_from_locale_identifier(settings.interface.language.clone());
+            }
+
             let playback_settings = settings.playback.clone();
             let mut scan_interface: ScanInterface =
                 ScanThread::start(pool.clone(), settings.scanning.clone());

@@ -1,3 +1,4 @@
+pub mod interface;
 pub mod playback;
 pub mod scan;
 pub mod storage;
@@ -17,6 +18,8 @@ pub struct Settings {
     pub scanning: scan::ScanSettings,
     #[serde(default)]
     pub playback: playback::PlaybackSettings,
+    #[serde(default)]
+    pub interface: interface::InterfaceSettings,
 }
 
 pub fn create_settings(path: &PathBuf) -> Settings {
