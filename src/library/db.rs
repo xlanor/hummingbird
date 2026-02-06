@@ -205,29 +205,18 @@ pub async fn get_album_by_id(
     method: AlbumMethod,
 ) -> sqlx::Result<Arc<Album>> {
     let query = match method {
+        AlbumMethod::FullQuality => {
+            include_str!("../../queries/library/find_album_full_by_id.sql")
+        }
+        AlbumMethod::Thumbnail => {
+            include_str!("../../queries/library/find_album_thumb_by_id.sql")
+        }
         AlbumMethod::Metadata => {
             include_str!("../../queries/library/find_album_metadata_by_id.sql")
         }
-        _ => include_str!("../../queries/library/find_album_by_id.sql"),
     };
 
-    let album: Arc<Album> = Arc::new({
-        let mut data: Album = sqlx::query_as(query).bind(album_id).fetch_one(pool).await?;
-
-        match method {
-            AlbumMethod::FullQuality => {
-                data.thumb = None;
-            }
-            AlbumMethod::Thumbnail => {
-                data.image = None;
-            }
-            AlbumMethod::Metadata => {
-                // do nothing, thumb and image are already None
-            }
-        }
-
-        data
-    });
+    let album: Arc<Album> = Arc::new(sqlx::query_as(query).bind(album_id).fetch_one(pool).await?);
 
     Ok(album)
 }
