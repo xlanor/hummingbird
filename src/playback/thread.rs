@@ -207,7 +207,6 @@ impl PlaybackThread {
 
         // If stopped and queue is not empty, start playing from the beginning
         if current_state == PlaybackState::Stopped
-            && !self.queue.is_empty()
             && let Some(first) = self.queue.first()
         {
             let path = first.get_path().clone();
@@ -284,8 +283,8 @@ impl PlaybackThread {
         }
 
         // Handle stopped state - start playing from the last track
-        if self.state() == PlaybackState::Stopped && !self.queue.is_empty() {
-            if let Some(last) = self.queue.last() {
+        if self.state() == PlaybackState::Stopped {
+            if let Some((last, last_index)) = self.queue.last_with_index() {
                 let path = last.get_path().clone();
 
                 if let Err(err) = self.open(&path) {
@@ -650,9 +649,9 @@ impl PlaybackThread {
 
     /// Handles a change in playback settings.
     fn settings_changed(&mut self, settings: PlaybackSettings) {
-        self.playback_settings = settings.clone();
-        self.queue.update_settings(settings.clone());
         self.engine.update_settings(&settings);
+        self.queue.update_settings(settings.clone());
+        self.playback_settings = settings;
     }
 
     /// Process audio samples through the engine and send to device.

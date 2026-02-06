@@ -145,11 +145,6 @@ impl QueueManager {
         self.repeat
     }
 
-    /// Check if the queue is empty.
-    pub fn is_empty(&self) -> bool {
-        self.queue.read().expect("poisoned queue lock").is_empty()
-    }
-
     /// Get the queue length.
     pub fn len(&self) -> usize {
         self.queue.read().expect("poisoned queue lock").len()
@@ -164,13 +159,15 @@ impl QueueManager {
             .cloned()
     }
 
-    /// Get the last item in the queue.
-    pub fn last(&self) -> Option<QueueItemData> {
-        self.queue
-            .read()
-            .expect("poisoned queue lock")
-            .last()
-            .cloned()
+    /// Get the last item in the queue along with its index, if the queue is non-empty.
+    pub fn last_with_index(&self) -> Option<(QueueItemData, usize)> {
+        let queue = self.queue.read().expect("poisoned queue lock");
+        if queue.is_empty() {
+            None
+        } else {
+            let index = queue.len() - 1;
+            Some((queue[index].clone(), index))
+        }
     }
 
     /// Set the queue position directly (used after opening a track).

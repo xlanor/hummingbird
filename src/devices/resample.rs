@@ -263,14 +263,14 @@ impl Resampler {
         output: &ChannelProducers<f64>,
         max_input_samples: usize,
     ) -> usize {
+        if !self.needs_resampling() {
+            return Self::passthrough_direct(input, output, max_input_samples);
+        }
+
         let read = Self::read_into_buffers(input, &mut self.input_buffer, max_input_samples);
 
         if read == 0 && !self.eof {
             return 0;
-        }
-
-        if !self.needs_resampling() {
-            return self.passthrough_to_output(output);
         }
 
         let available = self.input_available();
@@ -279,15 +279,13 @@ impl Resampler {
         }
 
         let mut total_output = 0;
+        let duration = self.duration as usize;
 
-        while self.input_available() >= self.duration as usize {
+        while self.input_available() >= duration {
             for ch in 0..self.channels {
+                let drain_count = duration.min(self.input_buffer[ch].len());
                 self.temp_input[ch].clear();
-                for _ in 0..self.duration as usize {
-                    if let Some(sample) = self.input_buffer[ch].pop_front() {
-                        self.temp_input[ch].push(sample);
-                    }
-                }
+                self.temp_input[ch].extend(self.input_buffer[ch].drain(..drain_count));
             }
 
             let input_frames = self.temp_input.first().map(|v| v.len()).unwrap_or(0);
@@ -319,10 +317,9 @@ impl Resampler {
         // handle eofs
         if self.eof && self.input_available() > 0 {
             for ch in 0..self.channels {
+                let remaining = self.input_buffer[ch].len();
                 self.temp_input[ch].clear();
-                while let Some(sample) = self.input_buffer[ch].pop_front() {
-                    self.temp_input[ch].push(sample);
-                }
+                self.temp_input[ch].extend(self.input_buffer[ch].drain(..remaining));
             }
 
             let input_frames = self.temp_input.first().map(|v| v.len()).unwrap_or(0);
@@ -365,23 +362,21 @@ impl Resampler {
         total_output
     }
 
-    fn passthrough_to_output(&mut self, output: &ChannelProducers<f64>) -> usize {
-        let available = self.input_available();
-        if available == 0 {
+    fn passthrough_direct(
+        input: &mut ChannelConsumers<f64>,
+        output: &ChannelProducers<f64>,
+        max_samples: usize,
+    ) -> usize {
+        let read = input.try_read_to_staging(max_samples);
+        if read == 0 {
             return 0;
         }
 
-        for ch in 0..self.channels {
-            self.output_buffer[ch].clear();
-            for _ in 0..available {
-                if let Some(sample) = self.input_buffer[ch].pop_front() {
-                    self.output_buffer[ch].push(sample);
-                }
-            }
-        }
-
-        output.write_vecs(&self.output_buffer);
-        available
+        let staging = input.staging();
+        let slices: smallvec::SmallVec<[&[f64]; 8]> =
+            staging.iter().map(|v| v.as_slice()).collect();
+        output.write_slices(&slices);
+        read
     }
 
     /// Read samples from f64 channel consumers into internal buffers
@@ -397,9 +392,7 @@ impl Resampler {
 
         let staging = input.staging();
         for (ch, channel) in staging.iter().enumerate() {
-            for &sample in channel.iter().take(read) {
-                buffers[ch].push_back(sample);
-            }
+            buffers[ch].extend(&channel[..read]);
         }
         read
     }

@@ -2,6 +2,7 @@ use std::{ffi::OsStr, fs::File};
 
 use intx::{I24, U24};
 use regex::Regex;
+use smallvec::SmallVec;
 use symphonia::{
     core::{
         audio::{AudioBufferRef, Channels, Signal},
@@ -676,10 +677,8 @@ impl MediaStream for SymphoniaStream {
                             v.frames()
                         }
                         AudioBufferRef::F64(v) => {
-                            // F64 can write directly without conversion
-                            let slices: [&[f64]; 8] = std::array::from_fn(|i| {
-                                if i < channel_count { v.chan(i) } else { &[] }
-                            });
+                            let slices: SmallVec<[&[f64]; 8]> =
+                                (0..channel_count).map(|ch| v.chan(ch)).collect();
                             output.write_slices(&slices[..channel_count]);
                             return Ok(DecodeResult::Decoded {
                                 frames: v.frames(),
@@ -747,7 +746,7 @@ impl MediaStream for SymphoniaStream {
                     // Only handle F32, return NotF32 for other formats
                     let frames = match decoded {
                         AudioBufferRef::F32(v) => {
-                            let slices: Vec<&[f32]> =
+                            let slices: SmallVec<[&[f32]; 8]> =
                                 (0..channel_count).map(|ch| v.chan(ch)).collect();
                             output.write_slices(&slices);
                             v.frames()
