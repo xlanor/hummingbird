@@ -6,10 +6,11 @@ FROM
         SELECT
             id,
             title_sortable,
-            release_date
+            release_date,
+            release_year
         FROM
             album
         ORDER BY
-            release_date ASC,
+            COALESCE(release_date, printf('%04d-01-01', release_year)) ASC,
             title_sortable COLLATE NOCASE ASC
     );

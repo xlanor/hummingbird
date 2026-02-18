@@ -120,7 +120,8 @@ impl TableData<AlbumColumn> for Album {
                 .map(|v| (*v).clone().into()),
             AlbumColumn::Date => self
                 .release_date
-                .map(|date| date.format("%x").to_string().into()),
+                .map(|date| date.format("%x").to_string().into())
+                .or(self.release_year.map(|v| v.to_string().into())),
             AlbumColumn::Label => self.label.as_ref().map(|v| v.0.clone()),
             AlbumColumn::CatalogNumber => self.catalog_number.as_ref().map(|v| v.0.clone()),
         }
