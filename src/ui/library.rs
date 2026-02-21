@@ -310,6 +310,24 @@ impl Render for Library {
                     cx.notify();
                 })
             })
+            .on_mouse_down(
+                MouseButton::Navigate(gpui::NavigationDirection::Back),
+                |_, _, cx| {
+                    let switcher = cx.global::<Models>().switcher_model.clone();
+                    switcher.update(cx, |_, cx| {
+                        cx.emit(ViewSwitchMessage::Back);
+                    });
+                },
+            )
+            .on_mouse_down(
+                MouseButton::Navigate(gpui::NavigationDirection::Forward),
+                |_, _, cx| {
+                    let switcher = cx.global::<Models>().switcher_model.clone();
+                    switcher.update(cx, |_, cx| {
+                        cx.emit(ViewSwitchMessage::Forward);
+                    });
+                },
+            )
             .w_full()
             .h_full()
             .flex()
