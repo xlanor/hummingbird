@@ -147,7 +147,7 @@ impl Render for ReleaseView {
                             .w_full()
                             .child(
                                 div()
-                                    .rounded(px(4.0))
+                                    .rounded(px(10.0))
                                     .bg(theme.album_art_background)
                                     .shadow_sm()
                                     .w(px(160.0))
@@ -166,7 +166,7 @@ impl Render for ReleaseView {
                                             // breaks rounding
                                             // FIXME: This is a GPUI bug
                                             .object_fit(ObjectFit::Fill)
-                                            .rounded(px(4.0)),
+                                            .rounded(px(10.0)),
                                     ),
                             )
                             .child(
