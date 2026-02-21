@@ -1,19 +1,20 @@
 pub mod album_item;
 pub mod model;
 
-use std::collections::VecDeque;
-
 use gpui::*;
 use model::SearchModel;
 
 use super::{
-    components::modal::modal, global_actions::Search, library::ViewSwitchMessage, models::Models,
+    components::modal::modal,
+    global_actions::Search,
+    library::{NavigationHistory, ViewSwitchMessage},
+    models::Models,
 };
 
 pub struct SearchView {
     show: Entity<bool>,
     search: Entity<SearchModel>,
-    view_switcher: Entity<VecDeque<ViewSwitchMessage>>,
+    view_switcher: Entity<NavigationHistory>,
 }
 
 impl SearchView {

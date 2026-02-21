@@ -1,6 +1,6 @@
 use gpui::{
     Div, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, Stateful,
-    StatefulInteractiveElement, StyleRefinement, Styled, div, px,
+    StatefulInteractiveElement, StyleRefinement, Styled, div, prelude::FluentBuilder, px,
 };
 
 use crate::ui::{components::icons::icon, theme::Theme};
@@ -9,6 +9,7 @@ use crate::ui::{components::icons::icon, theme::Theme};
 pub struct NavButton {
     div: Stateful<Div>,
     icon: &'static str,
+    enabled: bool,
 }
 
 impl StatefulInteractiveElement for NavButton {}
@@ -25,27 +26,38 @@ impl Styled for NavButton {
     }
 }
 
+impl NavButton {
+    pub fn disabled(mut self, disabled: bool) -> Self {
+        self.enabled = !disabled;
+        self
+    }
+}
+
 impl RenderOnce for NavButton {
     fn render(self, _: &mut gpui::Window, cx: &mut gpui::App) -> impl gpui::IntoElement {
         let theme = cx.global::<Theme>();
 
         self.div
             .flex()
-            .flex()
             .justify_center()
             .items_center()
             .rounded_sm()
             .text_sm()
             .border_1()
-            .hover(|this| {
-                this.bg(theme.nav_button_hover)
-                    .border_color(theme.nav_button_hover_border)
+            .when(self.enabled, |this: Stateful<Div>| {
+                this.hover(|style: gpui::StyleRefinement| {
+                    style
+                        .bg(theme.nav_button_hover)
+                        .border_color(theme.nav_button_hover_border)
+                })
+                .active(|style: gpui::StyleRefinement| {
+                    style
+                        .bg(theme.nav_button_active)
+                        .border_color(theme.nav_button_active_border)
+                })
+                .cursor_pointer()
             })
-            .active(|this| {
-                this.bg(theme.nav_button_active)
-                    .border_color(theme.nav_button_active_border)
-            })
-            .cursor_pointer()
+            .when(!self.enabled, |this: Stateful<Div>| this.opacity(0.35))
             .child(icon(self.icon).size(px(16.0)))
     }
 }
@@ -54,5 +66,6 @@ pub fn nav_button(id: impl Into<ElementId>, icon: &'static str) -> NavButton {
     NavButton {
         div: div().id(id).size(px(28.0)),
         icon,
+        enabled: true,
     }
 }

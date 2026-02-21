@@ -85,7 +85,7 @@
   },
   "ACTION_GROUP_PLAYLIST": {
     "context": "library.rs",
-    "definedIn": "src/ui/library.rs:167",
+    "definedIn": "src/ui/library.rs:273",
     "plural": false,
     "description": null
   },
@@ -97,7 +97,7 @@
   },
   "ACTION_IMPORT_PLAYLIST": {
     "context": "library.rs",
-    "definedIn": "src/ui/library.rs:168",
+    "definedIn": "src/ui/library.rs:274",
     "plural": false,
     "description": null
   },
@@ -511,13 +511,13 @@
   },
   "STATS_TOTAL_LENGTH": {
     "context": "sidebar.rs",
-    "definedIn": "src/ui/library/sidebar.rs:147",
+    "definedIn": "src/ui/library/sidebar.rs:145",
     "plural": true,
     "description": null
   },
   "STATS_TRACKS": {
     "context": "sidebar.rs",
-    "definedIn": "src/ui/library/sidebar.rs:141",
+    "definedIn": "src/ui/library/sidebar.rs:139",
     "plural": true,
     "description": null
   },
@@ -535,7 +535,7 @@
   },
   "TRACKS": {
     "context": "sidebar.rs",
-    "definedIn": "src/ui/library/sidebar.rs:119",
+    "definedIn": "src/ui/library/sidebar.rs:118",
     "plural": false,
     "description": null
   },

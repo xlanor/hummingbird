@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 
 use cntp_i18n::{tr, trn};
 use gpui::{
@@ -20,7 +20,7 @@ use crate::{
             scrollbar::{RightPad, floating_scrollbar},
             sidebar::sidebar_item,
         },
-        library::ViewSwitchMessage,
+        library::{NavigationHistory, ViewSwitchMessage},
         models::{Models, PlaylistEvent},
         theme::Theme,
     },
@@ -28,12 +28,12 @@ use crate::{
 
 pub struct PlaylistList {
     playlists: Arc<Vec<PlaylistWithCount>>,
-    nav_model: Entity<VecDeque<ViewSwitchMessage>>,
+    nav_model: Entity<NavigationHistory>,
     scroll_handle: ScrollHandle,
 }
 
 impl PlaylistList {
-    pub fn new(cx: &mut App, nav_model: Entity<VecDeque<ViewSwitchMessage>>) -> Entity<Self> {
+    pub fn new(cx: &mut App, nav_model: Entity<NavigationHistory>) -> Entity<Self> {
         let playlists = cx.get_all_playlists().expect("could not get playlists");
 
         cx.new(|cx| {
@@ -75,7 +75,7 @@ impl Render for PlaylistList {
             .overflow_y_scroll()
             .track_scroll(&scroll_handle);
 
-        let current_view = self.nav_model.read(cx);
+        let current_view = self.nav_model.read(cx).current();
 
         for playlist in &*self.playlists {
             let pl_id = playlist.id;
@@ -114,7 +114,7 @@ impl Render for PlaylistList {
                     });
                 }))
                 .when(
-                    current_view.iter().last() == Some(&ViewSwitchMessage::Playlist(playlist.id)),
+                    current_view == ViewSwitchMessage::Playlist(playlist.id),
                     |this| this.active(),
                 );
 
@@ -142,8 +142,8 @@ impl Render for PlaylistList {
                                     let switcher_model =
                                         cx.global::<Models>().switcher_model.clone();
 
-                                    switcher_model.update(cx, |view_switch_messages, cx| {
-                                        view_switch_messages
+                                    switcher_model.update(cx, |history, cx| {
+                                        history
                                             .retain(|v| *v != ViewSwitchMessage::Playlist(pl_id));
 
                                         cx.emit(ViewSwitchMessage::Refresh);

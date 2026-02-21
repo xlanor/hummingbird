@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::VecDeque, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use gpui::*;
 
@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::ViewSwitchMessage;
+use super::NavigationHistory;
 
 #[derive(Clone)]
 pub struct TrackView {
@@ -24,7 +24,7 @@ pub struct TrackView {
 impl TrackView {
     pub(super) fn new(
         cx: &mut App,
-        _view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
+        _view_switch_model: Entity<NavigationHistory>,
         initial_scroll_offset: Option<f32>,
     ) -> Entity<Self> {
         cx.new(|cx| {

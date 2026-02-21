@@ -2,6 +2,7 @@
 // See assets/icons/LICENSE
 
 pub const ARROW_LEFT: &str = "!bundled:icons/arrow-left.svg";
+pub const ARROW_RIGHT: &str = "!bundled:icons/arrow-right.svg";
 pub const SHUFFLE: &str = "!bundled:icons/arrows-shuffle.svg";
 pub const LAST_FM: &str = "!bundled:icons/brand-lastfm.svg";
 pub const CIRCLE_PLUS: &str = "!bundled:icons/circle-plus.svg";

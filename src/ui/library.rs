@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use album_view::AlbumView;
 use cntp_i18n::tr;
 use gpui::*;
@@ -39,6 +37,104 @@ pub fn bind_actions(cx: &mut App) {
     playlist_view::bind_actions(cx);
 }
 
+/// The navigation history + a cursor noting what the current message is.
+#[derive(Debug)]
+pub struct NavigationHistory {
+    history: Vec<ViewSwitchMessage>,
+    cursor: usize,
+}
+
+impl NavigationHistory {
+    pub fn new() -> Self {
+        Self {
+            history: vec![ViewSwitchMessage::Albums],
+            cursor: 0,
+        }
+    }
+
+    pub fn current(&self) -> ViewSwitchMessage {
+        self.history[self.cursor]
+    }
+
+    pub fn can_go_back(&self) -> bool {
+        self.cursor > 0
+    }
+
+    pub fn can_go_forward(&self) -> bool {
+        self.cursor < self.history.len() - 1
+    }
+
+    pub fn go_back(&mut self) -> Option<ViewSwitchMessage> {
+        if self.can_go_back() {
+            self.cursor -= 1;
+            Some(self.current())
+        } else {
+            None
+        }
+    }
+
+    pub fn go_forward(&mut self) -> Option<ViewSwitchMessage> {
+        if self.can_go_forward() {
+            self.cursor += 1;
+            Some(self.current())
+        } else {
+            None
+        }
+    }
+
+    /// Navigates to a new view. All history entries after the cursor are discarded, then the new
+    /// view is appended and the cursor advances to it. History is capped at 100 entries.
+    pub fn navigate(&mut self, message: ViewSwitchMessage) {
+        // Drop any forward history.
+        self.history.truncate(self.cursor + 1);
+
+        // Cap total history at 100 entries by evicting the oldest.
+        if self.history.len() >= 100 {
+            self.history.remove(0);
+            self.cursor = self.cursor.saturating_sub(1);
+        }
+
+        self.history.push(message);
+        self.cursor = self.history.len() - 1;
+    }
+
+    /// Removes history entries that do not satisfy `f`, adjusting the cursor so that it continues
+    /// to point at the same entry if it survives, or backs up to the nearest preceding survivor
+    /// otherwise. History is guaranteed to never become empty (falls back to `Albums`).
+    ///
+    /// Used to remove entries that are no longer valid.
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: Fn(&ViewSwitchMessage) -> bool,
+    {
+        // Count how many entries at or before the cursor will be removed.
+        let removed_before_or_at_cursor = self.history[..=self.cursor]
+            .iter()
+            .filter(|v| !f(v))
+            .count();
+
+        self.history.retain(f);
+
+        if self.history.is_empty() {
+            self.history.push(ViewSwitchMessage::Albums);
+            self.cursor = 0;
+        } else {
+            self.cursor = self
+                .cursor
+                .saturating_sub(removed_before_or_at_cursor)
+                .min(self.history.len() - 1);
+        }
+    }
+}
+
+impl Default for NavigationHistory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EventEmitter<ViewSwitchMessage> for NavigationHistory {}
+
 #[derive(Clone)]
 enum LibraryView {
     Album(Entity<AlbumView>),
@@ -64,15 +160,14 @@ pub enum ViewSwitchMessage {
     Release(i64),
     Playlist(i64),
     Back,
+    Forward,
     Refresh,
 }
-
-impl EventEmitter<ViewSwitchMessage> for VecDeque<ViewSwitchMessage> {}
 
 fn make_view(
     message: &ViewSwitchMessage,
     cx: &mut App,
-    model: Entity<VecDeque<ViewSwitchMessage>>,
+    model: Entity<NavigationHistory>,
     scroll_state: &ScrollStateStorage,
 ) -> LibraryView {
     match message {
@@ -89,6 +184,7 @@ fn make_view(
         ViewSwitchMessage::Release(id) => LibraryView::Release(ReleaseView::new(cx, *id)),
         ViewSwitchMessage::Playlist(id) => LibraryView::Playlist(PlaylistView::new(cx, *id)),
         ViewSwitchMessage::Back => panic!("improper use of make_view (cannot make Back)"),
+        ViewSwitchMessage::Forward => panic!("improper use of make_view (cannot make Forward)"),
         ViewSwitchMessage::Refresh => panic!("improper use of make_view (cannot make Refresh)"),
     }
 }
@@ -107,6 +203,7 @@ impl Library {
             cx.subscribe(
                 &switcher_model,
                 move |this: &mut Library, m, message, cx| {
+                    // Save current scroll position before switching away.
                     if let LibraryView::Album(album_view) = &this.view {
                         let scroll_pos = album_view.read(cx).get_scroll_offset(cx);
                         this.scroll_state.album_view_scroll = Some(scroll_pos);
@@ -117,36 +214,45 @@ impl Library {
 
                     this.view = match message {
                         ViewSwitchMessage::Back => {
-                            let last = m.update(cx, |v: &mut VecDeque<ViewSwitchMessage>, cx| {
-                                if v.len() > 1 {
-                                    v.pop_back();
+                            let destination =
+                                m.update(cx, |history: &mut NavigationHistory, cx| {
+                                    let result = history.go_back();
                                     cx.notify();
+                                    result
+                                });
 
-                                    v.back().cloned()
-                                } else {
-                                    None
-                                }
-                            });
-
-                            if let Some(message) = last {
-                                debug!("{:?}", message);
-                                make_view(&message, cx, m, &this.scroll_state)
+                            if let Some(dest) = destination {
+                                debug!("back → {:?}", dest);
+                                make_view(&dest, cx, m, &this.scroll_state)
                             } else {
                                 this.view.clone()
                             }
                         }
-                        ViewSwitchMessage::Refresh => {
-                            let last = *m.read(cx).iter().last().unwrap();
 
-                            make_view(&last, cx, m, &this.scroll_state)
+                        ViewSwitchMessage::Forward => {
+                            let destination =
+                                m.update(cx, |history: &mut NavigationHistory, cx| {
+                                    let result = history.go_forward();
+                                    cx.notify();
+                                    result
+                                });
+
+                            if let Some(dest) = destination {
+                                debug!("forward → {:?}", dest);
+                                make_view(&dest, cx, m, &this.scroll_state)
+                            } else {
+                                this.view.clone()
+                            }
                         }
-                        _ => {
-                            m.update(cx, |v, cx| {
-                                if v.len() > 99 {
-                                    v.pop_front();
-                                }
-                                v.push_back(*message);
 
+                        ViewSwitchMessage::Refresh => {
+                            let current = m.read(cx).current();
+                            make_view(&current, cx, m, &this.scroll_state)
+                        }
+
+                        _ => {
+                            m.update(cx, |history, cx| {
+                                history.navigate(*message);
                                 cx.notify();
                             });
 

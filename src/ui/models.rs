@@ -1,10 +1,10 @@
 use std::{
-    collections::VecDeque,
     fs::{File, OpenOptions},
     path::PathBuf,
     sync::{Arc, RwLock},
 };
 
+use crate::ui::library::NavigationHistory;
 use gpui::{App, AppContext, Entity, EventEmitter, Global, Pixels, RenderImage};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -27,7 +27,7 @@ use crate::{
         SettingsGlobal,
         storage::{DEFAULT_QUEUE_WIDTH, DEFAULT_SIDEBAR_WIDTH, StorageData, TableSettings},
     },
-    ui::{app::get_dirs, data::Decode, library::ViewSwitchMessage},
+    ui::{app::get_dirs, data::Decode},
 };
 
 // yes this looks a little silly
@@ -54,7 +54,7 @@ pub struct Models {
     pub scan_state: Entity<ScanEvent>,
     pub mmbs: Entity<MMBSList>,
     pub lastfm: Entity<LastFMState>,
-    pub switcher_model: Entity<VecDeque<ViewSwitchMessage>>,
+    pub switcher_model: Entity<NavigationHistory>,
     pub show_about: Entity<bool>,
     pub playlist_tracker: Entity<PlaylistInfoTransfer>,
     pub sidebar_width: Entity<Pixels>,
@@ -225,11 +225,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     })
     .detach();
 
-    let switcher_model = cx.new(|_| {
-        let mut deque = VecDeque::new();
-        deque.push_back(ViewSwitchMessage::Albums);
-        deque
-    });
+    let switcher_model = cx.new(|_| NavigationHistory::new());
 
     let sidebar_width: Entity<Pixels> = cx.new(|_| {
         if storage_data.sidebar_width > 0.0 {

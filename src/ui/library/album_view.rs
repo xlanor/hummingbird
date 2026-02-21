@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, rc::Rc};
+use std::rc::Rc;
 
 use gpui::*;
 
@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::ViewSwitchMessage;
+use super::{NavigationHistory, ViewSwitchMessage};
 
 #[derive(Clone)]
 pub struct AlbumView {
@@ -23,7 +23,7 @@ pub struct AlbumView {
 impl AlbumView {
     pub(super) fn new(
         cx: &mut App,
-        view_switch_model: Entity<VecDeque<ViewSwitchMessage>>,
+        view_switch_model: Entity<NavigationHistory>,
         initial_scroll_offset: Option<f32>,
     ) -> Entity<Self> {
         cx.new(|cx| {

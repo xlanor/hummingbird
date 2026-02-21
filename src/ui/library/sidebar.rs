@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 
 use cntp_i18n::{tr, trn};
 use gpui::{
@@ -19,7 +19,7 @@ use crate::{
             sidebar::{sidebar, sidebar_item, sidebar_separator},
         },
         global_actions::Search,
-        library::{ViewSwitchMessage, sidebar::playlists::PlaylistList},
+        library::{NavigationHistory, ViewSwitchMessage, sidebar::playlists::PlaylistList},
         models::Models,
         theme::Theme,
     },
@@ -30,11 +30,11 @@ mod playlists;
 pub struct Sidebar {
     playlists: Entity<PlaylistList>,
     track_stats: Arc<TrackStats>,
-    nav_model: Entity<VecDeque<ViewSwitchMessage>>,
+    nav_model: Entity<NavigationHistory>,
 }
 
 impl Sidebar {
-    pub fn new(cx: &mut App, nav_model: Entity<VecDeque<ViewSwitchMessage>>) -> Entity<Self> {
+    pub fn new(cx: &mut App, nav_model: Entity<NavigationHistory>) -> Entity<Self> {
         cx.new(|cx| {
             cx.observe(&nav_model, |_, _, cx| cx.notify()).detach();
 
@@ -54,7 +54,7 @@ impl Render for Sidebar {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let stats_minutes = self.track_stats.total_duration / 60;
-        let current_view = self.nav_model.read(cx);
+        let current_view = self.nav_model.read(cx).current();
         let sidebar_width = cx.global::<Models>().sidebar_width.clone();
 
         resizable_sidebar(
@@ -106,9 +106,8 @@ impl Render for Sidebar {
                         }))
                         .when(
                             matches!(
-                                current_view.iter().last(),
-                                Some(ViewSwitchMessage::Albums)
-                                    | Some(ViewSwitchMessage::Release(_))
+                                current_view,
+                                ViewSwitchMessage::Albums | ViewSwitchMessage::Release(_)
                             ),
                             |this| this.active(),
                         ),
@@ -122,10 +121,9 @@ impl Render for Sidebar {
                                 cx.emit(ViewSwitchMessage::Tracks);
                             });
                         }))
-                        .when(
-                            matches!(current_view.iter().last(), Some(ViewSwitchMessage::Tracks)),
-                            |this| this.active(),
-                        ),
+                        .when(matches!(current_view, ViewSwitchMessage::Tracks), |this| {
+                            this.active()
+                        }),
                 )
                 .child(sidebar_separator())
                 .child(self.playlists.clone())
