@@ -131,6 +131,10 @@ impl TableData<AlbumColumn> for Album {
         Some(format!("!db://album/{}/thumb", self.id).into())
     }
 
+    fn get_full_image_path(&self) -> Option<SharedString> {
+        Some(format!("!db://album/{}/full", self.id).into())
+    }
+
     fn has_images() -> bool {
         true
     }
@@ -164,6 +168,19 @@ impl TableData<AlbumColumn> for Album {
             self.id,
             self.title.0.clone(),
         )))
+    }
+
+    fn supports_grid_view() -> bool {
+        true
+    }
+
+    fn get_grid_content(&self, cx: &mut App) -> Option<(SharedString, Option<SharedString>)> {
+        let title = self.title.0.clone().into();
+        let artist = cx
+            .get_artist_name_by_id(self.artist_id)
+            .ok()
+            .map(|v| (*v).clone().into());
+        Some((title, artist))
     }
 }
 
@@ -320,6 +337,10 @@ impl TableData<TrackColumn> for Track {
     }
 
     fn get_image_path(&self) -> Option<SharedString> {
+        None
+    }
+
+    fn get_full_image_path(&self) -> Option<SharedString> {
         None
     }
 

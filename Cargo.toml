@@ -8,7 +8,7 @@ readme = "README.md"
 categories = ["multimedia::audio"]
 
 [features]
-runtime_shaders = ["gpui/runtime_shaders"]
+runtime_shaders = ["gpui_platform/runtime_shaders"]
 console = ["dep:console-subscriber", "tokio/tracing"]
 
 [dependencies]
@@ -31,6 +31,7 @@ directories = "6"
 futures = "0.3"
 globwalk = "0.9"
 gpui = "0.2.2"
+gpui_platform = { git = "https://github.com/zed-industries/zed", features = ["wayland", "x11", "font-kit"] }
 image = "0.25"
 indexmap = { version = "2", features = ["serde"] }
 intx = "0.1"

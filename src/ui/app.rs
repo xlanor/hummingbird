@@ -6,6 +6,7 @@ use std::{
 use cntp_i18n::{I18N_MANAGER, Locale, tr};
 use directories::ProjectDirs;
 use gpui::*;
+use gpui_platform::current_platform;
 use prelude::FluentBuilder;
 use sqlx::SqlitePool;
 use tracing::debug;
@@ -163,7 +164,7 @@ pub fn run() -> anyhow::Result<()> {
             tracing::error!(?error, "fatal: unable to create database pool");
         })?;
 
-    Application::new()
+    Application::with_platform(current_platform(false))
         .with_assets(HummingbirdAssetSource::new(pool.clone()))
         .run(move |cx: &mut App| {
             // Fontconfig isn't read currently so fall back to the most "okay" font rendering

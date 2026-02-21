@@ -98,7 +98,7 @@ impl TrackView {
     }
 
     pub fn get_scroll_offset(&self, cx: &App) -> f32 {
-        self.table.read(cx).get_scroll_offset()
+        self.table.read(cx).get_scroll_offset(cx)
     }
 }
 

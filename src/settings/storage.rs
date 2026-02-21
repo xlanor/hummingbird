@@ -24,12 +24,26 @@ fn default_table_settings() -> HashMap<String, TableSettings> {
     HashMap::new()
 }
 
+fn default_table_view_mode() -> TableViewModeSetting {
+    TableViewModeSetting::List
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TableViewModeSetting {
+    #[default]
+    List,
+    Grid,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TableSettings {
     #[serde(default)]
     pub column_widths: HashMap<String, f32>,
     #[serde(default)]
     pub hidden_columns: Vec<String>,
+    #[serde(default = "default_table_view_mode")]
+    pub view_mode: TableViewModeSetting,
 }
 
 /// Data to store while quitting the app

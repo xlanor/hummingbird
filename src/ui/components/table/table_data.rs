@@ -83,6 +83,9 @@ where
     /// Retrieves the associated image for the row.
     fn get_image_path(&self) -> Option<SharedString>;
 
+    /// Retrieves the full-quality image for the row.
+    fn get_full_image_path(&self) -> Option<SharedString>;
+
     /// Retrieves the default column widths for the table.
     fn default_columns() -> IndexMap<C, f32, FxBuildHasher>;
 
@@ -102,6 +105,17 @@ where
     /// Returns drag data for this row, if dragging is supported. If None is returned, dragging is
     /// not supported. Default implementation returns None.
     fn get_drag_data(&self) -> Option<TableDragData> {
+        None
+    }
+
+    /// Returns true if the table supports rendering as a grid view.
+    fn supports_grid_view() -> bool {
+        false
+    }
+
+    /// Retrieves the content for the grid item relative to the table data.
+    /// Returns a tuple of (Primary string, Optional Secondary string).
+    fn get_grid_content(&self, _cx: &mut App) -> Option<(SharedString, Option<SharedString>)> {
         None
     }
 }

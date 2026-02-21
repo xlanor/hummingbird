@@ -40,3 +40,7 @@ pub const LOCK: &str = "!bundled:icons/lock.svg";
 pub const BOOKS: &str = "!bundled:icons/books.svg";
 pub const ALERT_CIRCLE: &str = "!bundled:icons/alert-circle.svg";
 pub const WORLD: &str = "!bundled:icons/world.svg";
+pub const GRID: &str = "!bundled:icons/layout-grid.svg";
+pub const GRID_INACTIVE: &str = "!bundled:icons/layout-grid-inactive.svg";
+pub const LIST: &str = "!bundled:icons/layout-list.svg";
+pub const LIST_INACTIVE: &str = "!bundled:icons/layout-list-inactive.svg";

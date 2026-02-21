@@ -1,9 +1,28 @@
 mod column_resize_handle;
+mod grid_item;
 pub mod table_data;
+
 mod table_item;
 
 use std::{rc::Rc, sync::Arc};
 
+use crate::{
+    settings::storage::{TableSettings, TableViewModeSetting},
+    ui::{
+        caching::hummingbird_cache,
+        components::{
+            context::context,
+            icons::{CHEVRON_DOWN, CHEVRON_UP, GRID, GRID_INACTIVE, LIST, LIST_INACTIVE, icon},
+            menu::{menu, menu_check_item},
+            nav_button::nav_button,
+            scrollbar::{RightPad, floating_scrollbar},
+            uniform_grid::uniform_grid,
+        },
+        models::Models,
+        theme::Theme,
+        util::{create_or_retrieve_view, prune_views},
+    },
+};
 use column_resize_handle::column_resize_handle;
 use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
@@ -13,22 +32,6 @@ use table_data::{
 };
 use table_item::TableItem;
 
-use crate::{
-    settings::storage::TableSettings,
-    ui::{
-        caching::hummingbird_cache,
-        components::{
-            context::context,
-            icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
-            menu::{menu, menu_check_item},
-            scrollbar::{RightPad, floating_scrollbar},
-        },
-        models::Models,
-        theme::Theme,
-        util::{create_or_retrieve_view, prune_views},
-    },
-};
-
 type RowMap<T, C> = FxHashMap<usize, Entity<TableItem<T, C>>>;
 
 #[allow(type_alias_bounds)]
@@ -37,6 +40,12 @@ where
     C: Column,
     T: TableData<C>,
 = Rc<dyn Fn(&mut App, &T::Identifier) + 'static>;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TableViewMode {
+    List,
+    Grid,
+}
 
 #[derive(Clone)]
 pub struct Table<T, C>
@@ -49,6 +58,12 @@ where
     hidden_column_widths: Entity<FxHashMap<C, f32>>,
     views: Entity<RowMap<T, C>>,
     render_counter: Entity<usize>,
+
+    grid_views: Entity<FxHashMap<usize, Entity<grid_item::GridItem<T, C>>>>,
+    grid_render_counter: Entity<usize>,
+    view_mode: Entity<TableViewMode>,
+    grid_scroll_handle: UniformListScrollHandle,
+
     items: Option<Arc<Vec<T::Identifier>>>,
     sort_method: Entity<Option<TableSort<C>>>,
     on_select: Option<OnSelectHandler<T, C>>,
@@ -85,11 +100,30 @@ where
             let hidden_column_widths = cx.new(|_| initial_hidden);
             let views = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
+
+            let grid_views = cx.new(|_| FxHashMap::default());
+            let grid_render_counter = cx.new(|_| 0);
+            let initial_view_mode = match initial_settings.map(|s| s.view_mode) {
+                Some(TableViewModeSetting::Grid) => TableViewMode::Grid,
+                _ => TableViewMode::List,
+            };
+            let view_mode = cx.new(|_| initial_view_mode);
+            let grid_scroll_handle = UniformListScrollHandle::new();
+
             let sort_method = cx.new(|_| None);
             let scroll_handle = UniformListScrollHandle::new();
 
             if let Some(offset) = initial_scroll_offset {
                 scroll_handle
+                    .0
+                    .borrow()
+                    .base_handle
+                    .set_offset(gpui::Point {
+                        x: px(0.0),
+                        y: px(-offset),
+                    });
+
+                grid_scroll_handle
                     .0
                     .borrow()
                     .base_handle
@@ -107,6 +141,8 @@ where
 
                 this.views = cx.new(|_| FxHashMap::default());
                 this.render_counter = cx.new(|_| 0);
+                this.grid_views = cx.new(|_| FxHashMap::default());
+                this.grid_render_counter = cx.new(|_| 0);
                 this.items = items;
 
                 cx.notify();
@@ -116,7 +152,20 @@ where
             cx.observe(&columns, |this: &mut Table<T, C>, _, cx| {
                 this.views = cx.new(|_| FxHashMap::default());
                 this.render_counter = cx.new(|_| 0);
+                this.grid_views = cx.new(|_| FxHashMap::default());
+                this.grid_render_counter = cx.new(|_| 0);
 
+                let settings = this.get_settings(cx);
+                let table_settings_model = cx.global::<Models>().table_settings.clone();
+                table_settings_model.update(cx, |map, _| {
+                    map.insert(T::get_table_name().to_string(), settings);
+                });
+
+                cx.notify();
+            })
+            .detach();
+
+            cx.observe(&view_mode, |this: &mut Table<T, C>, _, cx| {
                 let settings = this.get_settings(cx);
                 let table_settings_model = cx.global::<Models>().table_settings.clone();
                 table_settings_model.update(cx, |map, _| {
@@ -134,6 +183,8 @@ where
 
                     this.views = cx.new(|_| FxHashMap::default());
                     this.render_counter = cx.new(|_| 0);
+                    this.grid_views = cx.new(|_| FxHashMap::default());
+                    this.grid_render_counter = cx.new(|_| 0);
                     this.items = items;
 
                     cx.notify();
@@ -146,6 +197,10 @@ where
                 hidden_column_widths,
                 views,
                 render_counter,
+                grid_views,
+                grid_render_counter,
+                view_mode,
+                grid_scroll_handle,
                 items,
                 sort_method,
                 on_select,
@@ -154,8 +209,11 @@ where
         })
     }
 
-    pub fn get_scroll_offset(&self) -> f32 {
-        let offset = self.scroll_handle.0.borrow().base_handle.offset();
+    pub fn get_scroll_offset(&self, cx: &App) -> f32 {
+        let offset = match *self.view_mode.read(cx) {
+            TableViewMode::List => self.scroll_handle.0.borrow().base_handle.offset(),
+            TableViewMode::Grid => self.grid_scroll_handle.0.borrow().base_handle.offset(),
+        };
         (-offset.y).into()
     }
 
@@ -277,6 +335,10 @@ where
         TableSettings {
             column_widths,
             hidden_columns,
+            view_mode: match *self.view_mode.read(cx) {
+                TableViewMode::List => TableViewModeSetting::List,
+                TableViewMode::Grid => TableViewModeSetting::Grid,
+            },
         }
     }
 
@@ -296,6 +358,12 @@ where
         let items = self.items.clone();
         let views_model = self.views.clone();
         let render_counter = self.render_counter.clone();
+
+        let grid_views_model = self.grid_views.clone();
+        let grid_render_counter = self.grid_render_counter.clone();
+        let view_mode = *self.view_mode.read(cx);
+        let grid_scroll_handle = self.grid_scroll_handle.clone();
+
         let columns = self.columns.clone();
         let handler = self.on_select.clone();
         let scroll_handle = self.scroll_handle.clone();
@@ -414,7 +482,6 @@ where
             }
         }
 
-        // column vis menu
         let all_columns = C::all_columns();
         let mut column_menu = menu();
         for col in all_columns {
@@ -439,33 +506,79 @@ where
             .with(header)
             .child(div().bg(theme.elevated_background).child(column_menu));
 
-        div()
-            .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 100))
-            .id(T::get_table_name())
-            .overflow_x_scroll()
-            .flex()
-            .flex_col()
+        let title_bar = div()
             .w_full()
-            .h_full()
+            .pb(px(11.0))
+            .px(px(16.0))
+            .flex()
+            .justify_between()
+            .items_center()
             .child(
                 div()
-                    .w_full()
-                    .pb(px(11.0))
-                    .px(px(16.0))
                     .line_height(px(26.0))
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(26.0))
                     .child(T::get_table_name()),
             )
-            .child(header_with_context)
-            .when_some(items, |this, items| {
-                this.child(
+            .when(T::supports_grid_view(), |div_el| {
+                let is_grid = view_mode == TableViewMode::Grid;
+
+                div_el.child(
                     div()
+                        .flex()
+                        .gap_1()
+                        .child(
+                            nav_button("list_toggle", if !is_grid { LIST } else { LIST_INACTIVE })
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.view_mode.update(cx, |mode, cx| {
+                                        *mode = TableViewMode::List;
+                                        cx.notify();
+                                    });
+                                }))
+                                .when(!is_grid, |this| {
+                                    this.bg(theme.nav_button_pressed)
+                                        .border_color(theme.nav_button_pressed_border)
+                                }),
+                        )
+                        .child(
+                            nav_button("grid_toggle", if is_grid { GRID } else { GRID_INACTIVE })
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.view_mode.update(cx, |mode, cx| {
+                                        *mode = TableViewMode::Grid;
+                                        cx.notify();
+                                    });
+                                }))
+                                .when(is_grid, |this| {
+                                    this.bg(theme.nav_button_pressed)
+                                        .border_color(theme.nav_button_pressed_border)
+                                }),
+                        ),
+                )
+            });
+
+        div()
+            .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 100))
+            .id(T::get_table_name())
+            .overflow_x_scroll()
+            .overflow_y_hidden()
+            .flex()
+            .flex_col()
+            .w_full()
+            .h_full()
+            .child(title_bar)
+            .when(view_mode == TableViewMode::List, |this| {
+                this.child(header_with_context)
+            })
+            .when_some(items, |this, items| {
+                let items_len = items.len();
+
+                this.child(match view_mode {
+                    TableViewMode::List => div()
                         .relative()
                         .w_full()
                         .h_full()
                         .child(
-                            uniform_list("table-list", items.len(), move |range, _, cx| {
+                            uniform_list("table-list", items_len, move |range, _, cx| {
                                 let start = range.start;
                                 let is_templ_render = range.start == 0 && range.end == 1;
 
@@ -507,7 +620,63 @@ where
                             scroll_handle,
                             RightPad::Pad,
                         )),
-                )
+                    TableViewMode::Grid => {
+                        let min_item_width = 160.0;
+                        let gap = 0.0;
+                        let grid_padding = 8.0;
+
+                        div()
+                            .relative()
+                            .w_full()
+                            .flex()
+                            .h_full()
+                            .border_t_1()
+                            .border_color(theme.border_color)
+                            .px(px(grid_padding))
+                            .overflow_y_hidden()
+                            .child(
+                                uniform_grid(
+                                    "grid-list",
+                                    items_len,
+                                    grid_scroll_handle.clone(),
+                                    move |idx, _, cx| {
+                                        prune_views(
+                                            &grid_views_model,
+                                            &grid_render_counter,
+                                            idx,
+                                            cx,
+                                        );
+
+                                        let item_id = items[idx].clone();
+
+                                        let view = create_or_retrieve_view(
+                                            &grid_views_model,
+                                            idx,
+                                            |cx| {
+                                                grid_item::GridItem::new(
+                                                    cx,
+                                                    item_id,
+                                                    handler.clone(),
+                                                )
+                                                .unwrap()
+                                            },
+                                            cx,
+                                        );
+
+                                        div().size_full().child(view).into_any_element()
+                                    },
+                                )
+                                .min_item_width(px(min_item_width))
+                                .gap(px(gap))
+                                .py(px(grid_padding)),
+                            )
+                            .child(floating_scrollbar(
+                                "grid-scrollbar",
+                                grid_scroll_handle,
+                                RightPad::Pad,
+                            ))
+                    }
+                })
             })
     }
 }

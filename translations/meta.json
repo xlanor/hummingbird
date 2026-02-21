@@ -181,7 +181,7 @@
   },
   "COLUMN_ALBUM": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:184",
+    "definedIn": "src/library/types/table.rs:201",
     "plural": false,
     "description": null
   },
@@ -211,7 +211,7 @@
   },
   "COLUMN_LENGTH": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:186",
+    "definedIn": "src/library/types/table.rs:203",
     "plural": false,
     "description": null
   },
@@ -529,7 +529,7 @@
   },
   "TABLE_TRACKS": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:209",
+    "definedIn": "src/library/types/table.rs:226",
     "plural": false,
     "description": null
   },
@@ -547,7 +547,7 @@
   },
   "TRACK_NUMBER": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:182",
+    "definedIn": "src/library/types/table.rs:199",
     "plural": false,
     "description": null
   },

@@ -323,7 +323,7 @@ impl Render for Queue {
                     .child(
                         div()
                             .w_full()
-                            .pt(px(9.0))
+                            .pt(px(12.0))
                             .pb(px(12.0))
                             .px(px(12.0))
                             .flex()

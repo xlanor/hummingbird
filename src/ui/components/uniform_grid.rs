@@ -1,0 +1,317 @@
+use gpui::{
+    AnyElement, App, AvailableSpace, Bounds, ContentMask, Element, ElementId, GlobalElementId,
+    Hitbox, InspectorElementId, InteractiveElement, Interactivity, IntoElement, LayoutId, Overflow,
+    Pixels, Point, StatefulInteractiveElement, UniformListScrollHandle, Window, point, px,
+    relative, size,
+};
+use smallvec::SmallVec;
+use std::{cmp, rc::Rc};
+
+const DEFAULT_MIN_ITEM_WIDTH: f32 = 160.0;
+const DEFAULT_ITEM_EXTRA_HEIGHT: f32 = 50.0;
+const DEFAULT_OVERSCAN_ROWS: usize = 1;
+
+pub struct UniformGrid {
+    item_count: usize,
+    scroll_handle: UniformListScrollHandle,
+    min_item_width: Pixels,
+    gap: Pixels,
+    top_padding: Pixels,
+    bottom_padding: Pixels,
+    item_extra_height: Pixels,
+    overscan_rows: usize,
+    interactivity: Interactivity,
+    render_item: Rc<dyn Fn(usize, &mut Window, &mut App) -> AnyElement>,
+}
+
+pub struct UniformGridFrameState {
+    items: SmallVec<[AnyElement; 64]>,
+}
+
+#[derive(Clone, Copy)]
+struct GridMetrics {
+    columns: usize,
+    item_width: Pixels,
+    item_height: Pixels,
+    row_stride: Pixels,
+    row_count: usize,
+}
+
+impl UniformGrid {
+    pub fn new(
+        id: impl Into<ElementId>,
+        item_count: usize,
+        scroll_handle: UniformListScrollHandle,
+        render_item: impl Fn(usize, &mut Window, &mut App) -> AnyElement + 'static,
+    ) -> Self {
+        let mut interactivity = Interactivity::new();
+        interactivity.element_id = Some(id.into());
+        interactivity.base_style.overflow.y = Some(Overflow::Scroll);
+
+        let mut this = Self {
+            item_count,
+            scroll_handle,
+            min_item_width: px(DEFAULT_MIN_ITEM_WIDTH),
+            gap: px(0.0),
+            top_padding: px(0.0),
+            bottom_padding: px(0.0),
+            item_extra_height: px(DEFAULT_ITEM_EXTRA_HEIGHT),
+            overscan_rows: DEFAULT_OVERSCAN_ROWS,
+            interactivity,
+            render_item: Rc::new(render_item),
+        };
+
+        let base_handle = this.scroll_handle.0.borrow().base_handle.clone();
+        this = this.track_scroll(&base_handle);
+
+        this
+    }
+
+    pub fn min_item_width(mut self, width: Pixels) -> Self {
+        self.min_item_width = width;
+        self
+    }
+
+    pub fn gap(mut self, gap: Pixels) -> Self {
+        self.gap = gap;
+        self
+    }
+
+    pub fn py(mut self, padding: Pixels) -> Self {
+        let padding = padding.max(px(0.0));
+        self.top_padding = padding;
+        self.bottom_padding = padding;
+        self
+    }
+
+    fn compute_metrics(&self, viewport_width: Pixels) -> GridMetrics {
+        let width = viewport_width.max(px(0.0));
+        let gap = self.gap.max(px(0.0));
+        let min_item_width = self.min_item_width.max(px(1.0));
+
+        let columns = (((width + gap) / (min_item_width + gap)).floor().max(1.0)) as usize;
+        let item_width = if columns > 1 {
+            (width - (columns.saturating_sub(1) as f32) * gap) / columns as f32
+        } else {
+            width
+        }
+        .max(px(0.0));
+
+        let item_height = item_width + self.item_extra_height;
+        let row_stride = item_height + gap;
+        let row_count = self.item_count.div_ceil(columns.max(1));
+
+        GridMetrics {
+            columns,
+            item_width,
+            item_height,
+            row_stride,
+            row_count,
+        }
+    }
+
+    fn content_size_for(&self, bounds: Bounds<Pixels>) -> gpui::Size<Pixels> {
+        let metrics = self.compute_metrics(bounds.size.width);
+        size(
+            bounds.size.width,
+            metrics.row_stride * metrics.row_count + self.top_padding + self.bottom_padding,
+        )
+    }
+}
+
+impl IntoElement for UniformGrid {
+    type Element = Self;
+
+    fn into_element(self) -> Self::Element {
+        self
+    }
+}
+
+impl InteractiveElement for UniformGrid {
+    fn interactivity(&mut self) -> &mut Interactivity {
+        &mut self.interactivity
+    }
+}
+
+impl gpui::StatefulInteractiveElement for UniformGrid {}
+
+impl Element for UniformGrid {
+    type RequestLayoutState = UniformGridFrameState;
+    type PrepaintState = Option<Hitbox>;
+
+    fn source_location(&self) -> Option<&'static std::panic::Location<'static>> {
+        self.interactivity.source_location()
+    }
+
+    fn request_layout(
+        &mut self,
+        id: Option<&GlobalElementId>,
+        inspector_id: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, Self::RequestLayoutState) {
+        let layout_id =
+            self.interactivity
+                .request_layout(id, inspector_id, window, cx, |style, window, cx| {
+                    let mut style = style;
+                    style.size.width = relative(1.).into();
+                    style.size.height = relative(1.).into();
+                    style.flex_grow = 1.0;
+                    style.flex_shrink = 1.0;
+
+                    window.request_layout(style, [], cx)
+                });
+
+        (
+            layout_id,
+            UniformGridFrameState {
+                items: SmallVec::new(),
+            },
+        )
+    }
+
+    fn id(&self) -> Option<ElementId> {
+        self.interactivity.element_id.clone()
+    }
+
+    fn prepaint(
+        &mut self,
+        id: Option<&GlobalElementId>,
+        inspector_id: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        frame_state: &mut Self::RequestLayoutState,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Self::PrepaintState {
+        frame_state.items.clear();
+
+        let item_count = self.item_count;
+        let overscan_rows = self.overscan_rows;
+        let gap = self.gap.max(px(0.0));
+        let top_padding = self.top_padding.max(px(0.0));
+        let render_item = self.render_item.clone();
+        let content_size = self.content_size_for(bounds);
+        let scroll_handle = self.scroll_handle.clone();
+        let metrics_for_bounds = self.compute_metrics(bounds.size.width);
+
+        self.interactivity.prepaint(
+            id,
+            inspector_id,
+            bounds,
+            content_size,
+            window,
+            cx,
+            move |_, mut scroll_offset, hitbox, window, cx| {
+                let metrics = metrics_for_bounds;
+
+                {
+                    let mut state = scroll_handle.0.borrow_mut();
+                    state.last_item_size = Some(gpui::ItemSize {
+                        item: bounds.size,
+                        contents: content_size,
+                    });
+                    state.y_flipped = false;
+                }
+
+                if metrics.row_count == 0 || metrics.row_stride <= px(0.0) {
+                    return hitbox;
+                }
+
+                let min_vertical_scroll_offset = bounds.size.height - content_size.height;
+                if scroll_offset.y < min_vertical_scroll_offset {
+                    scroll_offset.y = min_vertical_scroll_offset;
+                }
+
+                if scroll_offset.y > px(0.0) {
+                    scroll_offset.y = px(0.0);
+                }
+
+                scroll_handle
+                    .0
+                    .borrow()
+                    .base_handle
+                    .set_offset(Point::new(scroll_offset.x, scroll_offset.y));
+
+                let viewport_start = (-scroll_offset.y - top_padding).max(px(0.0));
+                let viewport_end =
+                    (-scroll_offset.y + bounds.size.height - top_padding).max(px(0.0));
+
+                let first_visible_row = (viewport_start / metrics.row_stride).floor() as usize;
+                let last_visible_row = (viewport_end / metrics.row_stride).ceil() as usize;
+
+                let start_row = first_visible_row.saturating_sub(overscan_rows);
+                let end_row = cmp::min(last_visible_row + overscan_rows, metrics.row_count);
+
+                let content_mask = ContentMask { bounds };
+                window.with_content_mask(Some(content_mask), |window| {
+                    for row in start_row..end_row {
+                        let row_y = bounds.origin.y
+                            + top_padding
+                            + metrics.row_stride * row
+                            + scroll_offset.y;
+
+                        for col in 0..metrics.columns {
+                            let idx = row * metrics.columns + col;
+                            if idx >= item_count {
+                                break;
+                            }
+
+                            let origin = point(
+                                bounds.origin.x
+                                    + (metrics.item_width + gap) * col
+                                    + scroll_offset.x,
+                                row_y,
+                            );
+
+                            let mut item = (render_item)(idx, window, cx);
+                            let available_space = size(
+                                AvailableSpace::Definite(metrics.item_width),
+                                AvailableSpace::Definite(metrics.item_height),
+                            );
+
+                            item.layout_as_root(available_space, window, cx);
+                            item.prepaint_at(origin, window, cx);
+                            frame_state.items.push(item);
+                        }
+                    }
+                });
+
+                hitbox
+            },
+        )
+    }
+
+    fn paint(
+        &mut self,
+        id: Option<&GlobalElementId>,
+        inspector_id: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        frame_state: &mut Self::RequestLayoutState,
+        hitbox: &mut Self::PrepaintState,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        self.interactivity.paint(
+            id,
+            inspector_id,
+            bounds,
+            hitbox.as_ref(),
+            window,
+            cx,
+            |_, window, cx| {
+                for item in &mut frame_state.items {
+                    item.paint(window, cx);
+                }
+            },
+        )
+    }
+}
+
+pub fn uniform_grid(
+    id: impl Into<ElementId>,
+    item_count: usize,
+    scroll_handle: UniformListScrollHandle,
+    render_item: impl Fn(usize, &mut Window, &mut App) -> AnyElement + 'static,
+) -> UniformGrid {
+    UniformGrid::new(id, item_count, scroll_handle, render_item)
+}
