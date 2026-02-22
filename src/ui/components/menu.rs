@@ -14,6 +14,7 @@ pub struct MenuItem {
     name: SharedString,
     on_click: ClickEvHandler,
     disabled: bool,
+    never_icon: bool,
 }
 
 impl MenuItem {
@@ -29,11 +30,17 @@ impl MenuItem {
             name: text.into(),
             on_click: Box::new(func),
             disabled: false,
+            never_icon: false,
         }
     }
 
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
+        self
+    }
+
+    pub fn never_icon(mut self) -> Self {
+        self.never_icon = true;
         self
     }
 }
@@ -46,7 +53,11 @@ impl RenderOnce for MenuItem {
             .id(self.id)
             .rounded(px(4.0))
             .flex()
-            .px(px(6.0))
+            .when_else(
+                self.never_icon,
+                |this| this.px(px(8.0)),
+                |this| this.px(px(6.0)),
+            )
             .pt(px(5.0))
             .pb(px(5.0))
             .line_height(rems(1.25))
@@ -55,24 +66,28 @@ impl RenderOnce for MenuItem {
             .border_1()
             .text_sm()
             .font_weight(FontWeight::MEDIUM)
-            .child(
-                div()
-                    .w(px(18.0))
-                    .h(px(18.0))
-                    .mr(px(7.0))
-                    .pt(px(0.5))
-                    .my_auto()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .when_some(self.icon_path, |this, icon_path| {
-                        this.child(icon(icon_path).size(px(18.0)).text_color(if self.disabled {
-                            theme.text_disabled
-                        } else {
-                            theme.text_secondary
-                        }))
-                    }),
-            )
+            .when(!self.never_icon, |this| {
+                this.child(
+                    div()
+                        .w(px(18.0))
+                        .h(px(18.0))
+                        .mr(px(7.0))
+                        .pt(px(0.5))
+                        .my_auto()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .when_some(self.icon_path, |this, icon_path| {
+                            this.child(icon(icon_path).size(px(18.0)).text_color(
+                                if self.disabled {
+                                    theme.text_disabled
+                                } else {
+                                    theme.text_secondary
+                                },
+                            ))
+                        }),
+                )
+            })
             .child(
                 div()
                     .child(self.name)

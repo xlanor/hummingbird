@@ -9,6 +9,7 @@ pub mod input;
 pub mod label;
 pub mod labeled_slider;
 pub mod menu;
+pub mod menu_bar;
 pub mod modal;
 pub mod nav_button;
 pub mod palette;

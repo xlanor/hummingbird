@@ -10,6 +10,7 @@ use crate::{
     services::mmb::lastfm::LASTFM_CREDS,
     ui::components::{
         icons::{FOLDER_CHECK, FOLDER_SEARCH, icon},
+        menu_bar::MenuBar,
         window_header::header,
     },
 };
@@ -18,6 +19,7 @@ use super::{models::Models, theme::Theme};
 
 pub struct Header {
     scan_status: Entity<ScanStatus>,
+    menu_bar: Option<Entity<MenuBar>>,
     lastfm: Option<Entity<lastfm::LastFM>>,
 }
 
@@ -35,6 +37,11 @@ impl Header {
 
         cx.new(|cx| Self {
             scan_status: ScanStatus::new(cx),
+            menu_bar: if cfg!(not(target_os = "macos")) {
+                Some(MenuBar::new(cx, cx.get_menus().unwrap()))
+            } else {
+                None
+            },
             lastfm,
         })
     }
@@ -42,24 +49,13 @@ impl Header {
 
 impl Render for Header {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        let mut header = header().left(self.scan_status.clone()).main_window(true);
+        let mut header = header().main_window(true);
 
-        if cfg!(not(target_os = "macos")) {
-            let title = div()
-                .id("hummingbird-name")
-                .cursor_pointer()
-                .on_mouse_down(MouseButton::Left, |_, window, cx| {
-                    window.prevent_default();
-                    cx.stop_propagation();
-                })
-                .on_click(|_, _, cx| {
-                    let show_about = cx.global::<Models>().show_about.clone();
-                    show_about.write(cx, true);
-                })
-                .child(tr!("APP_NAME"));
-
-            header = header.title(title);
+        if let Some(menu_bar) = self.menu_bar.clone() {
+            header = header.left(menu_bar);
         }
+
+        header = header.left(self.scan_status.clone());
 
         if let Some(lastfm) = self.lastfm.clone() {
             header = header.right(lastfm);
