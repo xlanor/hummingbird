@@ -44,6 +44,8 @@
   "HIDE": "Hide Hummingbird",
   "HIDE_OTHERS": "Hide Others",
   "INTERFACE": "Interface",
+  "INTERFACE_FULL_WIDTH_LIBRARY": "Full-width library",
+  "INTERFACE_FULL_WIDTH_LIBRARY_SUBTEXT": "Allows the library to take up the full width of the screen.",
   "LANGUAGE": "Language",
   "LANGUAGE_SUBTEXT": "Select your preferred language for the application. Changes to the language will take effect after restarting the application.",
   "LANGUAGE_SYSTEM_DEFAULT": "System Default",

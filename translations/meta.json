@@ -85,7 +85,7 @@
   },
   "ACTION_GROUP_PLAYLIST": {
     "context": "library.rs",
-    "definedIn": "src/ui/library.rs:273",
+    "definedIn": "src/ui/library.rs:274",
     "plural": false,
     "description": null
   },
@@ -97,7 +97,7 @@
   },
   "ACTION_IMPORT_PLAYLIST": {
     "context": "library.rs",
-    "definedIn": "src/ui/library.rs:274",
+    "definedIn": "src/ui/library.rs:275",
     "plural": false,
     "description": null
   },
@@ -247,7 +247,7 @@
   },
   "EXPORT_PLAYLIST_TO_M3U": {
     "context": "playlist_view.rs",
-    "definedIn": "src/ui/library/playlist_view.rs:188",
+    "definedIn": "src/ui/library/playlist_view.rs:189",
     "plural": false,
     "description": null
   },
@@ -269,21 +269,33 @@
     "plural": false,
     "description": null
   },
+  "INTERFACE_FULL_WIDTH_LIBRARY": {
+    "context": "interface.rs",
+    "definedIn": "src/ui/settings/interface.rs:141",
+    "plural": false,
+    "description": null
+  },
+  "INTERFACE_FULL_WIDTH_LIBRARY_SUBTEXT": {
+    "context": "interface.rs",
+    "definedIn": "src/ui/settings/interface.rs:144",
+    "plural": false,
+    "description": null
+  },
   "LANGUAGE": {
     "context": "interface.rs",
-    "definedIn": "src/ui/settings/interface.rs:110",
+    "definedIn": "src/ui/settings/interface.rs:129",
     "plural": false,
     "description": null
   },
   "LANGUAGE_SUBTEXT": {
     "context": "interface.rs",
-    "definedIn": "src/ui/settings/interface.rs:112",
+    "definedIn": "src/ui/settings/interface.rs:131",
     "plural": false,
     "description": null
   },
   "LANGUAGE_SYSTEM_DEFAULT": {
     "context": "interface.rs",
-    "definedIn": "src/ui/settings/interface.rs:27",
+    "definedIn": "src/ui/settings/interface.rs:28",
     "plural": false,
     "description": null
   },
@@ -301,13 +313,13 @@
   },
   "PAUSE": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:252",
+    "definedIn": "src/ui/library/release_view.rs:258",
     "plural": false,
     "description": null
   },
   "PLAY": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:254",
+    "definedIn": "src/ui/library/release_view.rs:260",
     "plural": false,
     "description": null
   },
@@ -361,13 +373,13 @@
   },
   "RELEASED_DATE": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:357",
+    "definedIn": "src/ui/library/release_view.rs:363",
     "plural": false,
     "description": null
   },
   "RELEASED_YEAR": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:361",
+    "definedIn": "src/ui/library/release_view.rs:367",
     "plural": false,
     "description": null
   },

@@ -1,6 +1,6 @@
 use album_view::AlbumView;
 use cntp_i18n::tr;
-use gpui::*;
+use gpui::{prelude::FluentBuilder, *};
 use navigation::NavigationView;
 use release_view::ReleaseView;
 use tracing::debug;
@@ -14,6 +14,7 @@ struct ScrollStateStorage {
 
 use crate::ui::{
     command_palette::{Command, CommandManager},
+    components::table::table_data::TABLE_MAX_WIDTH,
     library::{
         playlist_view::{Import, PlaylistView},
         sidebar::Sidebar,
@@ -284,6 +285,9 @@ impl Library {
 
             let show_update_playlist = cx.new(|_| false);
 
+            let settings = cx.global::<crate::settings::SettingsGlobal>().model.clone();
+            cx.observe(&settings, |_, _, cx| cx.notify()).detach();
+
             Library {
                 navigation_view: NavigationView::new(cx, switcher_model.clone()),
                 sidebar: Sidebar::new(cx, switcher_model.clone()),
@@ -298,8 +302,10 @@ impl Library {
 }
 
 impl Render for Library {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let show_update_playlist = self.show_update_playlist.clone();
+        let settings = cx.global::<crate::settings::SettingsGlobal>().model.read(cx);
+        let full_width = settings.interface.full_width_library;
 
         div()
             .id("library")
@@ -345,7 +351,7 @@ impl Render for Library {
             .child(
                 div()
                     .w_full()
-                    .max_w(px(1000.0))
+                    .when(!full_width, |this: Div| this.max_w(px(TABLE_MAX_WIDTH)))
                     .h_full()
                     .flex()
                     .flex_col()

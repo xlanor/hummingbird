@@ -32,6 +32,7 @@ use crate::{
             },
             icons::{CIRCLE_PLUS, PLAY, PLAYLIST, SHUFFLE, STAR, icon},
             scrollbar::{RightPad, ScrollableHandle, floating_scrollbar},
+            table::table_data::TABLE_MAX_WIDTH,
         },
         library::track_listing::{
             ArtistNameVisibility,
@@ -251,6 +252,11 @@ impl Render for PlaylistView {
         }
 
         let theme = cx.global::<Theme>();
+        let settings = cx
+            .global::<crate::settings::SettingsGlobal>()
+            .model
+            .read(cx);
+        let full_width = settings.interface.full_width_library;
 
         div()
             .image_cache(hummingbird_cache(
@@ -269,7 +275,7 @@ impl Render for PlaylistView {
             .flex_col()
             .flex_shrink()
             .overflow_x_hidden()
-            .max_w(px(1000.0))
+            .when(!full_width, |this| this.max_w(px(TABLE_MAX_WIDTH)))
             .h_full()
             .child(
                 div()

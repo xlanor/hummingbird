@@ -1,4 +1,4 @@
-use gpui::*;
+use gpui::{prelude::FluentBuilder, *};
 use tracing::debug;
 
 use crate::{
@@ -6,6 +6,7 @@ use crate::{
     ui::components::{
         icons::{ARROW_LEFT, ARROW_RIGHT},
         nav_button::nav_button,
+        table::table_data::TABLE_MAX_WIDTH,
     },
 };
 
@@ -54,12 +55,18 @@ impl Render for NavigationView {
         let can_go_back = self.view_switcher_model.read(cx).can_go_back();
         let can_go_forward = self.view_switcher_model.read(cx).can_go_forward();
 
+        let settings = cx
+            .global::<crate::settings::SettingsGlobal>()
+            .model
+            .read(cx);
+        let full_width = settings.interface.full_width_library;
+
         div().flex().child(
             div()
                 .flex()
                 .gap(px(4.0))
                 .w_full()
-                .max_w(px(1000.0))
+                .when(!full_width, |this: Div| this.max_w(px(TABLE_MAX_WIDTH)))
                 .mr_auto()
                 .pl(px(10.0))
                 .pt(px(10.0))

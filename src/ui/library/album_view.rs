@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use gpui::*;
+use gpui::{prelude::FluentBuilder, *};
 
 use crate::{
     library::{
@@ -75,13 +75,19 @@ impl AlbumView {
 }
 
 impl Render for AlbumView {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let settings = cx
+            .global::<crate::settings::SettingsGlobal>()
+            .model
+            .read(cx);
+        let full_width = settings.interface.full_width_library;
+
         div()
             .flex()
             .flex_col()
             .w_full()
             .h_full()
-            .max_w(px(TABLE_MAX_WIDTH))
+            .when(!full_width, |this: Div| this.max_w(px(TABLE_MAX_WIDTH)))
             .pt(px(10.0))
             .pb(px(0.0))
             .child(self.table.clone())

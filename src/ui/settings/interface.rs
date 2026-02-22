@@ -7,6 +7,7 @@ use gpui::{
 use crate::{
     settings::{SettingsGlobal, save_settings},
     ui::components::{
+        checkbox::checkbox,
         dropdown::{DropdownOption, DropdownState, dropdown},
         label::label,
         section_header::section_header,
@@ -52,6 +53,7 @@ fn update_language(code: &str) {
 }
 
 pub struct InterfaceSettings {
+    settings: Entity<crate::settings::Settings>,
     language_dropdown: Entity<DropdownState>,
 }
 
@@ -92,14 +94,31 @@ impl InterfaceSettings {
 
         cx.new(|cx| {
             cx.observe(&settings, |_, _, cx| cx.notify()).detach();
-            Self { language_dropdown }
+            Self {
+                settings,
+                language_dropdown,
+            }
         })
+    }
+
+    fn update_interface(
+        &self,
+        cx: &mut App,
+        update: impl FnOnce(&mut crate::settings::interface::InterfaceSettings),
+    ) {
+        self.settings.update(cx, move |settings, cx| {
+            update(&mut settings.interface);
+
+            save_settings(cx, settings);
+            cx.notify();
+        });
     }
 }
 
 impl Render for InterfaceSettings {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let _theme = cx.global::<Theme>();
+        let interface = self.settings.read(cx).interface.clone();
 
         div()
             .flex()
@@ -115,6 +134,28 @@ impl Render for InterfaceSettings {
                     ))
                     .w_full()
                     .child(self.language_dropdown.clone()),
+            )
+            .child(
+                label(
+                    "interface-full-width-library",
+                    tr!("INTERFACE_FULL_WIDTH_LIBRARY", "Full-width library"),
+                )
+                .subtext(tr!(
+                    "INTERFACE_FULL_WIDTH_LIBRARY_SUBTEXT",
+                    "Allows the library to take up the full width of the screen."
+                ))
+                .cursor_pointer()
+                .w_full()
+                .has_checkbox()
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.update_interface(cx, |interface| {
+                        interface.full_width_library = !interface.full_width_library;
+                    });
+                }))
+                .child(checkbox(
+                    "interface-full-width-library-check",
+                    interface.full_width_library,
+                )),
             )
     }
 }

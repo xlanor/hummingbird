@@ -20,6 +20,7 @@ use crate::{
             button::{ButtonIntent, ButtonSize, button},
             icons::{CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE, icon},
             scrollbar::{RightPad, floating_scrollbar},
+            table::table_data::TABLE_MAX_WIDTH,
         },
         global_actions::PlayPause,
         library::track_listing::{ArtistNameVisibility, TrackListing},
@@ -120,6 +121,11 @@ impl Render for ReleaseView {
             });
 
         let scroll_handle = self.scroll_handle.clone();
+        let settings = cx
+            .global::<crate::settings::SettingsGlobal>()
+            .model
+            .read(cx);
+        let full_width = settings.interface.full_width_library;
 
         div()
             .image_cache(hummingbird_cache(("release", self.album.id as u64), 1))
@@ -129,7 +135,7 @@ impl Render for ReleaseView {
             .relative()
             .overflow_hidden()
             .mt(px(10.0))
-            .max_w(px(1000.0))
+            .when(!full_width, |this| this.max_w(px(TABLE_MAX_WIDTH)))
             .child(
                 div()
                     .id("release-view")

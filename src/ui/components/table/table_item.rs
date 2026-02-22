@@ -6,27 +6,12 @@ use rustc_hash::FxBuildHasher;
 
 use super::{
     OnSelectHandler,
-    table_data::{Column, TABLE_IMAGE_COLUMN_WIDTH, TABLE_MAX_WIDTH, TableData, TableDragData},
+    table_data::{Column, TABLE_IMAGE_COLUMN_WIDTH, TableData, TableDragData},
 };
 use crate::ui::{
     components::drag_drop::{AlbumDragData, DragPreview, TrackDragData},
     theme::Theme,
 };
-
-/// Calculates the extra width to add to the final column to fill available space.
-/// This is required so that the table does not just appear to "end" before it logically should.
-fn calculate_final_column_extra_width<C: Column>(
-    columns: &IndexMap<C, f32, FxBuildHasher>,
-    has_images: bool,
-) -> f32 {
-    let total_width: f32 = columns.values().sum();
-    let available_width = if has_images {
-        TABLE_MAX_WIDTH - TABLE_IMAGE_COLUMN_WIDTH
-    } else {
-        TABLE_MAX_WIDTH
-    };
-    (available_width - total_width).max(0.0)
-}
 
 #[derive(Clone)]
 pub struct TableItem<T, C>
@@ -165,7 +150,6 @@ where
         }
 
         if let Some(data) = self.data.as_ref() {
-            let extra_width = calculate_final_column_extra_width(&self.columns, T::has_images());
             let column_count = self.columns.len();
 
             for (i, column_data) in data.iter().enumerate() {
@@ -175,15 +159,11 @@ where
                     .expect("data references column outside of viewed table");
                 let is_last = i == column_count - 1;
                 let base_width = *col.1;
-                let width = if is_last {
-                    base_width + extra_width
-                } else {
-                    base_width
-                };
                 let monospace = T::column_monospace(*col.0);
                 row = row.child(
                     div()
-                        .w(px(width))
+                        .when(!is_last, |this| this.w(px(base_width)))
+                        .when(is_last, |this| this.flex_grow().min_w(px(base_width)))
                         .h(px(36.0))
                         .px(px(12.0))
                         .py(px(6.0))

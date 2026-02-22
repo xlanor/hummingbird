@@ -27,9 +27,7 @@ use column_resize_handle::column_resize_handle;
 use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use table_data::{
-    Column, TABLE_HEADER_GROUP, TABLE_IMAGE_COLUMN_WIDTH, TABLE_MAX_WIDTH, TableData, TableSort,
-};
+use table_data::{Column, TABLE_HEADER_GROUP, TABLE_IMAGE_COLUMN_WIDTH, TableData, TableSort};
 use table_item::TableItem;
 
 type RowMap<T, C> = FxHashMap<usize, Entity<TableItem<T, C>>>;
@@ -368,15 +366,7 @@ where
         let handler = self.on_select.clone();
         let scroll_handle = self.scroll_handle.clone();
 
-        // Calculate available width and extra width for final column expansion
         let columns_read = self.columns.read(cx);
-        let total_width: f32 = columns_read.values().sum();
-        let available_width = if T::has_images() {
-            TABLE_MAX_WIDTH - TABLE_IMAGE_COLUMN_WIDTH
-        } else {
-            TABLE_MAX_WIDTH
-        };
-        let extra_width = (available_width - total_width).max(0.0);
         let column_count = columns_read.len();
         let default_columns = T::default_columns();
 
@@ -406,11 +396,6 @@ where
         for (i, column) in columns_read.iter().enumerate() {
             let is_last = i == column_count - 1;
             let base_width = *column.1;
-            let width = if is_last {
-                base_width + extra_width
-            } else {
-                base_width
-            };
             let column_id = *column.0;
             let default_width = default_columns
                 .get(&column_id)
@@ -421,7 +406,8 @@ where
                 div()
                     .overflow_hidden()
                     .flex()
-                    .w(px(width))
+                    .when(!is_last, |this| this.w(px(base_width)))
+                    .when(is_last, |this| this.flex_grow().min_w(px(base_width)))
                     .h(px(36.0))
                     .px(px(12.0))
                     .py(px(6.0))
@@ -557,7 +543,7 @@ where
             });
 
         div()
-            .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 100))
+            .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 200))
             .id(T::get_table_name())
             .overflow_x_scroll()
             .overflow_y_hidden()
