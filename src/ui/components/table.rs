@@ -543,7 +543,6 @@ where
             });
 
         div()
-            .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 200))
             .id(T::get_table_name())
             .overflow_x_scroll()
             .overflow_y_hidden()
@@ -560,6 +559,7 @@ where
 
                 this.child(match view_mode {
                     TableViewMode::List => div()
+                        .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 200))
                         .relative()
                         .w_full()
                         .h_full()
@@ -607,7 +607,6 @@ where
                             RightPad::Pad,
                         )),
                     TableViewMode::Grid => {
-                        let min_item_width = 160.0;
                         let gap = 0.0;
                         let grid_padding = 8.0;
 
@@ -649,10 +648,16 @@ where
                                             cx,
                                         );
 
-                                        div().size_full().child(view).into_any_element()
+                                        div()
+                                            .image_cache(hummingbird_cache(
+                                                (T::get_table_name(), idx + 1),
+                                                1,
+                                            ))
+                                            .size_full()
+                                            .child(view)
+                                            .into_any_element()
                                     },
                                 )
-                                .min_item_width(px(min_item_width))
                                 .gap(px(gap))
                                 .py(px(grid_padding)),
                             )

@@ -7,7 +7,7 @@ use gpui::{
 use smallvec::SmallVec;
 use std::{cmp, rc::Rc};
 
-const DEFAULT_MIN_ITEM_WIDTH: f32 = 160.0;
+const DEFAULT_MIN_ITEM_WIDTH: f32 = 192.0;
 const DEFAULT_ITEM_EXTRA_HEIGHT: f32 = 50.0;
 const DEFAULT_OVERSCAN_ROWS: usize = 1;
 
