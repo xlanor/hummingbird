@@ -5,9 +5,10 @@ use std::{
 };
 
 use rand::{rng, seq::SliceRandom};
+use tracing::error;
 
 use crate::{
-    playback::{events::RepeatState, queue::QueueItemData},
+    playback::{events::RepeatState, queue::QueueItemData, queue_storage::QueueStorageEvent},
     settings::playback::PlaybackSettings,
 };
 
@@ -109,12 +110,14 @@ pub struct QueueManager {
     /// If queue_next == queue.len(), we're on the last track.
     queue_next: usize,
     repeat: RepeatState,
+    storage_tx: tokio::sync::mpsc::UnboundedSender<QueueStorageEvent>,
 }
 
 impl QueueManager {
     pub fn new(
         queue: Arc<RwLock<Vec<QueueItemData>>>,
         playback_settings: PlaybackSettings,
+        storage_tx: tokio::sync::mpsc::UnboundedSender<QueueStorageEvent>,
     ) -> Self {
         Self {
             repeat: if playback_settings.always_repeat {
@@ -127,6 +130,7 @@ impl QueueManager {
             original_queue: Vec::new(),
             shuffle: false,
             queue_next: 0,
+            storage_tx,
         }
     }
 
@@ -319,8 +323,14 @@ impl QueueManager {
             self.original_queue.push(item.clone());
         }
 
-        queue.push(item);
-        queue.len() - 1
+        queue.push(item.clone());
+
+        let index = queue.len() - 1;
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::Add { item });
+
+        index
     }
 
     /// Add multiple items to the end of the queue.
@@ -338,12 +348,15 @@ impl QueueManager {
         if self.shuffle {
             self.original_queue.extend(items.clone());
 
-            let mut shuffled = items;
+            let mut shuffled = items.clone();
             shuffled.shuffle(&mut rng());
             queue.extend(shuffled);
         } else {
-            queue.extend(items);
+            queue.extend(items.clone());
         }
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::AddList { items });
 
         first_index
     }
@@ -358,7 +371,13 @@ impl QueueManager {
             self.original_queue.push(item.clone());
         }
 
-        queue.insert(insert_pos, item);
+        queue.insert(insert_pos, item.clone());
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::InsertAt {
+            item,
+            position: insert_pos,
+        });
 
         if insert_pos < self.queue_next {
             self.queue_next += 1;
@@ -388,7 +407,13 @@ impl QueueManager {
             self.original_queue.extend(items.clone());
         }
 
-        queue.splice(insert_pos..insert_pos, items);
+        queue.splice(insert_pos..insert_pos, items.clone());
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::InsertListAt {
+            items,
+            position: insert_pos,
+        });
 
         if insert_pos < self.queue_next {
             self.queue_next += items_len;
@@ -422,7 +447,7 @@ impl QueueManager {
 
         let current = self.queue_next.saturating_sub(1);
 
-        if index == current {
+        let res = if index == current {
             let new_path = queue.get(current).map(|v| v.get_path().clone());
             DequeueResult::RemovedCurrent { new_path }
         } else if index < current {
@@ -434,7 +459,12 @@ impl QueueManager {
             DequeueResult::Removed {
                 new_position: current,
             }
-        }
+        };
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::Remove { index });
+
+        res
     }
 
     /// Move an item from one position to another.
@@ -454,7 +484,7 @@ impl QueueManager {
 
         let current = self.queue_next.saturating_sub(1);
 
-        if from == current {
+        let res = if from == current {
             // Moved the current track
             self.queue_next = to + 1;
             MoveResult::MovedCurrent { new_position: to }
@@ -472,7 +502,12 @@ impl QueueManager {
             }
         } else {
             MoveResult::Moved
-        }
+        };
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::Move { from, to });
+
+        res
     }
 
     /// Replace the entire queue with new items.
@@ -485,16 +520,21 @@ impl QueueManager {
             let mut shuffled = items.clone();
             shuffled.shuffle(&mut rng());
 
-            self.original_queue = items;
+            self.original_queue = items.clone();
             *queue = shuffled;
         } else {
             self.original_queue.clear();
-            *queue = items;
+            *queue = items.clone();
         }
+
+        let first_item = queue.first().cloned();
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::Replace { items });
 
         self.queue_next = 0;
 
-        match queue.first().cloned() {
+        match first_item {
             Some(first) => ReplaceResult::Replaced {
                 first_item: Some(first),
             },
@@ -508,6 +548,9 @@ impl QueueManager {
         queue.clear();
         self.original_queue.clear();
         self.queue_next = 0;
+
+        drop(queue);
+        self.send_queuestorage_event(QueueStorageEvent::Clear);
     }
 
     /// Toggle shuffle mode.
@@ -544,6 +587,16 @@ impl QueueManager {
             self.queue_next = new_position + 1;
 
             ShuffleResult::Unshuffled { new_position }
+        }
+    }
+
+    fn send_queuestorage_event(&mut self, event: QueueStorageEvent) {
+        if let Err(e) = self.storage_tx.send(event) {
+            error!("Failed to send queue storage event: {}", e);
+            error!(
+                "The queue storage log may be broken - items may be missing/corrupt on next \
+                    start."
+            );
         }
     }
 }

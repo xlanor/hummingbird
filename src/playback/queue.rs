@@ -5,16 +5,52 @@ use std::path::PathBuf;
 
 use crate::{library::db::LibraryAccess, ui::data::Decode};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct QueueItemData {
     /// The UI data associated with the queue item.
-    data: Entity<Option<QueueItemUIData>>,
+    data: Option<Entity<Option<QueueItemUIData>>>,
     /// The database ID of track the item is from, if it exists.
     db_id: Option<i64>,
     /// The database ID of album the item is from, if it exists.
     db_album_id: Option<i64>,
     /// The path to the track file.
     path: PathBuf,
+}
+
+impl serde::Serialize for QueueItemData {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("QueueItemData", 3)?;
+        state.serialize_field("db_id", &self.db_id)?;
+        state.serialize_field("db_album_id", &self.db_album_id)?;
+        state.serialize_field("path", &self.path)?;
+        state.end()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for QueueItemData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        struct QueueItemDataRaw {
+            db_id: Option<i64>,
+            db_album_id: Option<i64>,
+            path: PathBuf,
+        }
+
+        let raw = QueueItemDataRaw::deserialize(deserializer)?;
+        Ok(QueueItemData {
+            data: None,
+            db_id: raw.db_id,
+            db_album_id: raw.db_album_id,
+            path: raw.path,
+        })
+    }
 }
 
 impl Display for QueueItemData {
@@ -43,6 +79,14 @@ pub enum DataSource {
     Library,
 }
 
+impl PartialEq for QueueItemData {
+    fn eq(&self, other: &Self) -> bool {
+        self.db_id == other.db_id
+            && self.db_album_id == other.db_album_id
+            && self.path == other.path
+    }
+}
+
 impl QueueItemData {
     /// Creates a new `QueueItemData` instance with the given information.
     pub fn new(cx: &mut App, path: PathBuf, db_id: Option<i64>, db_album_id: Option<i64>) -> Self {
@@ -50,14 +94,22 @@ impl QueueItemData {
             path,
             db_id,
             db_album_id,
-            data: cx.new(|_| None),
+            data: Some(cx.new(|_| None)),
+        }
+    }
+
+    /// Helper to lazily initialize the UI data entity if it was deserialized.
+    fn ensure_entity(&mut self, cx: &mut App) {
+        if self.data.is_none() {
+            self.data = Some(cx.new(|_| None));
         }
     }
 
     /// Returns a copy of the UI data after ensuring that the metadata is loaded (or going to be
     /// loaded).
-    pub fn get_data(&self, cx: &mut App) -> Entity<Option<QueueItemUIData>> {
-        let model = self.data.clone();
+    pub fn get_data(&mut self, cx: &mut App) -> Entity<Option<QueueItemUIData>> {
+        self.ensure_entity(cx);
+        let model = self.data.as_ref().unwrap().clone();
         let track_id = self.db_id;
         let album_id = self.db_album_id;
         let path = self.path.clone();
@@ -105,11 +157,13 @@ impl QueueItemData {
 
     /// Drop the UI data from the queue item. This means the data must be retrieved again from disk
     /// if the item is used with get_data again.
-    pub fn drop_data(&self, cx: &mut App) {
-        self.data.update(cx, |m, cx| {
-            *m = None;
-            cx.notify();
-        });
+    pub fn drop_data(&mut self, cx: &mut App) {
+        if let Some(model) = &self.data {
+            model.update(cx, |m, cx| {
+                *m = None;
+                cx.notify();
+            });
+        }
     }
 
     /// Returns the file path of the queue item.

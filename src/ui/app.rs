@@ -178,9 +178,29 @@ pub fn run() -> anyhow::Result<()> {
             find_fonts(cx).expect("unable to load fonts");
             register_actions(cx);
 
-            let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
             let storage = Storage::new(data_dir.join("app_data.json"));
+
+            let queue_file = data_dir.join("queue.jsonl");
+            let initial_queue =
+                crate::playback::queue_storage::QueueStorageWorker::load(&queue_file);
             let storage_data = storage.load_or_default();
+
+            let mut initial_position = None;
+            if let Some(track) = storage_data.current_track.as_ref() {
+                if let Some(pos) = initial_queue
+                    .iter()
+                    .position(|item| item.get_path() == track.get_path())
+                {
+                    initial_position = Some(pos);
+                }
+            }
+
+            let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(initial_queue));
+
+            let (queue_tx, queue_rx) = tokio::sync::mpsc::unbounded_channel();
+            crate::RUNTIME.spawn(
+                crate::playback::queue_storage::QueueStorageWorker::new(queue_file, queue_rx).run(),
+            );
 
             setup_theme(cx, data_dir.join("theme.json"));
             setup_settings(cx, data_dir.join("settings.json"));
@@ -189,7 +209,7 @@ pub fn run() -> anyhow::Result<()> {
                 cx,
                 models::Queue {
                     data: queue.clone(),
-                    position: 0,
+                    position: initial_position.unwrap_or(0),
                 },
                 &storage_data,
             );
@@ -227,16 +247,20 @@ pub fn run() -> anyhow::Result<()> {
             let last_volume = *cx.global::<PlaybackInfo>().volume.read(cx);
 
             let mut playback_interface: PlaybackInterface =
-                PlaybackThread::start(queue, playback_settings, last_volume);
+                PlaybackThread::start(queue.clone(), playback_settings, last_volume, queue_tx);
             playback_interface.start_broadcast(cx);
 
-            if !parse_args_and_prepare(cx, &playback_interface)
-                && let Some(track) = storage_data.current_track
-            {
-                // open current track,
-                playback_interface.open(track.get_path().clone());
-                // but stop it immediately
-                playback_interface.pause();
+            if !parse_args_and_prepare(cx, &playback_interface) {
+                if let Some(pos) = initial_position {
+                    playback_interface.jump_unshuffled(pos);
+                    playback_interface.pause();
+                } else if let Some(track) = storage_data.current_track.as_ref() {
+                    playback_interface.open(track.get_path().clone());
+                    playback_interface.pause();
+                } else if !queue.read().unwrap().is_empty() {
+                    playback_interface.jump_unshuffled(0);
+                    playback_interface.pause();
+                }
             }
             cx.set_global(playback_interface);
 

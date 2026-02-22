@@ -72,7 +72,8 @@ impl QueueItem {
             })
             .detach();
 
-            let data = item.as_ref().unwrap().get_data(cx);
+            let mut item_mut = item.clone();
+            let data = item_mut.as_mut().unwrap().get_data(cx);
 
             cx.observe(&data, |_, _, cx| {
                 cx.notify();
@@ -99,7 +100,7 @@ impl Render for QueueItem {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let data = self
             .item
-            .as_ref()
+            .as_mut()
             .and_then(|item| item.get_data(cx).read(cx).clone());
         let theme = cx.global::<Theme>().clone();
 

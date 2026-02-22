@@ -14,7 +14,8 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tracing::{debug, error, info, warn};
 
 use crate::{
-    media::errors::PlaybackStartError, playback::events::RepeatState,
+    media::errors::PlaybackStartError,
+    playback::{events::RepeatState, queue_storage::QueueStorageEvent},
     settings::playback::PlaybackSettings,
 };
 
@@ -70,6 +71,7 @@ impl PlaybackThread {
         queue: Arc<RwLock<Vec<QueueItemData>>>,
         playback_settings: PlaybackSettings,
         last_volume: f64,
+        storage_tx: UnboundedSender<QueueStorageEvent>,
     ) -> PlaybackInterface {
         let (commands_tx, commands_rx) = unbounded_channel();
         let (events_tx, events_rx) = unbounded_channel();
@@ -77,7 +79,7 @@ impl PlaybackThread {
         std::thread::Builder::new()
             .name("playback".to_string())
             .spawn(move || {
-                let queue_manager = QueueManager::new(queue, playback_settings.clone());
+                let queue_manager = QueueManager::new(queue, playback_settings.clone(), storage_tx);
 
                 let mut thread = PlaybackThread {
                     playback_settings,
@@ -284,7 +286,7 @@ impl PlaybackThread {
 
         // Handle stopped state - start playing from the last track
         if self.state() == PlaybackState::Stopped {
-            if let Some((last, last_index)) = self.queue.last_with_index() {
+            if let Some((last, _)) = self.queue.last_with_index() {
                 let path = last.get_path().clone();
 
                 if let Err(err) = self.open(&path) {
