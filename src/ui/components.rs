@@ -7,6 +7,7 @@ pub mod dropdown;
 pub mod icons;
 pub mod input;
 pub mod label;
+pub mod labeled_slider;
 pub mod menu;
 pub mod modal;
 pub mod nav_button;

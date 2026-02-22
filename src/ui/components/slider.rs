@@ -5,12 +5,14 @@ use gpui::*;
 use crate::ui::theme::Theme;
 
 type ClickHandler = dyn FnMut(f32, &mut Window, &mut App);
+type DoubleClickHandler = dyn FnMut(&mut Window, &mut App);
 
 pub struct Slider {
     pub(self) id: Option<ElementId>,
     pub(self) style: StyleRefinement,
     pub(self) value: f32,
     pub(self) on_change: Option<Rc<RefCell<ClickHandler>>>,
+    pub(self) on_double_click: Option<Rc<RefCell<DoubleClickHandler>>>,
     pub(self) hitbox: Option<Hitbox>,
 }
 
@@ -27,6 +29,11 @@ impl Slider {
 
     pub fn on_change(mut self, func: impl FnMut(f32, &mut Window, &mut App) + 'static) -> Self {
         self.on_change = Some(Rc::new(RefCell::new(func)));
+        self
+    }
+
+    pub fn on_double_click(mut self, func: impl FnMut(&mut Window, &mut App) + 'static) -> Self {
+        self.on_double_click = Some(Rc::new(RefCell::new(func)));
         self
     }
 }
@@ -130,6 +137,7 @@ impl Element for Slider {
         ));
 
         if let Some(func) = self.on_change.as_ref() {
+            let on_double_click = self.on_double_click.clone();
             window.with_optional_element_state(
                 id,
                 move |v: Option<Option<Rc<RefCell<bool>>>>, cx| {
@@ -146,6 +154,15 @@ impl Element for Slider {
 
                         window.prevent_default();
                         cx.stop_propagation();
+
+                        if ev.click_count == 2 {
+                            if let Some(on_double_click) = on_double_click.as_ref() {
+                                (on_double_click.borrow_mut())(window, cx);
+                            }
+
+                            (*mouse_in_1.borrow_mut()) = false;
+                            return;
+                        }
 
                         let relative = ev.position - bounds.origin;
                         let relative_x: f32 = relative.x.into();
@@ -175,7 +192,7 @@ impl Element for Slider {
                         (*mouse_in_3.borrow_mut()) = false;
                     });
 
-                    ((), Some(mouse_in))
+                    ((), if id.is_some() { Some(mouse_in) } else { None })
                 },
             )
         }
@@ -188,6 +205,7 @@ pub fn slider() -> Slider {
         style: StyleRefinement::default(),
         value: 0.0,
         on_change: None,
+        on_double_click: None,
         hitbox: None,
     }
 }

@@ -5,11 +5,19 @@ use gpui::{
 };
 
 use crate::{
-    settings::{SettingsGlobal, save_settings},
+    settings::{
+        SettingsGlobal,
+        interface::{
+            DEFAULT_GRID_MIN_ITEM_WIDTH, MAX_GRID_MIN_ITEM_WIDTH, MIN_GRID_MIN_ITEM_WIDTH,
+            clamp_grid_min_item_width,
+        },
+        save_settings,
+    },
     ui::components::{
         checkbox::checkbox,
         dropdown::{DropdownOption, DropdownState, dropdown},
         label::label,
+        labeled_slider::labeled_slider,
         section_header::section_header,
     },
     ui::theme::Theme,
@@ -108,6 +116,8 @@ impl InterfaceSettings {
     ) {
         self.settings.update(cx, move |settings, cx| {
             update(&mut settings.interface);
+            settings.interface.grid_min_item_width =
+                clamp_grid_min_item_width(settings.interface.grid_min_item_width);
 
             save_settings(cx, settings);
             cx.notify();
@@ -119,6 +129,7 @@ impl Render for InterfaceSettings {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let _theme = cx.global::<Theme>();
         let interface = self.settings.read(cx).interface.clone();
+        let settings = self.settings.clone();
 
         div()
             .flex()
@@ -156,6 +167,35 @@ impl Render for InterfaceSettings {
                     "interface-full-width-library-check",
                     interface.full_width_library,
                 )),
+            )
+            .child(
+                label(
+                    "interface-full-width-library",
+                    tr!("INTERFACE_GRID_MIN_ITEM_WIDTH", "Grid item width"),
+                )
+                .subtext(tr!(
+                    "INTERFACE_GRID_MIN_ITEM_WIDTH_SUBTEXT",
+                    "Adjusts the minimum width of items in grid view."
+                ))
+                .w_full()
+                .child(
+                    labeled_slider("interface-grid-min-item-width-slider")
+                        .slider_id("interface-grid-min-item-width-slider-track")
+                        .w(px(250.0))
+                        .min(MIN_GRID_MIN_ITEM_WIDTH)
+                        .max(MAX_GRID_MIN_ITEM_WIDTH)
+                        .default_value(DEFAULT_GRID_MIN_ITEM_WIDTH)
+                        .value(interface.normalized_grid_min_item_width())
+                        .format_value(|v| format!("{v:.0} px").into())
+                        .on_change(move |value, _, cx| {
+                            settings.update(cx, |settings, cx| {
+                                settings.interface.grid_min_item_width =
+                                    clamp_grid_min_item_width(value);
+                                save_settings(cx, settings);
+                                cx.notify();
+                            });
+                        }),
+                ),
             )
     }
 }

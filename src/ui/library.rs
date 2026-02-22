@@ -304,7 +304,10 @@ impl Library {
 impl Render for Library {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let show_update_playlist = self.show_update_playlist.clone();
-        let settings = cx.global::<crate::settings::SettingsGlobal>().model.read(cx);
+        let settings = cx
+            .global::<crate::settings::SettingsGlobal>()
+            .model
+            .read(cx);
         let full_width = settings.interface.full_width_library;
 
         div()

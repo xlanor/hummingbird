@@ -8,6 +8,7 @@ use std::{rc::Rc, sync::Arc};
 
 use crate::{
     settings::storage::{TableSettings, TableViewModeSetting},
+    settings::{SettingsGlobal, interface::clamp_grid_min_item_width},
     ui::{
         caching::hummingbird_cache,
         components::{
@@ -361,6 +362,10 @@ where
         let grid_render_counter = self.grid_render_counter.clone();
         let view_mode = *self.view_mode.read(cx);
         let grid_scroll_handle = self.grid_scroll_handle.clone();
+        let grid_min_item_width = {
+            let settings = cx.global::<SettingsGlobal>().model.read(cx);
+            clamp_grid_min_item_width(settings.interface.grid_min_item_width)
+        };
 
         let columns = self.columns.clone();
         let handler = self.on_select.clone();
@@ -658,6 +663,7 @@ where
                                             .into_any_element()
                                     },
                                 )
+                                .min_item_width(px(grid_min_item_width))
                                 .gap(px(gap))
                                 .py(px(grid_padding)),
                             )
