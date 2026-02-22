@@ -1,7 +1,7 @@
 {
   "ABOUT": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:55",
+    "definedIn": "src/ui/global_actions.rs:59",
     "plural": false,
     "description": null
   },
@@ -253,13 +253,13 @@
   },
   "HIDE": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:62",
+    "definedIn": "src/ui/global_actions.rs:65",
     "plural": false,
     "description": null
   },
   "HIDE_OTHERS": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:63",
+    "definedIn": "src/ui/global_actions.rs:67",
     "plural": false,
     "description": null
   },
@@ -379,7 +379,7 @@
   },
   "QUIT": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:66",
+    "definedIn": "src/ui/global_actions.rs:73",
     "plural": false,
     "description": null
   },
@@ -481,19 +481,19 @@
   },
   "SCAN_COMPLETE_WATCHING": {
     "context": "header.rs",
-    "definedIn": "src/ui/header.rs:130",
+    "definedIn": "src/ui/header.rs:131",
     "plural": false,
     "description": null
   },
   "SCAN_PROGRESS_DISCOVERING": {
     "context": "header.rs",
-    "definedIn": "src/ui/header.rs:113",
+    "definedIn": "src/ui/header.rs:114",
     "plural": false,
     "description": null
   },
   "SCAN_PROGRESS_SCANNING": {
     "context": "header.rs",
-    "definedIn": "src/ui/header.rs:121",
+    "definedIn": "src/ui/header.rs:122",
     "plural": false,
     "description": null
   },
@@ -504,14 +504,14 @@
     "description": null
   },
   "SETTINGS": {
-    "context": "settings.rs",
-    "definedIn": "src/ui/settings.rs:42",
+    "context": "global_actions.rs",
+    "definedIn": "src/ui/global_actions.rs:61",
     "plural": false,
     "description": null
   },
   "SHOW_ALL": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:64",
+    "definedIn": "src/ui/global_actions.rs:71",
     "plural": false,
     "description": null
   },
@@ -601,13 +601,13 @@
   },
   "VIEW": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:71",
+    "definedIn": "src/ui/global_actions.rs:77",
     "plural": false,
     "description": "The View menu. Must *exactly* match the text required by macOS."
   },
   "WINDOW": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:79",
+    "definedIn": "src/ui/global_actions.rs:85",
     "plural": false,
     "description": "The Window menu. Must *exactly* match the text required by macOS."
   }

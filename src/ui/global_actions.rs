@@ -1,11 +1,15 @@
 use cntp_i18n::tr;
-use gpui::{App, KeyBinding, Menu, MenuItem, SharedString, actions};
+use gpui::{App, KeyBinding, actions};
 use tracing::{debug, info};
 
 use crate::{
     library::scan::ScanInterface,
     playback::{interface::PlaybackInterface, thread::PlaybackState},
-    ui::{command_palette::OpenPalette, settings::open_settings_window},
+    ui::{
+        command_palette::OpenPalette,
+        components::menus_builder::{MenuBuilder, MenusBuilder, menu_item, menu_separator},
+        settings::open_settings_window,
+    },
 };
 
 use super::models::{Models, PlaybackInfo};
@@ -48,41 +52,43 @@ pub fn register_actions(cx: &mut App) {
 
     cx.bind_keys([KeyBinding::new("alt-shift-s", ForceScan, None)]);
     cx.bind_keys([KeyBinding::new("space", PlayPause, None)]);
-    cx.set_menus(vec![
-        Menu {
-            name: SharedString::from(tr!("APP_NAME")),
-            items: vec![
-                MenuItem::action(tr!("ABOUT", "About Hummingbird"), About),
-                MenuItem::separator(),
-                MenuItem::submenu(Menu {
-                    name: SharedString::from("Services"),
-                    items: vec![],
-                }),
-                MenuItem::separator(),
-                MenuItem::action(tr!("HIDE", "Hide Hummingbird"), HideSelf),
-                MenuItem::action(tr!("HIDE_OTHERS", "Hide Others"), HideOthers),
-                MenuItem::action(tr!("SHOW_ALL", "Show All"), ShowAll),
-                MenuItem::separator(),
-                MenuItem::action(tr!("QUIT", "Quit Hummingbird"), Quit),
-            ],
-        },
-        Menu {
-            name: SharedString::from(tr!(
+
+    MenusBuilder::new()
+        .add_menu(
+            MenuBuilder::new(tr!("APP_NAME"))
+                .add_item(menu_item(tr!("ABOUT", "About Hummingbird"), About, false))
+                .add_item(menu_separator(false))
+                .add_item(menu_item(tr!("SETTINGS", "Settings"), Settings, false))
+                .add_item(menu_separator(true))
+                .add_item(MenuBuilder::new("Services").macos_only(true).build_item())
+                .add_item(menu_separator(true))
+                .add_item(menu_item(tr!("HIDE", "Hide Hummingbird"), HideSelf, true))
+                .add_item(menu_item(
+                    tr!("HIDE_OTHERS", "Hide Others"),
+                    HideOthers,
+                    true,
+                ))
+                .add_item(menu_item(tr!("SHOW_ALL", "Show All"), ShowAll, true))
+                .add_item(menu_separator(false))
+                .add_item(menu_item(tr!("QUIT", "Quit Hummingbird"), Quit, false)),
+        )
+        .add_menu(
+            MenuBuilder::new(tr!(
                 "VIEW",
                 "View",
-                #description="The View menu. Must *exactly* match the text required by macOS."
-            )),
-            items: vec![],
-        },
-        Menu {
-            name: SharedString::from(tr!(
+                #description = "The View menu. Must *exactly* match the text required by macOS."
+            ))
+            .macos_only(true),
+        )
+        .add_menu(
+            MenuBuilder::new(tr!(
                 "WINDOW",
                 "Window",
-                #description="The Window menu. Must *exactly* match the text required by macOS."
-            )),
-            items: vec![],
-        },
-    ]);
+                #description = "The Window menu. Must *exactly* match the text required by macOS."
+            ))
+            .macos_only(true),
+        )
+        .set(cx);
 }
 
 fn quit(_: &Quit, cx: &mut App) {

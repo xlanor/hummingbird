@@ -38,7 +38,8 @@ impl Header {
         cx.new(|cx| Self {
             scan_status: ScanStatus::new(cx),
             menu_bar: if cfg!(not(target_os = "macos")) {
-                Some(MenuBar::new(cx, cx.get_menus().unwrap()))
+                let menus = cx.get_menus().unwrap();
+                Some(MenuBar::new(cx, menus))
             } else {
                 None
             },
