@@ -15,18 +15,13 @@ pub struct Label {
     text: SharedString,
     subtext: Option<SharedString>,
     group: Option<SharedString>,
-    vertical: bool,
     on_click: Option<ClickEvHandler>,
     children: SmallVec<[AnyElement; 2]>,
+    has_checkbox: bool,
     div: Div,
 }
 
 impl Label {
-    pub fn vertical(mut self) -> Self {
-        self.vertical = true;
-        self
-    }
-
     pub fn subtext(mut self, subtext: impl Into<SharedString>) -> Self {
         self.subtext = Some(subtext.into());
         self
@@ -42,6 +37,11 @@ impl Label {
         on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(on_click));
+        self
+    }
+
+    pub fn has_checkbox(mut self) -> Self {
+        self.has_checkbox = true;
         self
     }
 }
@@ -67,28 +67,39 @@ impl RenderOnce for Label {
             .flex()
             .overflow_hidden()
             .text_sm()
-            .when_else(
-                self.vertical,
-                |this| this.flex_col().gap(px(6.0)),
-                |this| this.flex_row().gap(px(4.0)),
-            )
-            .children(self.children)
+            .gap(px(6.0))
+            .border_1()
+            .border_color(theme.border_color)
+            .bg(theme.background_secondary)
+            .px(px(12.0))
+            .rounded(px(6.0))
+            .min_h(px(60.0))
+            .py(px(8.0))
             .child(
                 div()
+                    .flex()
                     .overflow_hidden()
-                    .when(!self.vertical, |this| this.my_auto().ml(px(6.0)))
-                    .child(self.text),
+                    .w_full()
+                    .flex_shrink()
+                    .flex_col()
+                    .my_auto()
+                    .child(div().overflow_hidden().child(self.text))
+                    .when_some(self.subtext, |this, that| {
+                        this.child(
+                            div()
+                                .overflow_hidden()
+                                .text_color(theme.text_secondary)
+                                .child(that),
+                        )
+                    }),
             )
-            .when_some(self.subtext, |this, that| {
-                this.child(
-                    div()
-                        .overflow_hidden()
-                        .when(!self.vertical, |this| this.my_auto())
-                        .text_color(theme.text_secondary)
-                        .child(that)
-                        .when(self.vertical, |this| this.my_auto()),
-                )
-            })
+            .child(
+                div()
+                    .my_auto()
+                    .when(self.has_checkbox, |this| this.mr(px(10.0)))
+                    .flex()
+                    .children(self.children),
+            )
             .when_some(self.on_click, |this, on_click| this.on_click(on_click))
     }
 }
@@ -100,8 +111,8 @@ pub fn label(id: impl Into<ElementId>, text: impl Into<SharedString>) -> Label {
         subtext: None,
         group: None,
         children: SmallVec::new(),
+        has_checkbox: false,
         on_click: None,
-        vertical: false,
         div: div(),
     }
 }

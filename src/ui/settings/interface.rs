@@ -113,7 +113,6 @@ impl Render for InterfaceSettings {
                         "Select your preferred language for the application. Changes to the \
                         language will take effect after restarting the application."
                     ))
-                    .vertical()
                     .w_full()
                     .child(self.language_dropdown.clone()),
             )
