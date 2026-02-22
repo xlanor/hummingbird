@@ -58,7 +58,7 @@ pub fn register_actions(cx: &mut App) {
             MenuBuilder::new(tr!("APP_NAME"))
                 .add_item(menu_item(tr!("ABOUT", "About Hummingbird"), About, false))
                 .add_item(menu_separator(false))
-                .add_item(menu_item(tr!("SETTINGS", "Settings"), Settings, false))
+                .add_item(menu_item(tr!("SETTINGS"), Settings, false))
                 .add_item(menu_separator(true))
                 .add_item(MenuBuilder::new("Services").macos_only(true).build_item())
                 .add_item(menu_separator(true))
@@ -78,8 +78,18 @@ pub fn register_actions(cx: &mut App) {
                 "View",
                 #description = "The View menu. Must *exactly* match the text required by macOS."
             ))
-            .macos_only(true),
+            .add_item(menu_item(
+                tr!("COMMAND_PALETTE", "Command Palette"),
+                OpenPalette,
+                false,
+            ))
+            .add_item(menu_item(tr!("SEARCH", "Search"), Search, false)),
         )
+        .add_menu(MenuBuilder::new(tr!("LIBRARY")).add_item(menu_item(
+            tr!("LIBRARY_FORCE_RESCAN", "Rescan Entire Library"),
+            ForceScan,
+            false,
+        )))
         .add_menu(
             MenuBuilder::new(tr!(
                 "WINDOW",

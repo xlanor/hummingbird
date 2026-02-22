@@ -221,6 +221,12 @@
     "plural": false,
     "description": null
   },
+  "COMMAND_PALETTE": {
+    "context": "global_actions.rs",
+    "definedIn": "src/ui/global_actions.rs:82",
+    "plural": false,
+    "description": null
+  },
   "CONNECTED": {
     "context": "lastfm.rs",
     "definedIn": "src/ui/header/lastfm.rs:87",
@@ -314,6 +320,12 @@
   "LIBRARY": {
     "context": "settings.rs",
     "definedIn": "src/ui/settings.rs:144",
+    "plural": false,
+    "description": null
+  },
+  "LIBRARY_FORCE_RESCAN": {
+    "context": "global_actions.rs",
+    "definedIn": "src/ui/global_actions.rs:89",
     "plural": false,
     "description": null
   },
@@ -497,6 +509,12 @@
     "plural": false,
     "description": null
   },
+  "SEARCH": {
+    "context": "global_actions.rs",
+    "definedIn": "src/ui/global_actions.rs:86",
+    "plural": false,
+    "description": null
+  },
   "SELECT_M3U": {
     "context": "playlist.rs",
     "definedIn": "src/library/playlist.rs:157",
@@ -504,8 +522,8 @@
     "description": null
   },
   "SETTINGS": {
-    "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:61",
+    "context": "settings.rs",
+    "definedIn": "src/ui/settings.rs:42",
     "plural": false,
     "description": null
   },
@@ -607,7 +625,7 @@
   },
   "WINDOW": {
     "context": "global_actions.rs",
-    "definedIn": "src/ui/global_actions.rs:85",
+    "definedIn": "src/ui/global_actions.rs:95",
     "plural": false,
     "description": "The Window menu. Must *exactly* match the text required by macOS."
   }
