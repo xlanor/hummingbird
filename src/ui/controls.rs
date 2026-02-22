@@ -617,6 +617,9 @@ impl Render for SecondaryControls {
                                 .rounded(px(3.0))
                                 .id("volume")
                                 .value((volume) as f32)
+                                .on_double_click(|_, cx| {
+                                    cx.global::<PlaybackInterface>().set_volume(1.0_f64);
+                                })
                                 .on_change(move |v, _, cx| {
                                     cx.global::<PlaybackInterface>().set_volume(v as f64);
                                 }),
