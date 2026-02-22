@@ -349,7 +349,7 @@ impl TableData<TrackColumn> for Track {
     }
 
     fn column_monospace(column: TrackColumn) -> bool {
-        matches!(column, TrackColumn::Length | TrackColumn::TrackNumber)
+        false
     }
 
     fn get_element_id(&self) -> impl Into<gpui::ElementId> {
