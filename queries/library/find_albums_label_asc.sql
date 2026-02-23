@@ -14,5 +14,5 @@ FROM
         ORDER BY
             label COLLATE NOCASE ASC,
             catalog_number COLLATE NOCASE ASC,
-            release_date ASC
+            COALESCE(release_date, printf('%04d-01-01', release_year)) DESC,
     );

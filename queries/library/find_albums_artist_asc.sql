@@ -13,5 +13,5 @@ FROM
             JOIN artist a ON p.artist_id = a.id
         ORDER BY
             a.name_sortable COLLATE NOCASE ASC,
-            p.release_date ASC
+            COALESCE(release_date, printf('%04d-01-01', release_year)) DESC,
     );
