@@ -72,17 +72,21 @@ where
 }
 
 pub fn drop_image_from_app(cx: &mut App, image: Arc<RenderImage>) {
-    for window in cx.windows() {
-        let image = image.clone();
+    cx.defer(move |cx| {
+        debug!("attempting image drop");
 
-        debug!("dropping an image from {:?}", window.window_id());
+        for window in cx.windows() {
+            let image = image.clone();
 
-        window
-            .update(cx, move |_, window, _| {
-                window.drop_image(image).expect("bruh");
-            })
-            .expect("couldn't get window");
-    }
+            debug!("dropping an image from {:?}", window.window_id());
+
+            window
+                .update(cx, move |_, window, _| {
+                    window.drop_image(image).expect("couldn't drop image");
+                })
+                .expect("couldn't get window");
+        }
+    });
 }
 
 pub enum MaybeStateful<T> {

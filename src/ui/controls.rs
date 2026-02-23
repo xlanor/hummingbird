@@ -110,11 +110,9 @@ impl InfoSection {
                 this.albumart_actual = image.map(ImageSource::Render);
                 cx.notify();
 
-                cx.defer(move |cx| {
-                    if let Some(ImageSource::Render(img)) = old_image {
-                        drop_image_from_app(cx, img);
-                    }
-                });
+                if let Some(ImageSource::Render(img)) = old_image {
+                    drop_image_from_app(cx, img);
+                }
             })
             .detach();
 
@@ -125,11 +123,9 @@ impl InfoSection {
                 this.albumart_original = image.clone().map(ImageSource::Render);
                 cx.notify();
 
-                cx.defer(move |cx| {
-                    if let Some(ImageSource::Render(img)) = old_image {
-                        drop_image_from_app(cx, img);
-                    }
-                });
+                if let Some(ImageSource::Render(img)) = old_image {
+                    drop_image_from_app(cx, img);
+                }
             })
             .detach();
 
