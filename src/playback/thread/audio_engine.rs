@@ -447,7 +447,8 @@ impl AudioEngine {
         let channel_count = channels.count() as usize;
 
         // Get source format to determine if passthrough is possible
-        let source_format = self.media.sample_format().unwrap_or(SampleFormat::Float32); // Default to f32 if unknown
+        // force into f64 conversion pipeline if format is unknown, should work anyways
+        let source_format = self.media.sample_format().unwrap_or(SampleFormat::Float64);
 
         // Get actual source sample rate from the media file
         let source_rate = self
