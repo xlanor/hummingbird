@@ -72,7 +72,10 @@ async fn insert_album(
 
     let cache_key: AlbumCacheKey = (album.clone(), mbid.clone(), artist_id);
 
-    if !is_force && let Some(&cached_id) = album_cache.get(&cache_key) {
+    if !is_force
+        && image.is_none()
+        && let Some(&cached_id) = album_cache.get(&cache_key)
+    {
         return Ok(Some(cached_id));
     }
 
@@ -93,11 +96,11 @@ async fn insert_album(
     };
 
     match (result, should_force) {
-        (Ok(v), false) => {
+        (Ok(v), false) if image.is_none() => {
             album_cache.insert(cache_key, v.0);
             Ok(Some(v.0))
         }
-        (Err(sqlx::Error::RowNotFound), _) | (Ok(_), true) => {
+        (Err(sqlx::Error::RowNotFound), _) | (Ok(_), _) => {
             let (resized_image, thumb) = match image {
                 Some(image) => {
                     match process_album_art(image) {
@@ -237,11 +240,20 @@ pub async fn update_metadata(
     );
 
     let artist_id = insert_artist(conn, metadata, artist_cache).await?;
+
+    let album_image = if metadata.track_current == Some(1)
+        && (metadata.disc_current == Some(1) || metadata.disc_current == None)
+    {
+        image
+    } else {
+        &None
+    };
+
     let album_id = insert_album(
         conn,
         metadata,
         artist_id,
-        image,
+        album_image,
         is_force,
         force_encountered_albums,
         album_cache,
