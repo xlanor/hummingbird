@@ -1,10 +1,11 @@
 use std::{io::ErrorKind, path::Path, time::SystemTime};
 
-use async_compression::tokio::write::{ZlibDecoder, ZlibEncoder};
+use async_compression::tokio::bufread::ZlibDecoder;
+use async_compression::tokio::write::ZlibEncoder;
 use camino::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tracing::{error, info};
 
 /// The version of the scanning process. If this version number is incremented, a re-scan of all
@@ -33,7 +34,11 @@ impl ScanRecord {
 }
 
 pub async fn load_scan_record(path: &Path) -> ScanRecord {
-    let mut file = match tokio::fs::File::open(path).await.map(ZlibDecoder::new) {
+    let mut file = match tokio::fs::File::open(path)
+        .await
+        .map(BufReader::new)
+        .map(ZlibDecoder::new)
+    {
         Ok(f) => f,
         Err(e) => {
             if e.kind() != ErrorKind::NotFound {
@@ -69,15 +74,21 @@ pub async fn write_scan_record(scan_record: &ScanRecord, path: &Path) {
     };
 
     match postcard::to_allocvec(&scan_record) {
-        Ok(data) => match file.write_all(&data).await {
-            Ok(_) => {
-                info!("Scan record saved successfully");
-            }
-            Err(e) => {
+        Ok(data) => {
+            if let Err(e) = file.write_all(&data).await {
                 error!("Could not write scan record: {:?}", e);
                 error!("Scan record will not be saved, this may cause rescans on restart");
+                return;
             }
-        },
+
+            if let Err(e) = file.shutdown().await {
+                error!("Could not close scan record: {:?}", e);
+                error!("Scan record will not be saved, this may cause rescans on restart");
+                return;
+            }
+
+            info!("Scan record saved successfully");
+        }
         Err(e) => {
             error!("Could not serialize scan record: {:?}", e);
             error!("Scan record will not be saved, this may cause rescans on restart");
