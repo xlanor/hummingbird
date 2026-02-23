@@ -105,6 +105,8 @@ impl RenderOnce for SidebarItem {
 
         self.parent_div
             .flex()
+            .overflow_x_hidden()
+            .w_full()
             .bg(theme.background_primary)
             .text_sm()
             .border_1()
@@ -126,11 +128,26 @@ impl RenderOnce for SidebarItem {
                 this.bg(theme.nav_button_active)
                     .border_color(theme.nav_button_active_border)
             })
-            .when_none(&self.icon, |this| this.child(div().size(px(18.0))))
-            .when_some(self.icon, |this, used_icon| {
-                this.child(icon(used_icon).size(px(18.0)))
+            .when_none(&self.icon, |this| {
+                this.child(div().size(px(18.0)).flex_shrink_0().min_w(px(18.0)))
             })
-            .child(self.children_div)
+            .when_some(self.icon, |this, used_icon| {
+                this.child(
+                    icon(used_icon)
+                        .size(px(18.0))
+                        .flex_shrink_0()
+                        .min_w(px(18.0)),
+                )
+            })
+            .child(
+                self.children_div
+                    .flex_shrink()
+                    .flex_col()
+                    .flex()
+                    .text_ellipsis()
+                    .overflow_x_hidden()
+                    .w_full(),
+            )
     }
 }
 

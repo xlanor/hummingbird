@@ -90,9 +90,19 @@ impl Render for PlaylistList {
                     if playlist.playlist_type == PlaylistType::System
                         && playlist.name.0.as_str() == "Liked Songs"
                     {
-                        div().child(tr!("LIKED_SONGS", "Liked Songs"))
+                        div()
+                            .child(tr!("LIKED_SONGS", "Liked Songs"))
+                            .text_ellipsis()
+                            .flex_shrink()
+                            .overflow_x_hidden()
+                            .w_full()
                     } else {
-                        div().child(playlist.name.clone())
+                        div()
+                            .child(playlist.name.clone())
+                            .text_ellipsis()
+                            .flex_shrink()
+                            .overflow_x_hidden()
+                            .w_full()
                     },
                 )
                 .child(
@@ -100,6 +110,10 @@ impl Render for PlaylistList {
                         .font_weight(FontWeight::NORMAL)
                         .text_color(theme.text_secondary)
                         .text_xs()
+                        .text_ellipsis()
+                        .flex_shrink()
+                        .w_full()
+                        .overflow_x_hidden()
                         .mt(px(2.0))
                         .child(trn!(
                             "PLAYLIST_TRACK_COUNT",
