@@ -135,6 +135,8 @@ impl Render for ReleaseView {
             .relative()
             .overflow_hidden()
             .mt(px(10.0))
+            .border_t_1()
+            .border_color(theme.border_color)
             .when(!full_width, |this| this.max_w(px(TABLE_MAX_WIDTH)))
             .child(
                 div()
@@ -146,6 +148,7 @@ impl Render for ReleaseView {
                     .overflow_x_hidden()
                     .child(
                         div()
+                            .pt(px(18.0))
                             .flex_shrink()
                             .flex()
                             .overflow_x_hidden()

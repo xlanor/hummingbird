@@ -337,13 +337,13 @@
   },
   "PAUSE": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:258",
+    "definedIn": "src/ui/library/release_view.rs:261",
     "plural": false,
     "description": null
   },
   "PLAY": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:260",
+    "definedIn": "src/ui/library/release_view.rs:263",
     "plural": false,
     "description": null
   },
@@ -397,13 +397,13 @@
   },
   "RELEASED_DATE": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:363",
+    "definedIn": "src/ui/library/release_view.rs:366",
     "plural": false,
     "description": null
   },
   "RELEASED_YEAR": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:367",
+    "definedIn": "src/ui/library/release_view.rs:370",
     "plural": false,
     "description": null
   },
