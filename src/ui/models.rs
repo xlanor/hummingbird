@@ -50,6 +50,7 @@ impl EventEmitter<Session> for LastFMState {}
 pub struct Models {
     pub metadata: Entity<Metadata>,
     pub albumart: Entity<Option<Arc<RenderImage>>>,
+    pub albumart_original: Entity<Option<Arc<RenderImage>>>,
     pub queue: Entity<Queue>,
     pub scan_state: Entity<ScanEvent>,
     pub mmbs: Entity<MMBSList>,
@@ -138,6 +139,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     debug!("Building models");
     let metadata: Entity<Metadata> = cx.new(|_| Metadata::default());
     let albumart: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
+    let albumart_original: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
     let queue: Entity<Queue> = cx.new(move |_| queue);
     let scan_state: Entity<ScanEvent> = cx.new(|_| ScanEvent::ScanCompleteIdle);
     let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(FxHashMap::default()));
@@ -168,6 +170,12 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     cx.subscribe(&albumart, |e, ev, cx| {
         let img = ev.0.clone();
         cx.decode_image(img, true, e).detach();
+    })
+    .detach();
+
+    cx.subscribe(&albumart_original, |e, ev, cx| {
+        let img = ev.0.clone();
+        cx.decode_image(img, false, e).detach();
     })
     .detach();
 
@@ -247,6 +255,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     cx.set_global(Models {
         metadata,
         albumart,
+        albumart_original,
         queue,
         scan_state,
         mmbs,

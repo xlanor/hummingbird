@@ -1,17 +1,20 @@
 use crate::{
     playback::{events::RepeatState, interface::PlaybackInterface, thread::PlaybackState},
     settings::SettingsGlobal,
-    ui::components::{
-        context::context,
-        icons::{
-            MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, REPEAT_OFF, REPEAT_ONCE, SHUFFLE,
-            VOLUME, VOLUME_OFF, icon,
+    ui::{
+        components::{
+            context::context,
+            icons::{
+                MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, REPEAT_OFF, REPEAT_ONCE,
+                SHUFFLE, VOLUME, VOLUME_OFF, icon,
+            },
+            menu::{menu, menu_item},
         },
-        menu::{menu, menu_item},
+        util::drop_image_from_app,
     },
 };
 use cntp_i18n::tr;
-use gpui::*;
+use gpui::{Corner, *};
 use prelude::FluentBuilder;
 
 use super::{
@@ -72,7 +75,9 @@ pub struct InfoSection {
     track_name: Option<SharedString>,
     artist_name: Option<SharedString>,
     albumart_actual: Option<ImageSource>,
+    albumart_original: Option<ImageSource>,
     playback_info: PlaybackInfo,
+    is_hovering_art: bool,
 }
 
 impl InfoSection {
@@ -80,6 +85,7 @@ impl InfoSection {
         cx.new(|cx| {
             let metadata_model = cx.global::<Models>().metadata.clone();
             let albumart_model = cx.global::<Models>().albumart.clone();
+            let albumart_original_model = cx.global::<Models>().albumart_original.clone();
             let playback_info = cx.global::<PlaybackInfo>().clone();
 
             cx.observe(&playback_info.playback_state, |_, _, cx| {
@@ -99,9 +105,31 @@ impl InfoSection {
 
             cx.observe(&albumart_model, |this: &mut Self, m, cx| {
                 let image = m.read(cx).clone();
+                let old_image = this.albumart_actual.take();
 
                 this.albumart_actual = image.map(ImageSource::Render);
-                cx.notify()
+                cx.notify();
+
+                cx.defer(move |cx| {
+                    if let Some(ImageSource::Render(img)) = old_image {
+                        drop_image_from_app(cx, img);
+                    }
+                });
+            })
+            .detach();
+
+            cx.observe(&albumart_original_model, |this: &mut Self, m, cx| {
+                let image = m.read(cx).clone();
+                let old_image = this.albumart_original.take();
+
+                this.albumart_original = image.clone().map(ImageSource::Render);
+                cx.notify();
+
+                cx.defer(move |cx| {
+                    if let Some(ImageSource::Render(img)) = old_image {
+                        drop_image_from_app(cx, img);
+                    }
+                });
             })
             .detach();
 
@@ -109,7 +137,9 @@ impl InfoSection {
                 artist_name: None,
                 track_name: None,
                 albumart_actual: None,
+                albumart_original: None,
                 playback_info,
+                is_hovering_art: false,
             }
         })
     }
@@ -145,8 +175,37 @@ impl Render for InfoSection {
                             .w(px(36.0))
                             .h(px(36.0))
                             .mb(px(6.0))
-                            .when(self.albumart_actual.is_some(), |div| {
-                                div.child(
+                            .on_hover(cx.listener(|this, is_hovering: &bool, _, cx| {
+                                if this.is_hovering_art != *is_hovering {
+                                    this.is_hovering_art = *is_hovering;
+                                    cx.notify();
+                                }
+                            }))
+                            .when(self.albumart_actual.is_some(), |this: Stateful<Div>| {
+                                this.when(
+                                    self.is_hovering_art && self.albumart_original.is_some(),
+                                    |this: Stateful<Div>| {
+                                        this.child(
+                                            anchored().anchor(Corner::TopLeft).child(deferred(
+                                                div()
+                                                    .id("album-art-preview")
+                                                    .occlude()
+                                                    .pb(px(26.0))
+                                                    .child(
+                                                        img(self
+                                                            .albumart_original
+                                                            .clone()
+                                                            .unwrap())
+                                                        .w(px(256.0))
+                                                        .h(px(256.0))
+                                                        .rounded(px(10.0))
+                                                        .shadow_md(),
+                                                    ),
+                                            )),
+                                        )
+                                    },
+                                )
+                                .child(
                                     img(self.albumart_actual.clone().unwrap())
                                         .w(px(36.0))
                                         .h(px(36.0))
