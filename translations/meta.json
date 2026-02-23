@@ -169,7 +169,7 @@
   },
   "CLEAR_QUEUE": {
     "context": "queue.rs",
-    "definedIn": "src/ui/queue.rs:351",
+    "definedIn": "src/ui/queue.rs:353",
     "plural": false,
     "description": null
   },
@@ -385,7 +385,7 @@
   },
   "QUEUE_TITLE": {
     "context": "queue.rs",
-    "definedIn": "src/ui/queue.rs:336",
+    "definedIn": "src/ui/queue.rs:338",
     "plural": false,
     "description": null
   },
@@ -415,7 +415,7 @@
   },
   "REMOVE_FROM_QUEUE": {
     "context": "queue.rs",
-    "definedIn": "src/ui/queue.rs:206",
+    "definedIn": "src/ui/queue.rs:208",
     "plural": false,
     "description": null
   },
@@ -535,13 +535,13 @@
   },
   "SHUFFLE": {
     "context": "queue.rs",
-    "definedIn": "src/ui/queue.rs:367",
+    "definedIn": "src/ui/queue.rs:369",
     "plural": false,
     "description": null
   },
   "SHUFFLING": {
     "context": "queue.rs",
-    "definedIn": "src/ui/queue.rs:365",
+    "definedIn": "src/ui/queue.rs:367",
     "plural": false,
     "description": null
   },

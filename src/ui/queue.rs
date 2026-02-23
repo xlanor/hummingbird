@@ -56,7 +56,9 @@ impl QueueItem {
                     let data = item.get_data(cx).read(cx).as_ref().unwrap();
 
                     if let (Some(image), DataSource::Library) = (data.image.clone(), data.source) {
-                        drop_image_from_app(cx, image);
+                        cx.defer(move |cx| {
+                            drop_image_from_app(cx, image);
+                        });
                     }
 
                     item.drop_data(cx);
