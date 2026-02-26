@@ -169,7 +169,7 @@ impl RenderOnce for SidebarSeparator {
 
         div()
             .w_full()
-            .my(px(2.0))
+            .my(px(4.0))
             .border_b_1()
             .border_color(theme.border_color)
     }

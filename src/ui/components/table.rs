@@ -388,7 +388,7 @@ where
                 div()
                     .w(px(TABLE_IMAGE_COLUMN_WIDTH))
                     .h(px(36.0))
-                    .pl(px(21.0))
+                    .pl(px(18.0))
                     .pr(px(10.0))
                     .py(px(2.0))
                     .text_sm()
@@ -418,7 +418,7 @@ where
                     .h(px(36.0))
                     .px(px(12.0))
                     .py(px(6.0))
-                    .when(!T::has_images() && i == 0, |div| div.pl(px(21.0)))
+                    .when(!T::has_images() && i == 0, |div| div.pl(px(18.0)))
                     .text_sm()
                     .flex_shrink_0()
                     .border_b_1()
@@ -501,8 +501,8 @@ where
 
         let title_bar = div()
             .w_full()
-            .pb(px(11.0))
-            .px(px(16.0))
+            .pb(px(10.0))
+            .px(px(18.0))
             .flex()
             .justify_between()
             .items_center()
@@ -511,6 +511,7 @@ where
                     .line_height(px(26.0))
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(26.0))
+                    .pb(px(4.0))
                     .child(T::get_table_name()),
             )
             .when(T::supports_grid_view(), |div_el| {
@@ -615,7 +616,7 @@ where
                         )),
                     TableViewMode::Grid => {
                         let gap = 0.0;
-                        let grid_padding = 8.0;
+                        let grid_padding = 10.0;
 
                         div()
                             .relative()

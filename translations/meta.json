@@ -175,13 +175,13 @@
   },
   "ARTIST_ALBUMS": {
     "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:589",
+    "definedIn": "src/ui/library/artist_detail_view.rs:591",
     "plural": false,
     "description": null
   },
   "ARTIST_LIKED_TRACKS": {
     "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:276",
+    "definedIn": "src/ui/library/artist_detail_view.rs:278",
     "plural": false,
     "description": null
   },

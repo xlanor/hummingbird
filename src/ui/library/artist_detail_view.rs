@@ -262,9 +262,11 @@ impl Render for ArtistDetailView {
         let liked_track_header = if !self.liked_track_items.is_empty() {
             Some(
                 div()
+                    .border_t_1()
+                    .border_color(theme.border_color)
                     .px(px(18.0))
-                    .pt(px(16.0))
-                    .pb(px(4.0))
+                    .pt(px(10.0))
+                    .pb(px(5.0))
                     .flex()
                     .flex_col()
                     .gap(px(10.0))
@@ -426,10 +428,10 @@ impl Render for ArtistDetailView {
                     .id("artist-detail-view")
                     .overflow_y_scroll()
                     .track_scroll(&scroll_handle)
+                    .pb(px(18.0))
                     .w_full()
                     .flex_shrink()
                     .overflow_x_hidden()
-                    // Artist name header
                     .child(
                         div()
                             .pt(px(18.0))
@@ -454,7 +456,7 @@ impl Render for ArtistDetailView {
                                         .gap(px(10.0))
                                         .flex()
                                         .flex_row()
-                                        .pb(px(10.0))
+                                        .pb(px(18.0))
                                         .child(
                                             button()
                                                 .id("artist-play-button")
@@ -577,19 +579,19 @@ impl Render for ArtistDetailView {
                                 cx.emit(ViewSwitchMessage::Release(id.0 as i64));
                             });
                         }));
-                        let grid_padding = 8.0_f32;
 
                         this.child(
                             div()
+                                .border_t_1()
+                                .border_color(theme.border_color)
                                 .px(px(18.0))
-                                .pt(px(8.0))
-                                .mb(px(-6.0))
+                                .pt(px(10.0))
                                 .font_weight(FontWeight::BOLD)
                                 .text_size(px(18.0))
                                 .child(tr!("ARTIST_ALBUMS", "Albums")),
                         )
                         .child(
-                            div().px(px(grid_padding)).w_full().child(
+                            div().px(px(10.0)).pt(px(2.0)).pb(px(10.0)).w_full().child(
                                 uniform_grid(
                                     "artist-albums-grid",
                                     album_count,
@@ -631,7 +633,6 @@ impl Render for ArtistDetailView {
                                 )
                                 .min_item_width(px(grid_min_item_width))
                                 .gap(px(0.0))
-                                .py(px(grid_padding))
                                 .auto_height(),
                             ),
                         )

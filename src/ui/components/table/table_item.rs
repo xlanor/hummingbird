@@ -167,7 +167,7 @@ where
                         .h(px(36.0))
                         .px(px(12.0))
                         .py(px(6.0))
-                        .when(!T::has_images() && i == 0, |div| div.pl(px(21.0)))
+                        .when(!T::has_images() && i == 0, |div| div.pl(px(17.0)))
                         .when(monospace, |div| div.font_family("Roboto Mono"))
                         .text_sm()
                         .flex_shrink_0()
