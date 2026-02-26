@@ -175,13 +175,13 @@
   },
   "ARTIST_ALBUMS": {
     "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:189",
+    "definedIn": "src/ui/library/artist_detail_view.rs:360",
     "plural": false,
     "description": null
   },
   "ARTIST_LIKED_TRACKS": {
     "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:246",
+    "definedIn": "src/ui/library/artist_detail_view.rs:423",
     "plural": false,
     "description": null
   },
@@ -372,14 +372,14 @@
     "description": null
   },
   "PAUSE": {
-    "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:261",
+    "context": "artist_detail_view.rs",
+    "definedIn": "src/ui/library/artist_detail_view.rs:476",
     "plural": false,
     "description": null
   },
   "PLAY": {
-    "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:263",
+    "context": "artist_detail_view.rs",
+    "definedIn": "src/ui/library/artist_detail_view.rs:478",
     "plural": false,
     "description": null
   },

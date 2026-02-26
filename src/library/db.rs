@@ -330,6 +330,22 @@ pub async fn get_liked_tracks_by_artist(
     Ok(tracks)
 }
 
+pub async fn get_all_tracks_by_artist(
+    pool: &SqlitePool,
+    artist_id: i64,
+) -> sqlx::Result<Arc<Vec<Track>>> {
+    let query = include_str!("../../queries/library/find_all_tracks_by_artist.sql");
+
+    let tracks = Arc::new(
+        sqlx::query_as::<_, Track>(query)
+            .bind(artist_id)
+            .fetch_all(pool)
+            .await?,
+    );
+
+    Ok(tracks)
+}
+
 pub async fn get_track_by_id(pool: &SqlitePool, track_id: i64) -> sqlx::Result<Arc<Track>> {
     let query = include_str!("../../queries/library/find_track_by_id.sql");
 
@@ -541,6 +557,7 @@ pub trait LibraryAccess {
     fn list_albums_by_artist(&self, artist_id: i64) -> sqlx::Result<Vec<(u32, String)>>;
     fn get_artist_with_counts(&self, artist_id: i64) -> sqlx::Result<Arc<ArtistWithCounts>>;
     fn get_liked_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>>;
+    fn get_all_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>>;
 }
 
 impl LibraryAccess for App {
@@ -667,5 +684,10 @@ impl LibraryAccess for App {
     fn get_liked_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>> {
         let pool: &Pool = self.global();
         crate::RUNTIME.block_on(get_liked_tracks_by_artist(&pool.0, artist_id))
+    }
+
+    fn get_all_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>> {
+        let pool: &Pool = self.global();
+        crate::RUNTIME.block_on(get_all_tracks_by_artist(&pool.0, artist_id))
     }
 }
