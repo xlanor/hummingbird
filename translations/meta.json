@@ -175,13 +175,13 @@
   },
   "ARTIST_ALBUMS": {
     "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:360",
+    "definedIn": "src/ui/library/artist_detail_view.rs:586",
     "plural": false,
     "description": null
   },
   "ARTIST_LIKED_TRACKS": {
     "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:423",
+    "definedIn": "src/ui/library/artist_detail_view.rs:273",
     "plural": false,
     "description": null
   },
@@ -372,14 +372,14 @@
     "description": null
   },
   "PAUSE": {
-    "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:476",
+    "context": "release_view.rs",
+    "definedIn": "src/ui/library/release_view.rs:261",
     "plural": false,
     "description": null
   },
   "PLAY": {
-    "context": "artist_detail_view.rs",
-    "definedIn": "src/ui/library/artist_detail_view.rs:478",
+    "context": "release_view.rs",
+    "definedIn": "src/ui/library/release_view.rs:263",
     "plural": false,
     "description": null
   },
@@ -584,6 +584,24 @@
   "SIGN_IN": {
     "context": "lastfm.rs",
     "definedIn": "src/ui/header/lastfm.rs:80",
+    "plural": false,
+    "description": null
+  },
+  "SORT_RECENTLY_ADDED": {
+    "context": "artist_detail_view.rs",
+    "definedIn": "src/ui/library/artist_detail_view.rs:129",
+    "plural": false,
+    "description": null
+  },
+  "SORT_RELEASE_ORDER": {
+    "context": "artist_detail_view.rs",
+    "definedIn": "src/ui/library/artist_detail_view.rs:132",
+    "plural": false,
+    "description": null
+  },
+  "SORT_TITLE": {
+    "context": "artist_detail_view.rs",
+    "definedIn": "src/ui/library/artist_detail_view.rs:131",
     "plural": false,
     "description": null
   },

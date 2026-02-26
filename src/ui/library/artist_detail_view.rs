@@ -7,7 +7,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     library::{
-        db::LibraryAccess,
+        db::{LibraryAccess, LikedTrackSortMethod},
         types::{Album, DBString, Track, table::AlbumColumn},
     },
     playback::{
@@ -19,7 +19,8 @@ use crate::{
         caching::hummingbird_cache,
         components::{
             button::{ButtonIntent, ButtonSize, button},
-            icons::{CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE, icon},
+            dropdown::{DropdownOption, DropdownState, dropdown},
+            icons::{CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE, SORT, icon},
             scrollbar::{RightPad, floating_scrollbar},
             table::{grid_item::GridItem, table_data::TABLE_MAX_WIDTH},
             uniform_grid::uniform_grid,
@@ -29,9 +30,7 @@ use crate::{
             ArtistNameVisibility,
             track_item::{TrackItem, TrackItemLeftField},
         },
-        models::Models,
-        models::PlaybackInfo,
-        models::PlaylistEvent,
+        models::{Models, PlaybackInfo, PlaylistEvent},
         theme::Theme,
         util::{create_or_retrieve_view, prune_views},
     },
@@ -51,6 +50,8 @@ pub struct ArtistDetailView {
     grid_views: Entity<FxHashMap<usize, Entity<GridItem<Album, AlbumColumn>>>>,
     grid_render_counter: Entity<usize>,
     nav_model: Entity<super::NavigationHistory>,
+    liked_sort: LikedTrackSortMethod,
+    liked_sort_dropdown: Entity<DropdownState>,
 }
 
 impl ArtistDetailView {
@@ -59,7 +60,7 @@ impl ArtistDetailView {
         artist_id: i64,
         nav_model: Entity<super::NavigationHistory>,
     ) -> Entity<Self> {
-        cx.new(|cx| {
+        let view: Entity<Self> = cx.new(|cx| {
             let artist = cx.get_artist_by_id(artist_id).ok();
             let artist_name = artist.as_ref().and_then(|a| a.name.clone());
 
@@ -70,7 +71,7 @@ impl ArtistDetailView {
                 .unwrap_or_else(|_| Arc::new(Vec::new()));
 
             let liked_tracks = cx
-                .get_liked_tracks_by_artist(artist_id)
+                .get_liked_tracks_by_artist(artist_id, LikedTrackSortMethod::RecentlyAdded)
                 .unwrap_or_else(|_| Arc::new(Vec::new()));
 
             let liked_track_items: Vec<Entity<TrackItem>> = liked_tracks
@@ -94,7 +95,7 @@ impl ArtistDetailView {
             cx.subscribe(&playlist_tracker, move |this: &mut Self, _, ev, cx| {
                 if let PlaylistEvent::PlaylistUpdated(1) = ev {
                     let liked_tracks = cx
-                        .get_liked_tracks_by_artist(artist_id)
+                        .get_liked_tracks_by_artist(artist_id, this.liked_sort)
                         .unwrap_or_else(|_| Arc::new(Vec::new()));
 
                     this.liked_tracks = liked_tracks.clone();
@@ -122,6 +123,18 @@ impl ArtistDetailView {
             let grid_views = cx.new(|_| FxHashMap::default());
             let grid_render_counter = cx.new(|_| 0usize);
 
+            let dropdown_options = vec![
+                DropdownOption::new(
+                    "recently_added",
+                    tr!("SORT_RECENTLY_ADDED", "Recently Added"),
+                ),
+                DropdownOption::new("title", tr!("SORT_TITLE", "Title")),
+                DropdownOption::new("release_order", tr!("SORT_RELEASE_ORDER", "Release Order")),
+            ];
+
+            let focus_handle = cx.focus_handle();
+            let liked_sort_dropdown = dropdown(cx, dropdown_options, 0, focus_handle);
+
             ArtistDetailView {
                 artist_name,
                 album_ids,
@@ -132,8 +145,69 @@ impl ArtistDetailView {
                 grid_views,
                 grid_render_counter,
                 nav_model,
+                liked_sort: LikedTrackSortMethod::RecentlyAdded,
+                liked_sort_dropdown,
             }
-        })
+        });
+
+        let weak_view = view.downgrade();
+        view.update(cx, |this: &mut Self, cx: &mut Context<Self>| {
+            this.liked_sort_dropdown.update(cx, |dropdown: &mut DropdownState, _| {
+                dropdown.set_width(px(200.0));
+                dropdown.set_on_change(move |idx, _, _, cx| {
+                    let sort_method = match idx {
+                        0 => LikedTrackSortMethod::RecentlyAdded,
+                        1 => LikedTrackSortMethod::TitleAsc,
+                        2 => LikedTrackSortMethod::ReleaseOrder,
+                        _ => unreachable!(),
+                    };
+
+                    if let Some(view) = weak_view.upgrade() {
+                        view.update(cx, |this: &mut ArtistDetailView, cx: &mut Context<ArtistDetailView>| {
+                            this.update_liked_sort(sort_method, artist_id, cx);
+                        });
+                    }
+                });
+            });
+        });
+
+        view
+    }
+
+    pub fn update_liked_sort(
+        &mut self,
+        sort_method: LikedTrackSortMethod,
+        artist_id: i64,
+        cx: &mut Context<Self>,
+    ) {
+        if self.liked_sort == sort_method {
+            return;
+        }
+
+        self.liked_sort = sort_method;
+
+        let liked_tracks = cx
+            .get_liked_tracks_by_artist(artist_id, self.liked_sort)
+            .unwrap_or_else(|_| Arc::new(Vec::new()));
+
+        self.liked_tracks = liked_tracks.clone();
+        self.liked_track_items = liked_tracks
+            .iter()
+            .map(|track: &Track| {
+                TrackItem::new(
+                    cx,
+                    track.clone(),
+                    false,
+                    ArtistNameVisibility::OnlyIfDifferent(self.artist_name.clone()),
+                    TrackItemLeftField::Art,
+                    None,
+                    false,
+                    None,
+                )
+            })
+            .collect();
+
+        cx.notify();
     }
 }
 
@@ -181,6 +255,158 @@ impl Render for ArtistDetailView {
                     .iter()
                     .any(|track| current_track == track.location)
             });
+
+        let liked_track_header = if !self.liked_track_items.is_empty() {
+            Some(
+                div()
+                    .px(px(18.0))
+                    .pt(px(16.0))
+                    .pb(px(4.0))
+                    .flex()
+                    .flex_col()
+                    .gap(px(10.0))
+                    .child(
+                        div()
+                            .font_weight(FontWeight::BOLD)
+                            .text_size(px(18.0))
+                            .my_auto()
+                            .child(tr!("ARTIST_LIKED_TRACKS", "Liked Tracks")),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .flex_row()
+                            .justify_between()
+                            .pb(px(13.0))
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_row()
+                                    .gap(px(10.0))
+                                    .child(
+                                        button()
+                                            .id("artist-liked-play-button")
+                                            .size(ButtonSize::Large)
+                                            .font_weight(FontWeight::SEMIBOLD)
+                                            .intent(ButtonIntent::Primary)
+                                            .when(!current_track_in_liked, |this| {
+                                                this.on_click(cx.listener(
+                                                    |this: &mut ArtistDetailView, _, _, cx| {
+                                                        let queue_items = this
+                                                            .liked_tracks
+                                                            .iter()
+                                                            .map(|track| {
+                                                                QueueItemData::new(
+                                                                    cx,
+                                                                    track.location.clone(),
+                                                                    Some(track.id),
+                                                                    track.album_id,
+                                                                )
+                                                            })
+                                                            .collect();
+
+                                                        replace_queue(queue_items, cx)
+                                                    },
+                                                ))
+                                            })
+                                            .when(current_track_in_liked, |button| {
+                                                button.on_click(|_, window, cx| {
+                                                    window.dispatch_action(Box::new(PlayPause), cx);
+                                                })
+                                            })
+                                            .child(
+                                                icon(if current_track_in_liked && is_playing {
+                                                    PAUSE
+                                                } else {
+                                                    PLAY
+                                                })
+                                                .size(px(16.0))
+                                                .my_auto(),
+                                            )
+                                            .child(div().child(
+                                                if current_track_in_liked && is_playing {
+                                                    tr!("PAUSE")
+                                                } else {
+                                                    tr!("PLAY")
+                                                },
+                                            )),
+                                    )
+                                    .child(
+                                        button()
+                                            .id("artist-liked-add-button")
+                                            .size(ButtonSize::Large)
+                                            .flex_none()
+                                            .on_click(cx.listener(
+                                                |this: &mut ArtistDetailView, _, _, cx| {
+                                                    let queue_items = this
+                                                        .liked_tracks
+                                                        .iter()
+                                                        .map(|track| {
+                                                            QueueItemData::new(
+                                                                cx,
+                                                                track.location.clone(),
+                                                                Some(track.id),
+                                                                track.album_id,
+                                                            )
+                                                        })
+                                                        .collect();
+
+                                                    cx.global::<PlaybackInterface>()
+                                                        .queue_list(queue_items);
+                                                },
+                                            ))
+                                            .child(icon(CIRCLE_PLUS).size(px(16.0)).my_auto()),
+                                    )
+                                    .child(
+                                        button()
+                                            .id("artist-liked-shuffle-button")
+                                            .size(ButtonSize::Large)
+                                            .flex_none()
+                                            .on_click(cx.listener(
+                                                |this: &mut ArtistDetailView, _, _, cx| {
+                                                    let queue_items = this
+                                                        .liked_tracks
+                                                        .iter()
+                                                        .map(|track| {
+                                                            QueueItemData::new(
+                                                                cx,
+                                                                track.location.clone(),
+                                                                Some(track.id),
+                                                                track.album_id,
+                                                            )
+                                                        })
+                                                        .collect();
+
+                                                    if !(*cx
+                                                        .global::<PlaybackInfo>()
+                                                        .shuffling
+                                                        .read(cx))
+                                                    {
+                                                        cx.global::<PlaybackInterface>()
+                                                            .toggle_shuffle();
+                                                    }
+
+                                                    replace_queue(queue_items, cx)
+                                                },
+                                            ))
+                                            .child(icon(SHUFFLE).size(px(16.0)).my_auto()),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .gap(px(12.0))
+                                    .items_center()
+                                    .child(
+                                        icon(SORT).text_color(theme.text_secondary).size(px(20.0)),
+                                    )
+                                    .child(self.liked_sort_dropdown.clone()),
+                            ),
+                    ),
+            )
+        } else {
+            None
+        };
 
         div()
             .flex()
@@ -273,9 +499,9 @@ impl Render for ArtistDetailView {
                                                 )
                                                 .child(div().child(
                                                     if current_track_in_artist && is_playing {
-                                                        tr!("PAUSE", "Pause")
+                                                        tr!("PAUSE")
                                                     } else {
-                                                        tr!("PLAY", "Play")
+                                                        tr!("PLAY")
                                                     },
                                                 )),
                                         )
@@ -354,7 +580,7 @@ impl Render for ArtistDetailView {
                             div()
                                 .px(px(18.0))
                                 .pt(px(8.0))
-                                .pb(px(4.0))
+                                .mb(px(-6.0))
                                 .font_weight(FontWeight::BOLD)
                                 .text_size(px(18.0))
                                 .child(tr!("ARTIST_ALBUMS", "Albums")),
@@ -406,142 +632,8 @@ impl Render for ArtistDetailView {
                             ),
                         )
                     })
-                    .when(!self.liked_track_items.is_empty(), |this| {
-                        this.child(
-                            div()
-                                .px(px(18.0))
-                                .pt(px(16.0))
-                                .pb(px(4.0))
-                                .flex()
-                                .flex_col()
-                                .gap(px(10.0))
-                                .child(
-                                    div()
-                                        .font_weight(FontWeight::BOLD)
-                                        .text_size(px(18.0))
-                                        .my_auto()
-                                        .child(tr!("ARTIST_LIKED_TRACKS", "Liked Tracks")),
-                                )
-                                .child(
-                                    div()
-                                        .flex()
-                                        .flex_row()
-                                        .gap(px(10.0))
-                                        .pb(px(10.0))
-                                        .child(
-                                            button()
-                                                .id("artist-liked-play-button")
-                                                .size(ButtonSize::Large)
-                                                .font_weight(FontWeight::SEMIBOLD)
-                                                .intent(ButtonIntent::Primary)
-                                                .when(!current_track_in_liked, |this| {
-                                                    this.on_click(cx.listener(
-                                                        |this: &mut ArtistDetailView, _, _, cx| {
-                                                            let queue_items = this
-                                                                .liked_tracks
-                                                                .iter()
-                                                                .map(|track| {
-                                                                    QueueItemData::new(
-                                                                        cx,
-                                                                        track.location.clone(),
-                                                                        Some(track.id),
-                                                                        track.album_id,
-                                                                    )
-                                                                })
-                                                                .collect();
-
-                                                            replace_queue(queue_items, cx)
-                                                        },
-                                                    ))
-                                                })
-                                                .when(current_track_in_liked, |button| {
-                                                    button.on_click(|_, window, cx| {
-                                                        window.dispatch_action(
-                                                            Box::new(PlayPause),
-                                                            cx,
-                                                        );
-                                                    })
-                                                })
-                                                .child(
-                                                    icon(if current_track_in_liked && is_playing {
-                                                        PAUSE
-                                                    } else {
-                                                        PLAY
-                                                    })
-                                                    .size(px(16.0))
-                                                    .my_auto(),
-                                                )
-                                                .child(div().child(
-                                                    if current_track_in_liked && is_playing {
-                                                        tr!("PAUSE", "Pause")
-                                                    } else {
-                                                        tr!("PLAY", "Play")
-                                                    },
-                                                )),
-                                        )
-                                        .child(
-                                            button()
-                                                .id("artist-liked-add-button")
-                                                .size(ButtonSize::Large)
-                                                .flex_none()
-                                                .on_click(cx.listener(
-                                                    |this: &mut ArtistDetailView, _, _, cx| {
-                                                        let queue_items = this
-                                                            .liked_tracks
-                                                            .iter()
-                                                            .map(|track| {
-                                                                QueueItemData::new(
-                                                                    cx,
-                                                                    track.location.clone(),
-                                                                    Some(track.id),
-                                                                    track.album_id,
-                                                                )
-                                                            })
-                                                            .collect();
-
-                                                        cx.global::<PlaybackInterface>()
-                                                            .queue_list(queue_items);
-                                                    },
-                                                ))
-                                                .child(icon(CIRCLE_PLUS).size(px(16.0)).my_auto()),
-                                        )
-                                        .child(
-                                            button()
-                                                .id("artist-liked-shuffle-button")
-                                                .size(ButtonSize::Large)
-                                                .flex_none()
-                                                .on_click(cx.listener(
-                                                    |this: &mut ArtistDetailView, _, _, cx| {
-                                                        let queue_items = this
-                                                            .liked_tracks
-                                                            .iter()
-                                                            .map(|track| {
-                                                                QueueItemData::new(
-                                                                    cx,
-                                                                    track.location.clone(),
-                                                                    Some(track.id),
-                                                                    track.album_id,
-                                                                )
-                                                            })
-                                                            .collect();
-
-                                                        if !(*cx
-                                                            .global::<PlaybackInfo>()
-                                                            .shuffling
-                                                            .read(cx))
-                                                        {
-                                                            cx.global::<PlaybackInterface>()
-                                                                .toggle_shuffle();
-                                                        }
-
-                                                        replace_queue(queue_items, cx)
-                                                    },
-                                                ))
-                                                .child(icon(SHUFFLE).size(px(16.0)).my_auto()),
-                                        ),
-                                ),
-                        )
-                        .child(
+                    .when_some(liked_track_header, |this, header| {
+                        this.child(header).child(
                             div()
                                 .w_full()
                                 .border_t_1()

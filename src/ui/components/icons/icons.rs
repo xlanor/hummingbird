@@ -45,3 +45,4 @@ pub const GRID_INACTIVE: &str = "!bundled:icons/layout-grid-inactive.svg";
 pub const LIST: &str = "!bundled:icons/layout-list.svg";
 pub const LIST_INACTIVE: &str = "!bundled:icons/layout-list-inactive.svg";
 pub const USERS: &str = "!bundled:icons/users.svg";
+pub const SORT: &str = "!bundled:icons/sort.svg";

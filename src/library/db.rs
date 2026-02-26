@@ -98,6 +98,13 @@ pub enum ArtistSortMethod {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LikedTrackSortMethod {
+    TitleAsc,
+    ReleaseOrder,
+    RecentlyAdded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AlbumMethod {
     FullQuality,
     Thumbnail,
@@ -317,8 +324,19 @@ pub async fn get_artist_with_counts(
 pub async fn get_liked_tracks_by_artist(
     pool: &SqlitePool,
     artist_id: i64,
+    sort_method: LikedTrackSortMethod,
 ) -> sqlx::Result<Arc<Vec<Track>>> {
-    let query = include_str!("../../queries/library/find_liked_tracks_by_artist.sql");
+    let query = match sort_method {
+        LikedTrackSortMethod::TitleAsc => {
+            include_str!("../../queries/library/find_liked_tracks_by_artist_title.sql")
+        }
+        LikedTrackSortMethod::ReleaseOrder => {
+            include_str!("../../queries/library/find_liked_tracks_by_artist_release.sql")
+        }
+        LikedTrackSortMethod::RecentlyAdded => {
+            include_str!("../../queries/library/find_liked_tracks_by_artist_recent.sql")
+        }
+    };
 
     let tracks = Arc::new(
         sqlx::query_as::<_, Track>(query)
@@ -556,7 +574,11 @@ pub trait LibraryAccess {
     fn list_artists(&self, sort_method: ArtistSortMethod) -> sqlx::Result<Vec<i64>>;
     fn list_albums_by_artist(&self, artist_id: i64) -> sqlx::Result<Vec<(u32, String)>>;
     fn get_artist_with_counts(&self, artist_id: i64) -> sqlx::Result<Arc<ArtistWithCounts>>;
-    fn get_liked_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>>;
+    fn get_liked_tracks_by_artist(
+        &self,
+        artist_id: i64,
+        sort_method: LikedTrackSortMethod,
+    ) -> sqlx::Result<Arc<Vec<Track>>>;
     fn get_all_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>>;
 }
 
@@ -681,9 +703,13 @@ impl LibraryAccess for App {
         crate::RUNTIME.block_on(get_artist_with_counts(&pool.0, artist_id))
     }
 
-    fn get_liked_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>> {
+    fn get_liked_tracks_by_artist(
+        &self,
+        artist_id: i64,
+        sort_method: LikedTrackSortMethod,
+    ) -> sqlx::Result<Arc<Vec<Track>>> {
         let pool: &Pool = self.global();
-        crate::RUNTIME.block_on(get_liked_tracks_by_artist(&pool.0, artist_id))
+        crate::RUNTIME.block_on(get_liked_tracks_by_artist(&pool.0, artist_id, sort_method))
     }
 
     fn get_all_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>> {

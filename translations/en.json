@@ -100,6 +100,9 @@
   "SHUFFLE": "Shuffle",
   "SHUFFLING": "Shuffling",
   "SIGN_IN": "Sign in",
+  "SORT_RECENTLY_ADDED": "Recently Added",
+  "SORT_RELEASE_ORDER": "Release Order",
+  "SORT_TITLE": "Title",
   "STATS_TOTAL_LENGTH": {
     "one": "{{count}} minute",
     "other": "{{count}} minutes"

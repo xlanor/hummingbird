@@ -210,8 +210,10 @@ impl Render for DropdownState {
 
         let button = div()
             .id(("dropdown-button", cx.entity_id()))
-            .px(px(9.0))
-            .py(px(5.0))
+            .px(px(12.0))
+            .pt(px(4.0))
+            .pb(px(3.0))
+            .text_sm()
             .bg(theme.button_secondary)
             .border_1()
             .border_color(theme.button_secondary_border)
