@@ -1,7 +1,7 @@
 use gpui::{
     App, Div, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, Pixels,
     RenderOnce, Stateful, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder, px,
+    prelude::FluentBuilder, px, rgba, transparent_black,
 };
 
 use crate::{
@@ -110,6 +110,13 @@ impl RenderOnce for SidebarItem {
             .bg(theme.background_primary)
             .text_sm()
             .border_1()
+            // you may ask: what is even the point of setting the border color to this?
+            // well, for some as of yet unknown reason, leaving this unset OR leaving this set
+            // to transparent_black() results in the hover effects not applying properly.
+            // why? i don't know, it makes no god damn sense
+            //
+            // load bearing color
+            .border_color(theme.background_primary)
             .when(self.active, |div| {
                 div.bg(theme.nav_button_pressed)
                     .border_color(theme.nav_button_pressed_border)
