@@ -18,6 +18,7 @@ actions!(hummingbird, [Quit, About, Search, Settings]);
 actions!(player, [PlayPause, Next, Previous]);
 actions!(scan, [ForceScan]);
 actions!(hummingbird, [HideSelf, HideOthers, ShowAll]);
+actions!(help, [Discord, Patreon, Issues]);
 
 pub fn register_actions(cx: &mut App) {
     debug!("registering actions");
@@ -31,6 +32,9 @@ pub fn register_actions(cx: &mut App) {
     cx.on_action(about);
     cx.on_action(force_scan);
     cx.on_action(open_settings);
+    cx.on_action(discord);
+    cx.on_action(patreon);
+    cx.on_action(issues);
     debug!("actions: {:?}", cx.all_action_names());
     debug!("action available: {:?}", cx.is_action_available(&Quit));
     if cfg!(target_os = "macos") {
@@ -98,6 +102,25 @@ pub fn register_actions(cx: &mut App) {
             ))
             .macos_only(true),
         )
+        .add_menu(
+            MenuBuilder::new(tr!("HELP", "Help"))
+                .add_item(menu_item(
+                    tr!("GITHUB_ISSUES", "Report an Issue"),
+                    Issues,
+                    false,
+                ))
+                .add_item(menu_item(
+                    tr!("DISCORD", "Join us on Discord"),
+                    Discord,
+                    false,
+                ))
+                .add_item(menu_separator(false))
+                .add_item(menu_item(
+                    tr!("PATREON", "Support us on Patreon"),
+                    Patreon,
+                    false,
+                )),
+        )
         .set(cx);
 }
 
@@ -156,4 +179,16 @@ fn force_scan(_: &ForceScan, cx: &mut App) {
 
 fn open_settings(_: &Settings, cx: &mut App) {
     open_settings_window(cx);
+}
+
+fn discord(_: &Discord, cx: &mut App) {
+    cx.open_url("https://discord.gg/cpBnukdjke");
+}
+
+fn patreon(_: &Patreon, cx: &mut App) {
+    cx.open_url("https://www.patreon.com/c/william341");
+}
+
+fn issues(_: &Issues, cx: &mut App) {
+    cx.open_url("https://github.com/hummingbird-player/hummingbird/issues");
 }

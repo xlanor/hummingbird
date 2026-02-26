@@ -1,7 +1,7 @@
 use gpui::{
     App, Div, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, Pixels,
     RenderOnce, Stateful, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder, px, rgba, transparent_black,
+    prelude::FluentBuilder, px,
 };
 
 use crate::{
