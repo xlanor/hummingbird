@@ -1,4 +1,6 @@
 use album_view::AlbumView;
+use artist_detail_view::ArtistDetailView;
+use artist_view::ArtistView;
 use cntp_i18n::tr;
 use gpui::{prelude::FluentBuilder, *};
 use navigation::NavigationView;
@@ -10,6 +12,7 @@ use track_view::TrackView;
 struct ScrollStateStorage {
     album_view_scroll: Option<f32>,
     track_view_scroll: Option<f32>,
+    artist_view_scroll: Option<f32>,
 }
 
 use crate::ui::{
@@ -26,6 +29,8 @@ use super::models::Models;
 
 mod add_to_playlist;
 mod album_view;
+mod artist_detail_view;
+mod artist_view;
 mod navigation;
 mod playlist_view;
 mod release_view;
@@ -142,6 +147,8 @@ enum LibraryView {
     Tracks(Entity<TrackView>),
     Release(Entity<ReleaseView>),
     Playlist(Entity<PlaylistView>),
+    Artists(Entity<ArtistView>),
+    ArtistDetail(Entity<ArtistDetailView>),
 }
 
 pub struct Library {
@@ -158,7 +165,9 @@ pub struct Library {
 pub enum ViewSwitchMessage {
     Albums,
     Tracks,
+    Artists,
     Release(i64),
+    Artist(i64),
     Playlist(i64),
     Back,
     Forward,
@@ -182,7 +191,15 @@ fn make_view(
             model.clone(),
             scroll_state.track_view_scroll,
         )),
+        ViewSwitchMessage::Artists => LibraryView::Artists(ArtistView::new(
+            cx,
+            model.clone(),
+            scroll_state.artist_view_scroll,
+        )),
         ViewSwitchMessage::Release(id) => LibraryView::Release(ReleaseView::new(cx, *id)),
+        ViewSwitchMessage::Artist(id) => {
+            LibraryView::ArtistDetail(ArtistDetailView::new(cx, *id, model.clone()))
+        }
         ViewSwitchMessage::Playlist(id) => LibraryView::Playlist(PlaylistView::new(cx, *id)),
         ViewSwitchMessage::Back => panic!("improper use of make_view (cannot make Back)"),
         ViewSwitchMessage::Forward => panic!("improper use of make_view (cannot make Forward)"),
@@ -211,6 +228,9 @@ impl Library {
                     } else if let LibraryView::Tracks(track_view) = &this.view {
                         let scroll_pos = track_view.read(cx).get_scroll_offset(cx);
                         this.scroll_state.track_view_scroll = Some(scroll_pos);
+                    } else if let LibraryView::Artists(artist_view) = &this.view {
+                        let scroll_pos = artist_view.read(cx).get_scroll_offset(cx);
+                        this.scroll_state.artist_view_scroll = Some(scroll_pos);
                     }
 
                     this.view = match message {
@@ -370,6 +390,10 @@ impl Render for Library {
                         }
                         LibraryView::Playlist(playlist_view) => {
                             playlist_view.clone().into_any_element()
+                        }
+                        LibraryView::Artists(artist_view) => artist_view.clone().into_any_element(),
+                        LibraryView::ArtistDetail(artist_detail_view) => {
+                            artist_detail_view.clone().into_any_element()
                         }
                     }),
             )

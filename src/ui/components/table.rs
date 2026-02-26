@@ -1,5 +1,5 @@
 mod column_resize_handle;
-mod grid_item;
+pub mod grid_item;
 pub mod table_data;
 
 mod table_item;

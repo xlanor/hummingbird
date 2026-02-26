@@ -5,9 +5,9 @@ use gpui::{App, SharedString};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
-use super::{Album, Track};
+use super::{Album, ArtistWithCounts, Track};
 use crate::{
-    library::db::{AlbumMethod, AlbumSortMethod, LibraryAccess, TrackSortMethod},
+    library::db::{AlbumMethod, AlbumSortMethod, ArtistSortMethod, LibraryAccess, TrackSortMethod},
     ui::components::{
         drag_drop::{AlbumDragData, TrackDragData},
         table::table_data::{Column, TableData, TableDragData, TableSort},
@@ -175,7 +175,7 @@ impl TableData<AlbumColumn> for Album {
     }
 
     fn get_grid_content(&self, cx: &mut App) -> Option<(SharedString, Option<SharedString>)> {
-        let title = self.title.0.clone().into();
+        let title = self.title.0.clone();
         let artist = cx
             .get_artist_name_by_id(self.artist_id)
             .ok()
@@ -348,7 +348,7 @@ impl TableData<TrackColumn> for Track {
         false
     }
 
-    fn column_monospace(column: TrackColumn) -> bool {
+    fn column_monospace(_column: TrackColumn) -> bool {
         false
     }
 
@@ -383,5 +383,122 @@ impl TableData<TrackColumn> for Track {
             self.location.clone(),
             self.title.0.clone(),
         )))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum ArtistColumn {
+    Name,
+    Albums,
+    Tracks,
+}
+
+impl Column for ArtistColumn {
+    fn get_column_name(&self) -> SharedString {
+        match self {
+            ArtistColumn::Name => tr!("COLUMN_NAME", "Name").into(),
+            ArtistColumn::Albums => tr!("COLUMN_ALBUMS", "# of Albums").into(),
+            ArtistColumn::Tracks => tr!("COLUMN_TRACKS", "# of Tracks").into(),
+        }
+    }
+
+    fn is_hideable(&self) -> bool {
+        !matches!(self, ArtistColumn::Name)
+    }
+
+    fn all_columns() -> &'static [Self] {
+        &[
+            ArtistColumn::Name,
+            ArtistColumn::Albums,
+            ArtistColumn::Tracks,
+        ]
+    }
+}
+
+impl TableData<ArtistColumn> for ArtistWithCounts {
+    type Identifier = i64;
+
+    fn get_table_name() -> SharedString {
+        tr!("TABLE_ARTISTS", "Artists").into()
+    }
+
+    fn get_rows(
+        cx: &mut gpui::App,
+        sort: Option<TableSort<ArtistColumn>>,
+    ) -> anyhow::Result<Vec<Self::Identifier>> {
+        let sort_method = match sort {
+            Some(TableSort {
+                column: ArtistColumn::Name,
+                ascending: true,
+            }) => ArtistSortMethod::NameAsc,
+            Some(TableSort {
+                column: ArtistColumn::Name,
+                ascending: false,
+            }) => ArtistSortMethod::NameDesc,
+            Some(TableSort {
+                column: ArtistColumn::Albums,
+                ascending: true,
+            }) => ArtistSortMethod::AlbumsAsc,
+            Some(TableSort {
+                column: ArtistColumn::Albums,
+                ascending: false,
+            }) => ArtistSortMethod::AlbumsDesc,
+            Some(TableSort {
+                column: ArtistColumn::Tracks,
+                ascending: true,
+            }) => ArtistSortMethod::TracksAsc,
+            Some(TableSort {
+                column: ArtistColumn::Tracks,
+                ascending: false,
+            }) => ArtistSortMethod::TracksDesc,
+            _ => ArtistSortMethod::NameAsc,
+        };
+
+        Ok(cx.list_artists(sort_method)?)
+    }
+
+    fn get_row(cx: &mut gpui::App, id: Self::Identifier) -> anyhow::Result<Option<Arc<Self>>> {
+        Ok(cx.get_artist_with_counts(id).ok())
+    }
+
+    fn get_column(&self, _cx: &mut App, column: ArtistColumn) -> Option<SharedString> {
+        match column {
+            ArtistColumn::Name => self.name.as_ref().map(|v| v.0.clone()),
+            ArtistColumn::Albums => Some(self.album_count.to_string().into()),
+            ArtistColumn::Tracks => Some(self.track_count.to_string().into()),
+        }
+    }
+
+    fn get_image_path(&self) -> Option<SharedString> {
+        None
+    }
+
+    fn get_full_image_path(&self) -> Option<SharedString> {
+        None
+    }
+
+    fn has_images() -> bool {
+        false
+    }
+
+    fn column_monospace(_column: ArtistColumn) -> bool {
+        false
+    }
+
+    fn get_element_id(&self) -> impl Into<gpui::ElementId> {
+        ("artist", self.id as u32)
+    }
+
+    fn get_table_id(&self) -> Self::Identifier {
+        self.id
+    }
+
+    fn default_columns() -> IndexMap<ArtistColumn, f32, FxBuildHasher> {
+        let s = FxBuildHasher;
+        let mut columns: IndexMap<ArtistColumn, f32, FxBuildHasher> = IndexMap::with_hasher(s);
+        columns.insert(ArtistColumn::Name, 400.0);
+        columns.insert(ArtistColumn::Albums, 150.0);
+        columns.insert(ArtistColumn::Tracks, 150.0);
+        columns
     }
 }

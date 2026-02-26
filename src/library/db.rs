@@ -8,7 +8,7 @@ use sqlx::{
 use tracing::debug;
 
 use crate::{
-    library::types::{Playlist, PlaylistItem, PlaylistWithCount, TrackStats},
+    library::types::{ArtistWithCounts, Playlist, PlaylistItem, PlaylistWithCount, TrackStats},
     ui::app::Pool,
 };
 
@@ -85,6 +85,16 @@ pub enum TrackSortMethod {
     DurationDesc,
     TrackNumberAsc,
     TrackNumberDesc,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ArtistSortMethod {
+    NameAsc,
+    NameDesc,
+    AlbumsAsc,
+    AlbumsDesc,
+    TracksAsc,
+    TracksDesc,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -244,6 +254,80 @@ pub async fn get_artist_by_id(pool: &SqlitePool, artist_id: i64) -> sqlx::Result
     );
 
     Ok(artist)
+}
+
+pub async fn list_artists(
+    pool: &SqlitePool,
+    sort_method: ArtistSortMethod,
+) -> sqlx::Result<Vec<i64>> {
+    let query = match sort_method {
+        ArtistSortMethod::NameAsc => {
+            include_str!("../../queries/library/find_artists_name_asc.sql")
+        }
+        ArtistSortMethod::NameDesc => {
+            include_str!("../../queries/library/find_artists_name_desc.sql")
+        }
+        ArtistSortMethod::AlbumsAsc => {
+            include_str!("../../queries/library/find_artists_albums_asc.sql")
+        }
+        ArtistSortMethod::AlbumsDesc => {
+            include_str!("../../queries/library/find_artists_albums_desc.sql")
+        }
+        ArtistSortMethod::TracksAsc => {
+            include_str!("../../queries/library/find_artists_tracks_asc.sql")
+        }
+        ArtistSortMethod::TracksDesc => {
+            include_str!("../../queries/library/find_artists_tracks_desc.sql")
+        }
+    };
+
+    let artists: Vec<(i64,)> = sqlx::query_as(query).fetch_all(pool).await?;
+
+    Ok(artists.into_iter().map(|r| r.0).collect())
+}
+
+pub async fn list_albums_by_artist(
+    pool: &SqlitePool,
+    artist_id: i64,
+) -> sqlx::Result<Vec<(u32, String)>> {
+    let query = include_str!("../../queries/library/find_albums_by_artist.sql");
+
+    let albums = sqlx::query_as::<_, (u32, String)>(query)
+        .bind(artist_id)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(albums)
+}
+
+pub async fn get_artist_with_counts(
+    pool: &SqlitePool,
+    artist_id: i64,
+) -> sqlx::Result<Arc<ArtistWithCounts>> {
+    let query = include_str!("../../queries/library/find_artist_with_counts_by_id.sql");
+
+    let artist: ArtistWithCounts = sqlx::query_as(query)
+        .bind(artist_id)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(Arc::new(artist))
+}
+
+pub async fn get_liked_tracks_by_artist(
+    pool: &SqlitePool,
+    artist_id: i64,
+) -> sqlx::Result<Arc<Vec<Track>>> {
+    let query = include_str!("../../queries/library/find_liked_tracks_by_artist.sql");
+
+    let tracks = Arc::new(
+        sqlx::query_as::<_, Track>(query)
+            .bind(artist_id)
+            .fetch_all(pool)
+            .await?,
+    );
+
+    Ok(tracks)
 }
 
 pub async fn get_track_by_id(pool: &SqlitePool, track_id: i64) -> sqlx::Result<Arc<Track>> {
@@ -453,6 +537,10 @@ pub trait LibraryAccess {
     fn get_playlist_item(&self, item_id: i64) -> sqlx::Result<PlaylistItem>;
     fn get_track_stats(&self) -> sqlx::Result<Arc<TrackStats>>;
     fn playlist_has_track(&self, playlist_id: i64, track_id: i64) -> sqlx::Result<Option<i64>>;
+    fn list_artists(&self, sort_method: ArtistSortMethod) -> sqlx::Result<Vec<i64>>;
+    fn list_albums_by_artist(&self, artist_id: i64) -> sqlx::Result<Vec<(u32, String)>>;
+    fn get_artist_with_counts(&self, artist_id: i64) -> sqlx::Result<Arc<ArtistWithCounts>>;
+    fn get_liked_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>>;
 }
 
 impl LibraryAccess for App {
@@ -559,5 +647,25 @@ impl LibraryAccess for App {
     fn playlist_has_track(&self, playlist_id: i64, track_id: i64) -> sqlx::Result<Option<i64>> {
         let pool: &Pool = self.global();
         crate::RUNTIME.block_on(playlist_has_track(&pool.0, playlist_id, track_id))
+    }
+
+    fn list_artists(&self, sort_method: ArtistSortMethod) -> sqlx::Result<Vec<i64>> {
+        let pool: &Pool = self.global();
+        crate::RUNTIME.block_on(list_artists(&pool.0, sort_method))
+    }
+
+    fn list_albums_by_artist(&self, artist_id: i64) -> sqlx::Result<Vec<(u32, String)>> {
+        let pool: &Pool = self.global();
+        crate::RUNTIME.block_on(list_albums_by_artist(&pool.0, artist_id))
+    }
+
+    fn get_artist_with_counts(&self, artist_id: i64) -> sqlx::Result<Arc<ArtistWithCounts>> {
+        let pool: &Pool = self.global();
+        crate::RUNTIME.block_on(get_artist_with_counts(&pool.0, artist_id))
+    }
+
+    fn get_liked_tracks_by_artist(&self, artist_id: i64) -> sqlx::Result<Arc<Vec<Track>>> {
+        let pool: &Pool = self.global();
+        crate::RUNTIME.block_on(get_liked_tracks_by_artist(&pool.0, artist_id))
     }
 }

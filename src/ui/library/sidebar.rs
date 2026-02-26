@@ -13,7 +13,7 @@ use crate::{
     library::{db::LibraryAccess, types::TrackStats},
     ui::{
         components::{
-            icons::{DISC, SEARCH},
+            icons::{DISC, SEARCH, USERS},
             nav_button::nav_button,
             resizable_sidebar::{ResizeSide, resizable_sidebar},
             sidebar::{sidebar, sidebar_item, sidebar_separator},
@@ -108,6 +108,23 @@ impl Render for Sidebar {
                             matches!(
                                 current_view,
                                 ViewSwitchMessage::Albums | ViewSwitchMessage::Release(_)
+                            ),
+                            |this| this.active(),
+                        ),
+                )
+                .child(
+                    sidebar_item("artists")
+                        .icon(USERS)
+                        .child(tr!("ARTISTS", "Artists"))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.nav_model.update(cx, |_, cx| {
+                                cx.emit(ViewSwitchMessage::Artists);
+                            });
+                        }))
+                        .when(
+                            matches!(
+                                current_view,
+                                ViewSwitchMessage::Artists | ViewSwitchMessage::Artist(_)
                             ),
                             |this| this.active(),
                         ),

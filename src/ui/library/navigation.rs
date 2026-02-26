@@ -36,6 +36,10 @@ impl NavigationView {
                         .get_album_by_id(id, AlbumMethod::Metadata)
                         .ok()
                         .map(|v| SharedString::from(v.title.clone())),
+                    ViewSwitchMessage::Artist(id) => cx
+                        .get_artist_by_id(id)
+                        .ok()
+                        .and_then(|v| v.name.as_ref().map(|n| n.0.clone())),
                     _ => None,
                 }
             })
