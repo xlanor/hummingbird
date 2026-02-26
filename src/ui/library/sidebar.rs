@@ -41,6 +41,14 @@ impl Sidebar {
             let sidebar_width = cx.global::<Models>().sidebar_width.clone();
             cx.observe(&sidebar_width, |_, _, cx| cx.notify()).detach();
 
+            let scan_state = cx.global::<Models>().scan_state.clone();
+
+            cx.observe(&scan_state, |this: &mut Self, _, cx| {
+                this.track_stats = cx.get_track_stats().unwrap();
+                cx.notify();
+            })
+            .detach();
+
             Self {
                 playlists: PlaylistList::new(cx, nav_model.clone()),
                 track_stats: cx.get_track_stats().unwrap(),
