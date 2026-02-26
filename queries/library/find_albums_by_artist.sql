@@ -1,3 +1,3 @@
 SELECT id, title FROM album
 WHERE artist_id = $1
-ORDER BY sort_date ASC;
+ORDER BY release_date ASC;
