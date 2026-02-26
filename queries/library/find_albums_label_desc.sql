@@ -6,4 +6,4 @@ FROM
 ORDER BY
     label COLLATE NOCASE DESC,
     catalog_number COLLATE NOCASE ASC,
-    sort_date ASC;
+    release_date ASC;

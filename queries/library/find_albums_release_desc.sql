@@ -2,9 +2,9 @@ SELECT
     id,
     title_sortable,
     release_date,
-    release_year
+    date_precision
 FROM
     album
 ORDER BY
-    sort_date DESC,
+    release_date DESC,
     title_sortable COLLATE NOCASE ASC;

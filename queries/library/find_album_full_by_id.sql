@@ -4,7 +4,7 @@ SELECT
     title_sortable,
     artist_id,
     release_date,
-    release_year,
+    date_precision,
     created_at,
     image,
     label,

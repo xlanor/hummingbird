@@ -199,13 +199,13 @@
   },
   "COLUMN_ALBUM": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:231",
+    "definedIn": "src/library/types/table.rs:239",
     "plural": false,
     "description": null
   },
   "COLUMN_ALBUMS": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:430",
+    "definedIn": "src/library/types/table.rs:438",
     "plural": false,
     "description": null
   },
@@ -235,13 +235,13 @@
   },
   "COLUMN_LENGTH": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:233",
+    "definedIn": "src/library/types/table.rs:241",
     "plural": false,
     "description": null
   },
   "COLUMN_NAME": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:429",
+    "definedIn": "src/library/types/table.rs:437",
     "plural": false,
     "description": null
   },
@@ -253,7 +253,7 @@
   },
   "COLUMN_TRACKS": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:431",
+    "definedIn": "src/library/types/table.rs:439",
     "plural": false,
     "description": null
   },
@@ -469,13 +469,13 @@
   },
   "RELEASED_DATE": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:366",
+    "definedIn": "src/ui/library/release_view.rs:370",
     "plural": false,
     "description": null
   },
   "RELEASED_YEAR": {
     "context": "release_view.rs",
-    "definedIn": "src/ui/library/release_view.rs:370",
+    "definedIn": "src/ui/library/release_view.rs:376",
     "plural": false,
     "description": null
   },
@@ -661,13 +661,13 @@
   },
   "TABLE_ARTISTS": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:452",
+    "definedIn": "src/library/types/table.rs:460",
     "plural": false,
     "description": null
   },
   "TABLE_TRACKS": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:256",
+    "definedIn": "src/library/types/table.rs:264",
     "plural": false,
     "description": null
   },
@@ -685,7 +685,7 @@
   },
   "TRACK_NUMBER": {
     "context": "table.rs",
-    "definedIn": "src/library/types/table.rs:229",
+    "definedIn": "src/library/types/table.rs:237",
     "plural": false,
     "description": null
   },

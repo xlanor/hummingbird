@@ -118,10 +118,18 @@ impl TableData<AlbumColumn> for Album {
                 .get_artist_name_by_id(self.artist_id)
                 .ok()
                 .map(|v| (*v).clone().into()),
-            AlbumColumn::Date => self
-                .release_date
-                .map(|date| date.format("%x").to_string().into())
-                .or(self.release_year.map(|v| v.to_string().into())),
+            AlbumColumn::Date => match self.date_precision {
+                Some(1) => self.release_date.as_ref().and_then(|d| {
+                    chrono::NaiveDate::parse_from_str(d.0.as_str(), "%Y-%m-%d")
+                        .ok()
+                        .map(|nd| nd.format("%x").to_string().into())
+                }),
+                Some(0) => self
+                    .release_date
+                    .as_ref()
+                    .map(|d| d.0.as_str()[..4].to_string().into()),
+                _ => None,
+            },
             AlbumColumn::Label => self.label.as_ref().map(|v| v.0.clone()),
             AlbumColumn::CatalogNumber => self.catalog_number.as_ref().map(|v| v.0.clone()),
         }
@@ -200,12 +208,12 @@ impl TableData<AlbumColumn> for Album {
 
         let year_part: Option<String> = self
             .release_date
-            .map(|d| d.format("%Y").to_string())
-            .or(self.release_year.map(|y| y.to_string()));
+            .as_ref()
+            .map(|d| d.0.as_str()[..4].to_string());
 
         let secondary = match (artist_part, year_part) {
             (Some(a), Some(y)) => Some(format!("{} • {}", a, y).into()),
-            (Some(a), None) => Some(a.into()),
+            (Some(a), None) => Some(SharedString::from(a)),
             (None, Some(y)) => Some(SharedString::from(y)),
             (None, None) => None,
         };

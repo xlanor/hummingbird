@@ -346,7 +346,6 @@ impl Render for ReleaseView {
                     .when(
                         self.release_info.is_some()
                             || self.album.release_date.is_some()
-                            || self.album.release_year.is_some()
                             || self.album.isrc.is_some(),
                         |this| {
                             this.child(
@@ -362,12 +361,22 @@ impl Render for ReleaseView {
                                     .when_some(self.release_info.clone(), |this, release_info| {
                                         this.child(div().child(release_info))
                                     })
-                                    .when_some(self.album.release_date, |this, date| {
-                                        this.child(tr!("RELEASED_DATE", "Released {{date}}", date:date("YMD", length="long")=date))
-                                    })
-                                    .when_some(self.album.release_year, |this, year| {
-                                        // TODO: fix this to use proper numerals
-                                        this.child(tr!("RELEASED_YEAR", "Released {{year}}", year=year.to_string()))
+                                    .when_some(self.album.release_date.as_ref().zip(self.album.date_precision), |this, (date, precision)| {
+                                        match precision {
+                                            1 => {
+                                                if let Ok(nd) = chrono::NaiveDate::parse_from_str(date.0.as_str(), "%Y-%m-%d") {
+                                                    let dt = nd.and_hms_opt(0, 0, 0).unwrap();
+                                                    let utc = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(dt, chrono::Utc);
+                                                    this.child(tr!("RELEASED_DATE", "Released {{date}}", date:date("YMD", length="long")=utc))
+                                                } else {
+                                                    this
+                                                }
+                                            }
+                                            0 => {
+                                                this.child(tr!("RELEASED_YEAR", "Released {{year}}", year=date.0.as_str()[..4]))
+                                            }
+                                            _ => this,
+                                        }
                                     })
                                     .when_some(self.album.isrc.as_ref(), |this, isrc| {
                                         this.child(div().child(isrc.clone()))

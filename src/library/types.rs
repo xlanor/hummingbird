@@ -191,19 +191,17 @@ pub struct Album {
     pub title_sortable: DBString,
     pub artist_id: i64,
     #[sqlx(default)]
-    pub release_date: Option<DateTime<Utc>>,
+    pub release_date: Option<DBString>,
     #[sqlx(default)]
-    /// Optional year field. If the date field is filled, the year field will be empty. This field
-    /// exists because some tagging software uses the date field as a year field, which cannot be
-    /// handled properly as a date.
-    pub release_year: Option<u16>,
+    /// Date precision: 0 = year only, 1 = full date. None if no date info.
+    pub date_precision: Option<i32>,
     pub created_at: DateTime<Utc>,
     #[sqlx(default)]
     pub image: Option<Box<[u8]>>,
     #[sqlx(default)]
     pub thumb: Option<Thumbnail>,
     #[sqlx(default)]
-    pub image_mime: Option<String>,
+    pub image_mime: Option<DBString>,
     #[sqlx(skip)]
     pub tags: Option<Vec<String>>,
     #[sqlx(default)]
