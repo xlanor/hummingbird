@@ -4,7 +4,7 @@ use gpui::{prelude::FluentBuilder, *};
 
 use super::{
     OnSelectHandler,
-    table_data::{Column, TableData, TableDragData},
+    table_data::{Column, GridContext, TableData, TableDragData},
 };
 use crate::ui::{
     components::drag_drop::{AlbumDragData, DragPreview, TrackDragData},
@@ -34,13 +34,14 @@ where
         cx: &mut App,
         id: T::Identifier,
         on_select: Option<OnSelectHandler<T, C>>,
+        context: GridContext,
     ) -> Option<Entity<Self>> {
         let row = T::get_row(cx, id.clone()).ok().flatten()?;
 
         let element_id = row.get_element_id().into();
         let image_path = row.get_full_image_path().or_else(|| row.get_image_path());
 
-        let grid_content = row.get_grid_content(cx);
+        let grid_content = row.get_grid_content_for(cx, context);
         let (primary_text, secondary_text) = grid_content.unwrap_or(("".into(), None));
 
         Some(cx.new(|_| Self {

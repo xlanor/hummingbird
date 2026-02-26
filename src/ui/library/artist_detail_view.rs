@@ -22,7 +22,10 @@ use crate::{
             dropdown::{DropdownOption, DropdownState, dropdown},
             icons::{CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE, SORT, icon},
             scrollbar::{RightPad, floating_scrollbar},
-            table::{grid_item::GridItem, table_data::TABLE_MAX_WIDTH},
+            table::{
+                grid_item::GridItem,
+                table_data::{GridContext, TABLE_MAX_WIDTH},
+            },
             uniform_grid::uniform_grid,
         },
         global_actions::PlayPause,
@@ -609,6 +612,7 @@ impl Render for ArtistDetailView {
                                                     cx,
                                                     item_id,
                                                     handler.clone(),
+                                                    GridContext::Standalone,
                                                 )
                                                 .unwrap()
                                             },

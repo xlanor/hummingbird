@@ -52,6 +52,15 @@ where
     pub ascending: bool,
 }
 
+/// Context in which a grid item is being displayed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GridContext {
+    /// Inside a Table component
+    Table,
+    /// Standalone / outside table
+    Standalone,
+}
+
 /// The TableData trait defines the interface for retrieving, sorting, and listing data for a table.
 /// Implementing this trait allows a table to display data in a structured manner.
 pub trait TableData<C>: Sized
@@ -117,5 +126,16 @@ where
     /// Returns a tuple of (Primary string, Optional Secondary string).
     fn get_grid_content(&self, _cx: &mut App) -> Option<(SharedString, Option<SharedString>)> {
         None
+    }
+
+    /// Retrieves the content for the grid item in a given context.
+    /// Returns a tuple of (Primary string, Optional Secondary string).
+    /// By default, delegates to `get_grid_content`.
+    fn get_grid_content_for(
+        &self,
+        cx: &mut App,
+        _context: GridContext,
+    ) -> Option<(SharedString, Option<SharedString>)> {
+        self.get_grid_content(cx)
     }
 }

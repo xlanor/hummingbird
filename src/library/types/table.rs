@@ -10,7 +10,7 @@ use crate::{
     library::db::{AlbumMethod, AlbumSortMethod, ArtistSortMethod, LibraryAccess, TrackSortMethod},
     ui::components::{
         drag_drop::{AlbumDragData, TrackDragData},
-        table::table_data::{Column, TableData, TableDragData, TableSort},
+        table::table_data::{Column, GridContext, TableData, TableDragData, TableSort},
     },
 };
 
@@ -181,6 +181,36 @@ impl TableData<AlbumColumn> for Album {
             .ok()
             .map(|v| (*v).clone().into());
         Some((title, artist))
+    }
+
+    fn get_grid_content_for(
+        &self,
+        cx: &mut App,
+        context: GridContext,
+    ) -> Option<(SharedString, Option<SharedString>)> {
+        let title = self.title.0.clone();
+
+        let artist_part: Option<String> = match context {
+            GridContext::Table => cx
+                .get_artist_name_by_id(self.artist_id)
+                .ok()
+                .map(|v| (*v).to_string()),
+            GridContext::Standalone => None,
+        };
+
+        let year_part: Option<String> = self
+            .release_date
+            .map(|d| d.format("%Y").to_string())
+            .or(self.release_year.map(|y| y.to_string()));
+
+        let secondary = match (artist_part, year_part) {
+            (Some(a), Some(y)) => Some(format!("{} • {}", a, y).into()),
+            (Some(a), None) => Some(a.into()),
+            (None, Some(y)) => Some(SharedString::from(y)),
+            (None, None) => None,
+        };
+
+        Some((title, secondary))
     }
 }
 

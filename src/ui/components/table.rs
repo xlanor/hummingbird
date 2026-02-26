@@ -28,7 +28,9 @@ use column_resize_handle::column_resize_handle;
 use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use table_data::{Column, TABLE_HEADER_GROUP, TABLE_IMAGE_COLUMN_WIDTH, TableData, TableSort};
+use table_data::{
+    Column, GridContext, TABLE_HEADER_GROUP, TABLE_IMAGE_COLUMN_WIDTH, TableData, TableSort,
+};
 use table_item::TableItem;
 
 type RowMap<T, C> = FxHashMap<usize, Entity<TableItem<T, C>>>;
@@ -647,6 +649,7 @@ where
                                                     cx,
                                                     item_id,
                                                     handler.clone(),
+                                                    GridContext::Table,
                                                 )
                                                 .unwrap()
                                             },
