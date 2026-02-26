@@ -27,7 +27,7 @@ use crate::ui::{
 
 use super::models::Models;
 
-mod add_to_playlist;
+pub mod add_to_playlist;
 mod album_view;
 mod artist_detail_view;
 mod artist_view;

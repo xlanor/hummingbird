@@ -3,7 +3,7 @@ use std::sync::Arc;
 use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString, Styled,
-    Window, div, px,
+    Window, anchored, div, px,
 };
 use nucleo::Utf32String;
 
@@ -176,7 +176,7 @@ impl Render for AddToPlaylist {
                 })
                 .into_any_element()
         } else {
-            div().into_any_element()
+            anchored().into_any_element()
         }
     }
 }

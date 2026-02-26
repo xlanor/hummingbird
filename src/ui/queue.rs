@@ -1,22 +1,26 @@
 use crate::{
+    library::db::LibraryAccess,
     playback::{
         interface::PlaybackInterface,
         queue::{DataSource, QueueItemData},
     },
     settings::storage::DEFAULT_QUEUE_WIDTH,
-    ui::components::{
-        context::context,
-        drag_drop::{
-            AlbumDragData, DragData, DragDropItemState, DragDropListConfig, DragDropListManager,
-            DragPreview, DropIndicator, TrackDragData, calculate_drop_target, check_drag_cancelled,
-            continue_edge_scroll, get_edge_scroll_direction, handle_drag_move, handle_drop,
-            perform_edge_scroll,
+    ui::{
+        components::{
+            context::context,
+            drag_drop::{
+                AlbumDragData, DragData, DragDropItemState, DragDropListConfig,
+                DragDropListManager, DragPreview, DropIndicator, TrackDragData,
+                calculate_drop_target, check_drag_cancelled, continue_edge_scroll,
+                get_edge_scroll_direction, handle_drag_move, handle_drop, perform_edge_scroll,
+            },
+            icons::{CROSS, DISC, PLAYLIST_ADD, PLUS, SHUFFLE, TRASH, USERS, icon},
+            menu::{menu, menu_item, menu_separator},
+            nav_button::nav_button,
+            resizable_sidebar::{ResizeSide, resizable_sidebar},
+            scrollbar::{RightPad, ScrollableHandle, floating_scrollbar},
         },
-        icons::{CROSS, SHUFFLE, TRASH, icon},
-        menu::{menu, menu_item},
-        nav_button::nav_button,
-        resizable_sidebar::{ResizeSide, resizable_sidebar},
-        scrollbar::{RightPad, ScrollableHandle, floating_scrollbar},
+        library::{ViewSwitchMessage, add_to_playlist::AddToPlaylist},
     },
 };
 use cntp_i18n::tr;
@@ -41,6 +45,8 @@ pub struct QueueItem {
     current: usize,
     idx: usize,
     drag_drop_manager: Entity<DragDropListManager>,
+    add_to: Option<Entity<AddToPlaylist>>,
+    show_add_to: Entity<bool>,
 }
 
 impl QueueItem {
@@ -73,6 +79,7 @@ impl QueueItem {
             .detach();
 
             let mut item_mut = item.clone();
+            let track_id = item_mut.as_ref().and_then(|item| item.get_db_id());
             let data = item_mut.as_mut().unwrap().get_data(cx);
 
             cx.observe(&data, |_, _, cx| {
@@ -86,11 +93,20 @@ impl QueueItem {
             })
             .detach();
 
+            let show_add_to = cx.new(|_| false);
+            let add_to = Some(AddToPlaylist::new(
+                cx,
+                show_add_to.clone(),
+                track_id.unwrap(),
+            ));
+
             Self {
                 item,
                 idx,
                 current: queue.read(cx).position,
                 drag_drop_manager,
+                add_to,
+                show_add_to,
             }
         })
     }
@@ -98,13 +114,13 @@ impl QueueItem {
 
 impl Render for QueueItem {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let data = self
-            .item
-            .as_mut()
-            .and_then(|item| item.get_data(cx).read(cx).clone());
+        let data = self.item.as_mut();
+        let album_id = data.as_ref().and_then(|item| item.get_db_album_id());
+        let ui_data = data.and_then(|item| item.get_data(cx).read(cx).clone());
         let theme = cx.global::<Theme>().clone();
+        let show_add_to = self.show_add_to.clone();
 
-        if let Some(item) = data.as_ref() {
+        if let Some(item) = ui_data.as_ref() {
             let is_current = self.current == self.idx;
             let album_art = item.image.as_ref().cloned();
             let idx = self.idx;
@@ -150,6 +166,7 @@ impl Render for QueueItem {
                         .drag_over::<DragData>(move |style, _, _, _| {
                             style.bg(gpui::rgba(0x88888822))
                         })
+                        .when_some(self.add_to.clone(), |this, that| this.child(that))
                         .child(DropIndicator::with_state(
                             item_state.is_drop_target_before,
                             item_state.is_drop_target_after,
@@ -200,15 +217,60 @@ impl Render for QueueItem {
                                 ),
                         ),
                 )
-                .child(menu().item(menu_item(
-                    "remove-item",
-                    Some(CROSS),
-                    tr!("REMOVE_FROM_QUEUE", "Remove from queue"),
-                    move |_, _, cx| {
-                        let playback = cx.global::<PlaybackInterface>();
-                        playback.remove_item(idx);
-                    },
-                )))
+                .child(
+                    menu()
+                        .item(menu_item(
+                            "go_to_album",
+                            Some(DISC),
+                            tr!("GO_TO_ALBUM", "Go to album"),
+                            move |_, _, cx| {
+                                if let Some(album_id) = album_id {
+                                    let switcher = cx.global::<Models>().switcher_model.clone();
+                                    switcher.update(cx, |_, cx| {
+                                        cx.emit(ViewSwitchMessage::Release(album_id));
+                                    })
+                                }
+                            },
+                        ))
+                        .item(menu_item(
+                            "go_to_artist",
+                            Some(USERS),
+                            tr!("GO_TO_ARTIST", "Go to artist"),
+                            move |_, _, cx| {
+                                if let Some(album_id) = album_id {
+                                    let Ok(artist_id) = cx.artist_id_for_album(album_id) else {
+                                        return;
+                                    };
+
+                                    let switcher = cx.global::<Models>().switcher_model.clone();
+                                    switcher.update(cx, |_, cx| {
+                                        cx.emit(ViewSwitchMessage::Artist(artist_id));
+                                    })
+                                }
+                            },
+                        ))
+                        .when(self.add_to.is_some(), |menu| menu.item(menu_separator()))
+                        .when(self.add_to.is_some(), |menu| {
+                            menu.item(menu_item(
+                                "add_to_playlist",
+                                Some(PLAYLIST_ADD),
+                                tr!("ADD_TO_PLAYLIST"),
+                                move |_, _, cx| {
+                                    show_add_to.write(cx, true);
+                                },
+                            ))
+                        })
+                        .item(menu_separator())
+                        .item(menu_item(
+                            "remove_item",
+                            Some(CROSS),
+                            tr!("REMOVE_FROM_QUEUE", "Remove from queue"),
+                            move |_, _, cx| {
+                                let playback = cx.global::<PlaybackInterface>();
+                                playback.remove_item(idx);
+                            },
+                        )),
+                )
                 .into_any_element()
         } else {
             // TODO: Skeleton for this

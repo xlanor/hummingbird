@@ -170,4 +170,14 @@ impl QueueItemData {
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
+
+    /// Returns the album ID of the queue item, if it exists.
+    pub fn get_db_album_id(&self) -> Option<i64> {
+        self.db_album_id
+    }
+
+    /// Returns the track ID of the queue item, if it exists.
+    pub fn get_db_id(&self) -> Option<i64> {
+        self.db_id
+    }
 }
