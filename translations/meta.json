@@ -307,13 +307,13 @@
   },
   "GO_TO_ALBUM": {
     "context": "queue.rs",
-    "definedIn": "src/ui/queue.rs:236",
+    "definedIn": "src/ui/queue.rs:234",
     "plural": false,
     "description": null
   },
   "GO_TO_ARTIST": {
     "context": "queue.rs",
-    "definedIn": "src/ui/queue.rs:252",
+    "definedIn": "src/ui/queue.rs:251",
     "plural": false,
     "description": null
   },

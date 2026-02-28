@@ -95,11 +95,8 @@ impl QueueItem {
             .detach();
 
             let show_add_to = cx.new(|_| false);
-            let add_to = Some(AddToPlaylist::new(
-                cx,
-                show_add_to.clone(),
-                track_id.unwrap(),
-            ));
+            let add_to =
+                track_id.map(|track_id| AddToPlaylist::new(cx, show_add_to.clone(), track_id));
 
             Self {
                 item,
@@ -229,45 +226,48 @@ impl Render for QueueItem {
                 )
                 .child(
                     menu()
-                        .item(
-                            menu_item(
-                                "go_to_album",
-                                Some(DISC),
-                                tr!("GO_TO_ALBUM", "Go to album"),
-                                move |_, _, cx| {
-                                    if let Some(album_id) = album_id {
-                                        let switcher = cx.global::<Models>().switcher_model.clone();
-                                        switcher.update(cx, |_, cx| {
-                                            cx.emit(ViewSwitchMessage::Release(album_id));
-                                        })
-                                    }
-                                },
-                            )
-                            .disabled(!is_available),
-                        )
-                        .item(
-                            menu_item(
-                                "go_to_artist",
-                                Some(USERS),
-                                tr!("GO_TO_ARTIST", "Go to artist"),
-                                move |_, _, cx| {
-                                    if let Some(album_id) = album_id {
-                                        let Ok(artist_id) = cx.artist_id_for_album(album_id) else {
-                                            return;
-                                        };
-
-                                        let switcher = cx.global::<Models>().switcher_model.clone();
-                                        switcher.update(cx, |_, cx| {
-                                            cx.emit(ViewSwitchMessage::Artist(artist_id));
-                                        })
-                                    }
-                                },
-                            )
-                            .disabled(!is_available),
-                        )
-                        .when(self.add_to.is_some(), |menu| menu.item(menu_separator()))
                         .when(self.add_to.is_some(), |menu| {
-                            menu.item(menu_item(
+                            menu.item(
+                                menu_item(
+                                    "go_to_album",
+                                    Some(DISC),
+                                    tr!("GO_TO_ALBUM", "Go to album"),
+                                    move |_, _, cx| {
+                                        if let Some(album_id) = album_id {
+                                            let switcher =
+                                                cx.global::<Models>().switcher_model.clone();
+                                            switcher.update(cx, |_, cx| {
+                                                cx.emit(ViewSwitchMessage::Release(album_id));
+                                            })
+                                        }
+                                    },
+                                )
+                                .disabled(!is_available),
+                            )
+                            .item(
+                                menu_item(
+                                    "go_to_artist",
+                                    Some(USERS),
+                                    tr!("GO_TO_ARTIST", "Go to artist"),
+                                    move |_, _, cx| {
+                                        if let Some(album_id) = album_id {
+                                            let Ok(artist_id) = cx.artist_id_for_album(album_id)
+                                            else {
+                                                return;
+                                            };
+
+                                            let switcher =
+                                                cx.global::<Models>().switcher_model.clone();
+                                            switcher.update(cx, |_, cx| {
+                                                cx.emit(ViewSwitchMessage::Artist(artist_id));
+                                            })
+                                        }
+                                    },
+                                )
+                                .disabled(!is_available),
+                            )
+                            .item(menu_separator())
+                            .item(menu_item(
                                 "add_to_playlist",
                                 Some(PLAYLIST_ADD),
                                 tr!("ADD_TO_PLAYLIST"),
@@ -275,8 +275,8 @@ impl Render for QueueItem {
                                     show_add_to.write(cx, true);
                                 },
                             ))
+                            .item(menu_separator())
                         })
-                        .item(menu_separator())
                         .item(menu_item(
                             "remove_item",
                             Some(CROSS),
