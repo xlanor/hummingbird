@@ -15,6 +15,7 @@ use crate::{
         thread::PlaybackState,
     },
     ui::{
+        availability::{has_available_tracks, is_track_available},
         caching::hummingbird_cache,
         components::{
             button::{ButtonIntent, ButtonSize, button},
@@ -117,8 +118,9 @@ impl Render for ReleaseView {
             .is_some_and(|current_track| {
                 self.tracks
                     .iter()
-                    .any(|track| current_track == track.location)
+                    .any(|track| current_track == track.location && is_track_available(track))
             });
+        let has_available_tracks = has_available_tracks(self.tracks.as_ref());
 
         let scroll_handle = self.scroll_handle.clone();
         let settings = cx
@@ -215,13 +217,18 @@ impl Render for ReleaseView {
                                                     .size(ButtonSize::Large)
                                                     .font_weight(FontWeight::SEMIBOLD)
                                                     .intent(ButtonIntent::Primary)
-                                                    .when(!current_track_in_album, |this| {
+                                                    .when(
+                                                        has_available_tracks && !current_track_in_album,
+                                                        |this| {
                                                         this.on_click(cx.listener(
                                                             |this: &mut ReleaseView, _, _, cx| {
                                                                 let queue_items = this
                                                                     .track_listing
                                                                     .tracks()
                                                                     .iter()
+                                                                    .filter(|track| {
+                                                                        is_track_available(track)
+                                                                    })
                                                                     .map(|track| {
                                                                         QueueItemData::new(
                                                                             cx,
@@ -235,14 +242,21 @@ impl Render for ReleaseView {
                                                                 replace_queue(queue_items, cx)
                                                             },
                                                         ))
-                                                    })
-                                                    .when(current_track_in_album, |button| {
+                                                    },
+                                                    )
+                                                    .when(
+                                                        has_available_tracks && current_track_in_album,
+                                                        |button| {
                                                         button.on_click(|_, window, cx| {
                                                             window.dispatch_action(
                                                                 Box::new(PlayPause),
                                                                 cx,
                                                             );
                                                         })
+                                                    },
+                                                    )
+                                                    .when(!has_available_tracks, |this| {
+                                                        this.opacity(0.5).cursor_default()
                                                     })
                                                     .child(
                                                         icon(
@@ -269,26 +283,34 @@ impl Render for ReleaseView {
                                                     .id("release-add-button")
                                                     .size(ButtonSize::Large)
                                                     .flex_none()
-                                                    .on_click(cx.listener(
-                                                        |this: &mut ReleaseView, _, _, cx| {
-                                                            let queue_items = this
-                                                                .track_listing
-                                                                .tracks()
-                                                                .iter()
-                                                                .map(|track| {
-                                                                    QueueItemData::new(
-                                                                        cx,
-                                                                        track.location.clone(),
-                                                                        Some(track.id),
-                                                                        track.album_id,
-                                                                    )
-                                                                })
-                                                                .collect();
+                                                    .when(has_available_tracks, |this| {
+                                                        this.on_click(cx.listener(
+                                                            |this: &mut ReleaseView, _, _, cx| {
+                                                                let queue_items = this
+                                                                    .track_listing
+                                                                    .tracks()
+                                                                    .iter()
+                                                                    .filter(|track| {
+                                                                        is_track_available(track)
+                                                                    })
+                                                                    .map(|track| {
+                                                                        QueueItemData::new(
+                                                                            cx,
+                                                                            track.location.clone(),
+                                                                            Some(track.id),
+                                                                            track.album_id,
+                                                                        )
+                                                                    })
+                                                                    .collect();
 
-                                                            cx.global::<PlaybackInterface>()
-                                                                .queue_list(queue_items);
-                                                        },
-                                                    ))
+                                                                cx.global::<PlaybackInterface>()
+                                                                    .queue_list(queue_items);
+                                                            },
+                                                        ))
+                                                    })
+                                                    .when(!has_available_tracks, |this| {
+                                                        this.opacity(0.5).cursor_default()
+                                                    })
                                                     .child(
                                                         icon(CIRCLE_PLUS).size(px(16.0)).my_auto(),
                                                     ),
@@ -298,34 +320,42 @@ impl Render for ReleaseView {
                                                     .id("release-shuffle-button")
                                                     .size(ButtonSize::Large)
                                                     .flex_none()
-                                                    .on_click(cx.listener(
-                                                        |this: &mut ReleaseView, _, _, cx| {
-                                                            let queue_items = this
-                                                                .track_listing
-                                                                .tracks()
-                                                                .iter()
-                                                                .map(|track| {
-                                                                    QueueItemData::new(
-                                                                        cx,
-                                                                        track.location.clone(),
-                                                                        Some(track.id),
-                                                                        track.album_id,
-                                                                    )
-                                                                })
-                                                                .collect();
+                                                    .when(has_available_tracks, |this| {
+                                                        this.on_click(cx.listener(
+                                                            |this: &mut ReleaseView, _, _, cx| {
+                                                                let queue_items = this
+                                                                    .track_listing
+                                                                    .tracks()
+                                                                    .iter()
+                                                                    .filter(|track| {
+                                                                        is_track_available(track)
+                                                                    })
+                                                                    .map(|track| {
+                                                                        QueueItemData::new(
+                                                                            cx,
+                                                                            track.location.clone(),
+                                                                            Some(track.id),
+                                                                            track.album_id,
+                                                                        )
+                                                                    })
+                                                                    .collect();
 
-                                                            if !(*cx
-                                                                .global::<PlaybackInfo>()
-                                                                .shuffling
-                                                                .read(cx))
-                                                            {
-                                                                cx.global::<PlaybackInterface>()
-                                                                    .toggle_shuffle();
-                                                            }
+                                                                if !(*cx
+                                                                    .global::<PlaybackInfo>()
+                                                                    .shuffling
+                                                                    .read(cx))
+                                                                {
+                                                                    cx.global::<PlaybackInterface>()
+                                                                        .toggle_shuffle();
+                                                                }
 
-                                                            replace_queue(queue_items, cx)
-                                                        },
-                                                    ))
+                                                                replace_queue(queue_items, cx)
+                                                            },
+                                                        ))
+                                                    })
+                                                    .when(!has_available_tracks, |this| {
+                                                        this.opacity(0.5).cursor_default()
+                                                    })
                                                     .child(icon(SHUFFLE).size(px(16.0)).my_auto()),
                                             ),
                                     ),

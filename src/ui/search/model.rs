@@ -7,6 +7,7 @@ use tracing::debug;
 use crate::{
     library::{db::LibraryAccess, scan::ScanEvent},
     ui::{
+        availability::album_has_available_tracks,
         components::{input::EnrichedInputAction, palette::Palette},
         library::ViewSwitchMessage,
         models::Models,
@@ -26,7 +27,14 @@ impl SearchModel {
     pub fn new(cx: &mut App, show: &Entity<bool>) -> Entity<SearchModel> {
         cx.new(|cx| {
             let albums = match cx.list_albums_search() {
-                Ok(album_data) => AlbumPaletteItem::from_search_results(album_data),
+                Ok(album_data) => AlbumPaletteItem::from_search_results(
+                    album_data
+                        .into_iter()
+                        .map(|(id, title, artist)| {
+                            (id, title, artist, album_has_available_tracks(cx, id as i64))
+                        })
+                        .collect(),
+                ),
                 Err(e) => {
                     debug!("Failed to load albums for search: {:?}", e);
                     Vec::new()
@@ -64,7 +72,14 @@ impl SearchModel {
                     debug!("Scan complete, refreshing album list for search");
 
                     let new_albums = match cx.list_albums_search() {
-                        Ok(album_data) => AlbumPaletteItem::from_search_results(album_data),
+                        Ok(album_data) => AlbumPaletteItem::from_search_results(
+                            album_data
+                                .into_iter()
+                                .map(|(id, title, artist)| {
+                                    (id, title, artist, album_has_available_tracks(cx, id as i64))
+                                })
+                                .collect(),
+                        ),
                         Err(e) => {
                             debug!("Failed to reload albums after scan: {:?}", e);
                             return;

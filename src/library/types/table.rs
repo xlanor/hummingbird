@@ -8,6 +8,9 @@ use rustc_hash::FxBuildHasher;
 use super::{Album, ArtistWithCounts, Track};
 use crate::{
     library::db::{AlbumMethod, AlbumSortMethod, ArtistSortMethod, LibraryAccess, TrackSortMethod},
+    ui::availability::{
+        album_has_available_tracks, artist_has_available_tracks, is_track_available,
+    },
     ui::components::{
         drag_drop::{AlbumDragData, TrackDragData},
         table::table_data::{Column, GridContext, TableData, TableDragData, TableSort},
@@ -220,6 +223,10 @@ impl TableData<AlbumColumn> for Album {
 
         Some((title, secondary))
     }
+
+    fn is_available(&self, cx: &mut App) -> bool {
+        album_has_available_tracks(cx, self.id)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -422,6 +429,10 @@ impl TableData<TrackColumn> for Track {
             self.title.0.clone(),
         )))
     }
+
+    fn is_available(&self, _cx: &mut App) -> bool {
+        is_track_available(self)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -529,6 +540,10 @@ impl TableData<ArtistColumn> for ArtistWithCounts {
 
     fn get_table_id(&self) -> Self::Identifier {
         self.id
+    }
+
+    fn is_available(&self, cx: &mut App) -> bool {
+        artist_has_available_tracks(cx, self.id)
     }
 
     fn default_columns() -> IndexMap<ArtistColumn, f32, FxBuildHasher> {

@@ -2,6 +2,7 @@ mod about;
 pub mod app;
 mod arguments;
 mod assets;
+pub mod availability;
 mod caching;
 mod command_palette;
 pub mod components;

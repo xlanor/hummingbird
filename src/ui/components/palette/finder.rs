@@ -20,6 +20,9 @@ pub trait PaletteItem {
     fn left_content(&self, cx: &mut App) -> Option<FinderItemLeft>;
     fn middle_content(&self, cx: &mut App) -> SharedString;
     fn right_content(&self, cx: &mut App) -> Option<SharedString>;
+    fn is_enabled(&self, _cx: &App) -> bool {
+        true
+    }
 }
 
 #[derive(Clone)]
@@ -142,30 +145,35 @@ where
                 &cx.entity(),
                 move |this, _, ev: &EnrichedInputAction, cx| match ev {
                     EnrichedInputAction::Previous => {
-                        this.current_selection.update(cx, |sel, cx| {
-                            if *sel > 0 {
-                                *sel -= 1;
-                            }
-                            cx.notify();
-                        });
+                        let idx = *this.current_selection.read(cx);
+                        if let Some(prev_idx) = this.prev_enabled_index(idx, cx) {
+                            this.current_selection.update(cx, |sel, cx| {
+                                *sel = prev_idx;
+                                cx.notify();
+                            });
+                        }
 
                         let idx = *this.current_selection.read(cx);
                         this.list_state.scroll_to_reveal_item(idx);
                     }
                     EnrichedInputAction::Next => {
-                        let max_idx = this.list_state.item_count().saturating_sub(1);
-                        this.current_selection.update(cx, |sel, cx| {
-                            if *sel < max_idx {
-                                *sel += 1;
-                            }
-                            cx.notify();
-                        });
+                        let idx = *this.current_selection.read(cx);
+                        if let Some(next_idx) = this.next_enabled_index(idx, cx) {
+                            this.current_selection.update(cx, |sel, cx| {
+                                *sel = next_idx;
+                                cx.notify();
+                            });
+                        }
 
                         let idx = *this.current_selection.read(cx);
                         this.list_state.scroll_to_reveal_item(idx);
                     }
                     EnrichedInputAction::Accept => {
                         let idx = *this.current_selection.read(cx);
+                        if !this.index_is_enabled(idx, cx) {
+                            return;
+                        }
+
                         if idx < this.extra_items.len() {
                             if let Some(extra) = this.extra_items.get(idx) {
                                 (extra.on_accept)(cx);
@@ -223,6 +231,33 @@ where
         self.regenerate_list_state(cx);
     }
 
+    fn total_items(&self) -> usize {
+        self.extra_items.len() + self.last_match.len()
+    }
+
+    fn index_is_enabled(&self, idx: usize, cx: &App) -> bool {
+        if idx < self.extra_items.len() {
+            true
+        } else {
+            let match_idx = idx.saturating_sub(self.extra_items.len());
+            self.last_match
+                .get(match_idx)
+                .is_some_and(|item| item.is_enabled(cx))
+        }
+    }
+
+    fn next_enabled_index(&self, current: usize, cx: &App) -> Option<usize> {
+        ((current + 1)..self.total_items()).find(|idx| self.index_is_enabled(*idx, cx))
+    }
+
+    fn prev_enabled_index(&self, current: usize, cx: &App) -> Option<usize> {
+        (0..current).rev().find(|idx| self.index_is_enabled(*idx, cx))
+    }
+
+    fn first_enabled_index(&self, cx: &App) -> Option<usize> {
+        (0..self.total_items()).find(|idx| self.index_is_enabled(*idx, cx))
+    }
+
     fn recompute_extra_items(&mut self) {
         let mut new_items: Vec<ExtraItem> = Vec::new();
         for provider in &self.extra_providers {
@@ -255,10 +290,11 @@ where
         }
 
         self.current_selection.update(cx, |sel, cx| {
-            *sel = 0;
+            *sel = self.first_enabled_index(cx).unwrap_or(0);
             cx.notify();
         });
-        self.list_state.scroll_to_reveal_item(0);
+        self.list_state
+            .scroll_to_reveal_item(*self.current_selection.read(cx));
 
         cx.notify();
     }
@@ -436,6 +472,7 @@ where
     right: Option<SharedString>,
     idx: usize,
     current_selection: usize,
+    is_enabled: bool,
     weak_parent: WeakEntity<Finder<T, MatcherFunc, OnAccept>>,
     item_data: Option<Arc<T>>,
     on_accept_override: OnAcceptOverride,
@@ -476,6 +513,7 @@ where
             let left = item.left_content(cx);
             let middle = item.middle_content(cx);
             let right = item.right_content(cx);
+            let is_enabled = item.is_enabled(cx);
 
             Self {
                 id: id.into(),
@@ -484,6 +522,7 @@ where
                 right,
                 idx,
                 current_selection: *current_selection.read(cx),
+                is_enabled,
                 weak_parent,
                 item_data: Some(item_data),
                 on_accept_override: None,
@@ -516,6 +555,7 @@ where
                 right: extra.right.clone(),
                 idx,
                 current_selection: *current_selection.read(cx),
+                is_enabled: true,
                 weak_parent,
                 item_data: None,
                 on_accept_override: Some(extra.on_accept.clone()),
@@ -536,6 +576,7 @@ where
         let weak_parent = self.weak_parent.clone();
         let item_data = self.item_data.clone();
         let on_accept_override = self.on_accept_override.clone();
+        let is_enabled = self.is_enabled;
 
         div()
             .px(px(10.0))
@@ -543,23 +584,30 @@ where
             .flex()
             .flex_row()
             .items_center()
-            .cursor_pointer()
+            .when(is_enabled, |this| this.cursor_pointer())
+            .when(!is_enabled, |this| this.cursor_default().opacity(0.5))
             .id(self.id.clone())
             .border_1()
-            .hover(|this| {
-                this.bg(theme.palette_item_hover)
-                    .border_color(theme.palette_item_border_hover)
+            .when(is_enabled, |this| {
+                this.hover(|this| {
+                    this.bg(theme.palette_item_hover)
+                        .border_color(theme.palette_item_border_hover)
+                })
+                .active(|this| {
+                    this.bg(theme.palette_item_active)
+                        .border_color(theme.palette_item_border_active)
+                })
             })
-            .active(|this| {
-                this.bg(theme.palette_item_active)
-                    .border_color(theme.palette_item_border_active)
-            })
-            .when(self.current_selection == self.idx, |this| {
+            .when(self.current_selection == self.idx && is_enabled, |this| {
                 this.bg(theme.palette_item_hover)
                     .border_color(theme.palette_item_border_hover)
             })
             .rounded(px(6.0))
             .on_click(cx.listener(move |_, _, _, cx| {
+                if !is_enabled {
+                    return;
+                }
+
                 if let Some(override_fn) = on_accept_override.clone() {
                     override_fn(cx);
                 } else if let Some(parent) = weak_parent.upgrade()

@@ -126,19 +126,15 @@ async fn insert_album(
                         metadata
                             .date
                             .map(|d| d.format("%Y-%m-%d").to_string())
-                            .or_else(|| {
-                                metadata.year.map(|y| format!("{:04}-01-01", y))
-                            }),
+                            .or_else(|| metadata.year.map(|y| format!("{:04}-01-01", y))),
                     )
-                    .bind(
-                        if metadata.date.is_some() {
-                            Some(1i32)
-                        } else if metadata.year.is_some() {
-                            Some(0i32)
-                        } else {
-                            None
-                        },
-                    )
+                    .bind(if metadata.date.is_some() {
+                        Some(1i32)
+                    } else if metadata.year.is_some() {
+                        Some(0i32)
+                    } else {
+                        None
+                    })
                     .bind(&metadata.label)
                     .bind(&metadata.catalog)
                     .bind(&metadata.isrc)

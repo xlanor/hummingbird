@@ -1,4 +1,8 @@
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use std::{
+    cell::RefCell,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use gpui::{prelude::FluentBuilder, *};
 
@@ -9,6 +13,7 @@ use crate::{
     },
     playback::{interface::PlaybackInterface, queue::QueueItemData},
     ui::{
+        availability::is_track_path_available,
         components::table::{Table, TableEvent, table_data::TABLE_MAX_WIDTH},
         models::Models,
     },
@@ -46,6 +51,7 @@ impl TrackView {
                         if let Some(items) = items {
                             let queue_items: Vec<QueueItemData> = items
                                 .iter()
+                                .filter(|(_, _, _, path)| is_track_path_available(Path::new(path)))
                                 .map(|(id, _, album_id, path)| {
                                     QueueItemData::new(
                                         cx,
@@ -56,7 +62,14 @@ impl TrackView {
                                 })
                                 .collect();
 
-                            let index = items.iter().position(|item| item.0 == id.0).unwrap_or(0);
+                            if queue_items.is_empty() {
+                                return;
+                            }
+
+                            let index = queue_items
+                                .iter()
+                                .position(|item| item.get_db_id() == Some(id.0))
+                                .unwrap_or(0);
 
                             let playback = cx.global::<PlaybackInterface>();
                             playback.replace_queue(queue_items);

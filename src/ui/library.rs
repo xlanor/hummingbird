@@ -28,10 +28,10 @@ use crate::ui::{
 use super::models::Models;
 
 pub mod add_to_playlist;
-pub mod missing_folder_dialog;
 mod album_view;
 mod artist_detail_view;
 mod artist_view;
+pub mod missing_folder_dialog;
 mod navigation;
 mod playlist_view;
 mod release_view;

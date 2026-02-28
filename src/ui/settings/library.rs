@@ -8,10 +8,7 @@ use tracing::warn;
 
 use crate::{
     library::scan::ScanInterface,
-    settings::{
-        Settings, SettingsGlobal, save_settings,
-        scan::MissingFolderPolicy,
-    },
+    settings::{Settings, SettingsGlobal, save_settings, scan::MissingFolderPolicy},
     ui::{
         components::{
             button::{ButtonIntent, ButtonStyle, button},

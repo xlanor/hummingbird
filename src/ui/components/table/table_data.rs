@@ -111,6 +111,11 @@ where
     /// Retrieves the table ID for the row.
     fn get_table_id(&self) -> Self::Identifier;
 
+    /// Returns whether the row is currently available for interaction.
+    fn is_available(&self, _cx: &mut App) -> bool {
+        true
+    }
+
     /// Returns drag data for this row, if dragging is supported. If None is returned, dragging is
     /// not supported. Default implementation returns None.
     fn get_drag_data(&self) -> Option<TableDragData> {

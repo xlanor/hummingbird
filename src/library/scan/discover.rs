@@ -119,13 +119,18 @@ pub async fn cleanup_removed_directories(
             }
         };
 
-        let playlist_result = sqlx::query(include_str!("../../../queries/scan/delete_playlist_items_for_track.sql"))
-            .bind(path.as_str())
-            .execute(&mut *tx)
-            .await;
+        let playlist_result = sqlx::query(include_str!(
+            "../../../queries/scan/delete_playlist_items_for_track.sql"
+        ))
+        .bind(path.as_str())
+        .execute(&mut *tx)
+        .await;
 
         if let Err(e) = playlist_result {
-            error!("Database error while deleting playlist items for track: {:?}", e);
+            error!(
+                "Database error while deleting playlist items for track: {:?}",
+                e
+            );
             continue;
         }
         updated_playlists.extend(affected_playlists);
@@ -208,13 +213,18 @@ pub async fn cleanup_with_exclusions(
             }
         };
 
-        let playlist_result = sqlx::query(include_str!("../../../queries/scan/delete_playlist_items_for_track.sql"))
-            .bind(path.as_str())
-            .execute(&mut *tx)
-            .await;
+        let playlist_result = sqlx::query(include_str!(
+            "../../../queries/scan/delete_playlist_items_for_track.sql"
+        ))
+        .bind(path.as_str())
+        .execute(&mut *tx)
+        .await;
 
         if let Err(e) = playlist_result {
-            error!("Database error while deleting playlist items for track: {:?}", e);
+            error!(
+                "Database error while deleting playlist items for track: {:?}",
+                e
+            );
             continue;
         }
         updated_playlists.extend(affected_playlists);

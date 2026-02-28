@@ -23,6 +23,7 @@ where
     primary_text: SharedString,
     secondary_text: Option<SharedString>,
     on_select: Option<OnSelectHandler<T, C>>,
+    is_available: bool,
 }
 
 impl<T, C> GridItem<T, C>
@@ -40,6 +41,7 @@ where
 
         let element_id = row.get_element_id().into();
         let image_path = row.get_full_image_path().or_else(|| row.get_image_path());
+        let is_available = row.is_available(cx);
 
         let grid_content = row.get_grid_content_for(cx, context);
         let (primary_text, secondary_text) = grid_content.unwrap_or(("".into(), None));
@@ -51,6 +53,7 @@ where
             primary_text,
             secondary_text,
             on_select,
+            is_available,
         }))
     }
 }
@@ -63,8 +66,13 @@ where
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let row_data = self.row.clone();
+        let is_available = self.is_available;
 
-        let drag_data = self.row.get_drag_data();
+        let drag_data = if is_available {
+            self.row.get_drag_data()
+        } else {
+            None
+        };
 
         let mut container = div()
             .w_full()
@@ -75,13 +83,20 @@ where
             .rounded_lg()
             .id(self.id.clone())
             .when_some(self.on_select.clone(), move |div, on_select| {
-                div.on_click(move |_, _, cx| {
-                    let id = row_data.get_table_id();
-                    on_select(cx, &id)
-                })
-                .cursor_pointer()
-                .hover(|this| this.bg(theme.nav_button_hover))
-                .active(|this| this.bg(theme.nav_button_active))
+                if is_available {
+                    div.on_click(move |_, _, cx| {
+                        let id = row_data.get_table_id();
+                        on_select(cx, &id)
+                    })
+                    .cursor_pointer()
+                    .hover(|this| this.bg(theme.nav_button_hover))
+                    .active(|this| this.bg(theme.nav_button_active))
+                } else {
+                    div.cursor_default().opacity(0.5)
+                }
+            })
+            .when(self.on_select.is_none() && !is_available, |this| {
+                this.opacity(0.5)
             });
 
         container = match drag_data {
