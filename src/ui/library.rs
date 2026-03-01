@@ -40,8 +40,15 @@ mod track_listing;
 mod track_view;
 mod update_playlist;
 
+actions!(library, [NavigateBack, NavigateForward]);
+
 pub fn bind_actions(cx: &mut App) {
     playlist_view::bind_actions(cx);
+    cx.bind_keys([
+        KeyBinding::new("backspace", NavigateBack, Some("Library")),
+        KeyBinding::new("alt-left", NavigateBack, Some("Library")),
+        KeyBinding::new("alt-right", NavigateForward, Some("Library")),
+    ]);
 }
 
 /// The navigation history + a cursor noting what the current message is.
@@ -160,6 +167,7 @@ pub struct Library {
     update_playlist: Entity<UpdatePlaylist>,
     focus_handle: FocusHandle,
     scroll_state: ScrollStateStorage,
+    reclaim_focus: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -232,6 +240,12 @@ impl Library {
                     } else if let LibraryView::Artists(artist_view) = &this.view {
                         let scroll_pos = artist_view.read(cx).get_scroll_offset(cx);
                         this.scroll_state.artist_view_scroll = Some(scroll_pos);
+                    }
+
+                    // if we're navigating away from a view that stole focus (e.g. PlaylistView),
+                    // schedule a focus reclaim so the Library div retakes focus on next render.
+                    if matches!(this.view, LibraryView::Playlist(_)) {
+                        this.reclaim_focus = true;
                     }
 
                     this.view = match message {
@@ -317,13 +331,18 @@ impl Library {
                 show_update_playlist,
                 focus_handle,
                 scroll_state,
+                reclaim_focus: false,
             }
         })
     }
 }
 
 impl Render for Library {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.reclaim_focus {
+            self.reclaim_focus = false;
+            self.focus_handle.focus(window, cx);
+        }
         let show_update_playlist = self.show_update_playlist.clone();
         let settings = cx
             .global::<crate::settings::SettingsGlobal>()
@@ -334,6 +353,19 @@ impl Render for Library {
         div()
             .id("library")
             .track_focus(&self.focus_handle)
+            .key_context("Library")
+            .on_action(cx.listener(|_, _: &NavigateBack, _, cx| {
+                let switcher = cx.global::<Models>().switcher_model.clone();
+                switcher.update(cx, |_, cx| {
+                    cx.emit(ViewSwitchMessage::Back);
+                });
+            }))
+            .on_action(cx.listener(|_, _: &NavigateForward, _, cx| {
+                let switcher = cx.global::<Models>().switcher_model.clone();
+                switcher.update(cx, |_, cx| {
+                    cx.emit(ViewSwitchMessage::Forward);
+                });
+            }))
             .on_action(move |_: &Import, _, cx| {
                 show_update_playlist.update(cx, |v, cx| {
                     *v = true;

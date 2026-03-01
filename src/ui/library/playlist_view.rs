@@ -263,6 +263,7 @@ impl Render for PlaylistView {
             ))
             .id("playlist-view")
             .track_focus(&self.focus_handle)
+            .key_context("Library")
             .on_action(move |_: &Export, _, cx| {
                 if let Err(err) = export_playlist(cx, pl_id, &playlist_name) {
                     error!("Failed to export playlist: {}", err);
