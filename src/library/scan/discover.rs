@@ -172,12 +172,18 @@ pub async fn cleanup_with_exclusions(
     excluded_roots: &[Utf8PathBuf],
 ) -> FxHashSet<i64> {
     let mut updated_playlists: FxHashSet<i64> = FxHashSet::default();
+
+    let canonicalized_roots: Vec<Utf8PathBuf> = excluded_roots
+        .iter()
+        .map(|root| root.canonicalize_utf8().unwrap_or(root.clone()))
+        .collect();
+
     let to_delete: Vec<Utf8PathBuf> = scan_record
         .records
         .keys()
         .filter(|path| {
             !path.exists()
-                && !excluded_roots
+                && !canonicalized_roots
                     .iter()
                     .any(|excluded_root| path.starts_with(excluded_root))
         })
