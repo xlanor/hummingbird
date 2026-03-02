@@ -139,13 +139,13 @@
   },
   "ADD_TO_PLAYLIST": {
     "context": "track_item.rs",
-    "definedIn": "src/ui/library/track_listing/track_item.rs:402",
+    "definedIn": "src/ui/library/track_listing/track_item.rs:406",
     "plural": false,
     "description": null
   },
   "ADD_TO_QUEUE": {
     "context": "track_item.rs",
-    "definedIn": "src/ui/library/track_listing/track_item.rs:383",
+    "definedIn": "src/ui/library/track_listing/track_item.rs:387",
     "plural": false,
     "description": null
   },
@@ -451,7 +451,7 @@
   },
   "PLAY_FROM_HERE": {
     "context": "track_item.rs",
-    "definedIn": "src/ui/library/track_listing/track_item.rs:371",
+    "definedIn": "src/ui/library/track_listing/track_item.rs:375",
     "plural": false,
     "description": null
   },
@@ -481,7 +481,7 @@
   },
   "REMOVE_FROM_PLAYLIST": {
     "context": "track_item.rs",
-    "definedIn": "src/ui/library/track_listing/track_item.rs:417",
+    "definedIn": "src/ui/library/track_listing/track_item.rs:421",
     "plural": false,
     "description": null
   },

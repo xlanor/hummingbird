@@ -275,45 +275,8 @@ impl Render for TrackItem {
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .overflow_x_hidden()
                                     .text_ellipsis()
+                                    .mr_auto()
                                     .child(self.track.title.clone()),
-                            )
-                            .child(
-                                div()
-                                    .id("like")
-                                    .mr(px(-4.0))
-                                    .ml_auto()
-                                    .my_auto()
-                                    .rounded_sm()
-                                    .p(px(4.0))
-                                    .child(
-                                        icon(if self.is_liked.is_some() {
-                                            STAR_FILLED
-                                        } else {
-                                            STAR
-                                        })
-                                        .size(px(14.0))
-                                        .text_color(theme.text_secondary),
-                                    )
-                                    .invisible()
-                                    .group(self.hover_group.clone())
-                                    .when(is_available, |this| {
-                                        this.group_hover(self.hover_group.clone(), |this| {
-                                            this.visible()
-                                        })
-                                        .hover(|this| this.bg(theme.button_secondary_hover))
-                                        .active(|this| this.bg(theme.button_secondary_active))
-                                        .on_click(
-                                            cx.listener(move |this, _, _, cx| {
-                                                cx.stop_propagation();
-                                                let is_liked = this.is_liked;
-                                                let entity = cx.entity().clone();
-                                                if is_liked.is_some() {
-                                                    this.is_liked = None;
-                                                }
-                                                toggle_like(is_liked, track_id, entity, cx);
-                                            }),
-                                        )
-                                    }),
                             )
                             .child(
                                 div()
@@ -332,11 +295,52 @@ impl Render for TrackItem {
                                         )
                                     }),
                             )
-                            .child(div().ml(px(12.0)).flex_shrink_0().child(format!(
-                                "{}:{:02}",
-                                self.track.duration / 60,
-                                self.track.duration % 60
-                            ))),
+                            .child(
+                                div()
+                                    .id("like")
+                                    .my_auto()
+                                    .rounded_sm()
+                                    .ml(px(10.0))
+                                    .p(px(4.0))
+                                    .child(
+                                        icon(if self.is_liked.is_some() {
+                                            STAR_FILLED
+                                        } else {
+                                            STAR
+                                        })
+                                        .size(px(14.0))
+                                        .text_color(theme.text_secondary),
+                                    )
+                                    .group(self.hover_group.clone())
+                                    .when(is_available, |this| {
+                                        this.hover(|this| this.bg(theme.button_secondary_hover))
+                                            .active(|this| this.bg(theme.button_secondary_active))
+                                            .on_click(cx.listener(move |this, _, _, cx| {
+                                                cx.stop_propagation();
+                                                let is_liked = this.is_liked;
+                                                let entity = cx.entity().clone();
+                                                if is_liked.is_some() {
+                                                    this.is_liked = None;
+                                                }
+                                                toggle_like(is_liked, track_id, entity, cx);
+                                            }))
+                                    }),
+                            )
+                            .child(
+                                div()
+                                    .ml(px(10.0))
+                                    .flex_shrink_0()
+                                    .min_w(px(60.0))
+                                    .border_l_1()
+                                    .pl(px(10.0))
+                                    .border_color(theme.border_color)
+                                    .text_align(TextAlign::Right)
+                                    .child(format!(
+                                        "{}:{:02}",
+                                        self.track.duration / 60,
+                                        self.track.duration % 60
+                                    )),
+                            ),
                     ),
             )
             .child(
