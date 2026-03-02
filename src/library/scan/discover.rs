@@ -68,7 +68,11 @@ pub async fn cleanup_removed_directories(
     let current_set: FxHashSet<Utf8PathBuf> = current_directories.iter().cloned().collect();
     let old_set: FxHashSet<Utf8PathBuf> = scan_record.directories.iter().cloned().collect();
 
-    let removed_dirs: Vec<Utf8PathBuf> = old_set.difference(&current_set).cloned().collect();
+    let removed_dirs: Vec<Utf8PathBuf> = old_set
+        .difference(&current_set)
+        .cloned()
+        .map(|path| path.canonicalize_utf8().unwrap_or(path))
+        .collect();
 
     if removed_dirs.is_empty() {
         return updated_playlists;
