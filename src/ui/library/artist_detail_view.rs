@@ -89,6 +89,7 @@ impl ArtistDetailView {
                         None,
                         false,
                         None,
+                        Some(liked_tracks.clone()),
                     )
                 })
                 .collect();
@@ -199,6 +200,7 @@ impl ArtistDetailView {
                     None,
                     false,
                     None,
+                    Some(self.liked_tracks.clone()),
                 )
             })
             .collect();

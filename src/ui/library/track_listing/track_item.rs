@@ -5,6 +5,7 @@ use gpui::{
     Window, div, img, px,
 };
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::ui::components::drag_drop::{DragPreview, TrackDragData};
 use crate::ui::components::icons::{
@@ -55,6 +56,7 @@ pub struct TrackItem {
     vinyl_numbering: bool,
     max_track_num_str: Option<SharedString>,
     is_available: bool,
+    queue_context: Option<Arc<Vec<Track>>>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -94,6 +96,7 @@ impl TrackItem {
         pl_info: Option<TrackPlaylistInfo>,
         vinyl_numbering: bool,
         max_track_num_str: Option<SharedString>,
+        queue_context: Option<Arc<Vec<Track>>>,
     ) -> Entity<Self> {
         cx.new(|cx| {
             let show_add_to = cx.new(|_| false);
@@ -126,6 +129,7 @@ impl TrackItem {
                 pl_info,
                 vinyl_numbering,
                 max_track_num_str,
+                queue_context,
             }
         })
     }
@@ -170,7 +174,8 @@ impl Render for TrackItem {
                         this.on_click({
                             let track = self.track.clone();
                             let plid = self.pl_info.as_ref().map(|pl| pl.id);
-                            move |_, _, cx| play_from_track(cx, &track, plid)
+                            let queue_context = self.queue_context.clone();
+                            move |_, _, cx| play_from_track(cx, &track, plid, queue_context.clone())
                         })
                     })
                     .when(!is_available, |this| this.cursor_default().opacity(0.5))
@@ -396,7 +401,10 @@ impl Render for TrackItem {
                                 tr!("PLAY_FROM_HERE", "Play from here"),
                                 {
                                     let plid = self.pl_info.as_ref().map(|pl| pl.id);
-                                    move |_, _, cx| play_from_track(cx, &track, plid)
+                                    let queue_context = self.queue_context.clone();
+                                    move |_, _, cx| {
+                                        play_from_track(cx, &track, plid, queue_context.clone())
+                                    }
                                 },
                             )
                             .disabled(!is_available),
@@ -574,12 +582,23 @@ fn remove_from_playlist(
     .detach();
 }
 
-pub fn play_from_track(cx: &mut App, track: &Track, pl_id: Option<i64>) {
+pub fn play_from_track(
+    cx: &mut App,
+    track: &Track,
+    pl_id: Option<i64>,
+    queue_context: Option<Arc<Vec<Track>>>,
+) {
     if !is_track_available(track) {
         return;
     }
 
-    let queue_items = if let Some(pl_id) = pl_id {
+    let queue_items = if let Some(tracks) = queue_context {
+        tracks
+            .iter()
+            .filter(|t| is_track_available(t))
+            .map(|t| QueueItemData::new(cx, t.location.clone(), Some(t.id), t.album_id))
+            .collect()
+    } else if let Some(pl_id) = pl_id {
         let ids = cx
             .get_playlist_tracks(pl_id)
             .expect("failed to retrieve playlist track info");

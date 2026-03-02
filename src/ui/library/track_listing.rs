@@ -57,6 +57,7 @@ impl TrackListing {
                             None,
                             vinyl_numbering,
                             max_track_num_str.clone(),
+                            None,
                         )
                     })
                     .collect(),
