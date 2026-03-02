@@ -186,7 +186,6 @@ pub fn run() -> anyhow::Result<()> {
 
             let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
             find_fonts(cx).expect("unable to load fonts");
-            register_actions(cx);
 
             let storage = Storage::new(data_dir.join("app_data.json"));
 
@@ -244,6 +243,8 @@ pub fn run() -> anyhow::Result<()> {
 
             cx.set_global(scan_interface);
             cx.set_global(Pool(pool));
+
+            register_actions(cx);
 
             let drop_model = cx.new(|_| DropImageDummyModel);
 
