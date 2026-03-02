@@ -78,6 +78,7 @@
     "other": "{{count}} tracks"
   },
   "PLAY_FROM_HERE": "Play from here",
+  "PLAY_NEXT": "Play next",
   "QUEUE_TITLE": "Queue",
   "QUIT": "Quit Hummingbird",
   "RELEASED_DATE": "Released {{date}}",

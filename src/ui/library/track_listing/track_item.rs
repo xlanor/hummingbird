@@ -145,6 +145,7 @@ impl Render for TrackItem {
 
         let track_location = self.track.location.clone();
         let track_location_2 = self.track.location.clone();
+        let track_location_3 = self.track.location.clone();
         let track_location_for_drag = self.track.location.clone();
         let track_id = self.track.id;
         let album_id = self.track.album_id;
@@ -366,6 +367,26 @@ impl Render for TrackItem {
                                 playback_interface.queue(data);
                                 playback_interface.jump(queue_length);
                             })
+                            .disabled(!is_available),
+                        )
+                        .item(
+                            menu_item(
+                                "track_play_next",
+                                None::<SharedString>,
+                                tr!("PLAY_NEXT", "Play next"),
+                                move |_, _, cx| {
+                                    let data = QueueItemData::new(
+                                        cx,
+                                        track_location_3.clone(),
+                                        Some(track_id),
+                                        album_id,
+                                    );
+                                    let queue_position =
+                                        cx.global::<Models>().queue.read(cx).position;
+                                    let playback_interface = cx.global::<PlaybackInterface>();
+                                    playback_interface.insert_at(data, queue_position + 1);
+                                },
+                            )
                             .disabled(!is_available),
                         )
                         .item(
