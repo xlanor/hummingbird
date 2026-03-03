@@ -42,7 +42,8 @@ fn retrieve_default_paths() -> Vec<Utf8PathBuf> {
             .Folders()
             .unwrap()
             .into_iter()
-            .map(|v| v.Path().unwrap().to_string().into())
+            .map(|v| Utf8PathBuf::from(v.Path().unwrap().to_string()).canonicalize_utf8())
+            .flatten()
             .collect()
     }
 
