@@ -71,18 +71,21 @@ impl Render for MenuBar {
                                     cx.notify();
                                 }
                             }))
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                cx.stop_propagation();
-                                window.prevent_default();
+                            .on_mouse_down(
+                                MouseButton::Left,
+                                cx.listener(move |this, _, window, cx| {
+                                    cx.stop_propagation();
+                                    window.prevent_default();
 
-                                if this.open_menu == Some(menu_index) {
-                                    this.open_menu = None;
-                                } else {
-                                    this.open_menu = Some(menu_index);
-                                }
+                                    if this.open_menu == Some(menu_index) {
+                                        this.open_menu = None;
+                                    } else {
+                                        this.open_menu = Some(menu_index);
+                                    }
 
-                                cx.notify();
-                            }));
+                                    cx.notify();
+                                }),
+                            );
 
                         let popup = if is_open {
                             let mut popup_menu = menu();
@@ -148,6 +151,7 @@ impl Render for MenuBar {
                                                 cx.notify();
                                             }))
                                             .on_mouse_down_out(cx.listener(|this, _, _, cx| {
+                                                cx.stop_propagation();
                                                 this.open_menu = None;
                                                 cx.notify();
                                             }))
