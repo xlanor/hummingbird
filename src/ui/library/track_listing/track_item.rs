@@ -353,7 +353,7 @@ impl Render for TrackItem {
                 div().bg(theme.elevated_background).child(
                     menu()
                         .item(
-                            menu_item("track_play", Some(PLAY), "Play", move |_, _, cx| {
+                            menu_item("track_play", Some(PLAY), tr!("PLAY"), move |_, _, cx| {
                                 let data = QueueItemData::new(
                                     cx,
                                     track_location.clone(),

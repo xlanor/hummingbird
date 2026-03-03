@@ -259,7 +259,7 @@ impl Render for MissingFolderDialog {
                         .pt(px(12.0))
                         .flex()
                         .justify_between()
-                        .gap(px(6.0))
+                        .items_center()
                         .child(
                             div()
                                 .id("missing-folder-dont-ask-again")
@@ -283,7 +283,7 @@ impl Render for MissingFolderDialog {
                         .when(self.remember_choice, |this| {
                             this.child(
                                 div()
-                                    .text_sm()
+                                    .text_xs()
                                     .text_color(theme.text_secondary)
                                     .pl(px(28.0))
                                     .child(tr!(
