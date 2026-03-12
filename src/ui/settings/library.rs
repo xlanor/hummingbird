@@ -54,7 +54,7 @@ impl LibrarySettings {
             dropdown(cx, dropdown_options, selected_index, focus_handle);
 
         missing_folder_policy_dropdown.update(cx, |state, _| {
-            state.set_width(px(220.0));
+            state.set_width(px(250.0));
         });
 
         let settings_for_handler = settings.clone();
