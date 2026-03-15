@@ -1,6 +1,5 @@
+pub mod api;
 pub mod config;
-pub mod db;
+pub mod domain;
 pub mod errors;
-pub mod models;
-pub mod routes;
-pub mod scanner;
+pub mod infrastructure;

@@ -18,4 +18,18 @@ pub struct Config {
     /// Address to bind the server to
     #[arg(long, default_value = "0.0.0.0:3000")]
     pub bind: String,
+
+    /// Secret key for signing local JWT tokens (min 32 chars).
+    /// If not set, a random key is generated on each startup.
+    #[arg(long)]
+    pub jwt_secret: Option<String>,
+
+    /// OIDC issuer URL (e.g., https://accounts.google.com).
+    /// When set, the server accepts OIDC Bearer tokens.
+    #[arg(long)]
+    pub oidc_issuer: Option<String>,
+
+    /// OIDC audience (client_id) for token validation.
+    #[arg(long)]
+    pub oidc_audience: Option<String>,
 }
