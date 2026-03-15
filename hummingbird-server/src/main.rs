@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use clap::Parser;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -20,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let config = Config::parse();
+    let config = Config::load()?;
     let db_url = &config.db;
 
     let db: Arc<dyn Database> = if db_url.starts_with("sqlite:") {

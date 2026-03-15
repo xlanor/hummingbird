@@ -1,6 +1,9 @@
 # cargo artifacts
 target/
 
+# claude code
+.claude/
+
 # nix artifacts
 .direnv/
 result
