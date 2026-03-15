@@ -81,6 +81,10 @@ async fn try_local_jwt(
         &validation,
     ) {
         Ok(data) => {
+            if data.claims.token_type.as_deref() == Some("refresh") {
+                return Ok(None);
+            }
+
             let user_id: i64 = data
                 .claims
                 .sub

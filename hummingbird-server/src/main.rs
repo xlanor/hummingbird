@@ -95,20 +95,55 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let oidc = match (&config.oidc_issuer, &config.oidc_audience) {
-        (Some(issuer), Some(audience)) => {
+    // Validate: oidc_client_id requires oidc_issuer and public_url
+    let oidc_only = config.oidc_client_id.is_some();
+    if oidc_only {
+        if config.oidc_issuer.is_none() {
+            anyhow::bail!("--oidc-client-id requires --oidc-issuer to be set");
+        }
+        if config.public_url.is_none() {
+            anyhow::bail!("--oidc-client-id requires --public-url to be set");
+        }
+    }
+
+    let oidc = match &config.oidc_issuer {
+        Some(issuer) => {
+            let audience = config
+                .oidc_audience
+                .as_deref()
+                .or(config.oidc_client_id.as_deref())
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "--oidc-issuer requires --oidc-audience or --oidc-client-id to be set"
+                    )
+                })?;
+
             info!("discovering OIDC provider at {issuer}");
-            let oidc_config = auth::discover_oidc(issuer, audience).await?;
+            let oidc_config = auth::discover_oidc(auth::DiscoverParams {
+                issuer,
+                audience,
+                client_id: config.oidc_client_id.as_deref(),
+                client_secret: config.oidc_client_secret.as_deref(),
+                role_claim: &config.oidc_role_claim,
+                admin_group: config.oidc_admin_group.as_deref(),
+            })
+            .await?;
             info!("OIDC discovery complete");
             Some(oidc_config)
         }
-        (Some(_), None) | (None, Some(_)) => {
-            anyhow::bail!("both --oidc-issuer and --oidc-audience must be set together");
+        None => {
+            if config.oidc_audience.is_some() {
+                anyhow::bail!("--oidc-audience requires --oidc-issuer to be set");
+            }
+            None
         }
-        _ => None,
     };
 
-    ensure_admin_exists(&db).await?;
+    if !oidc_only {
+        ensure_admin_exists(&db).await?;
+    } else {
+        info!("OIDC-only mode: local password login disabled, skipping default admin creation");
+    }
 
     let scan_handle = orchestrator::start_scanner(db.clone(), config.scan_dir.clone());
 
@@ -117,6 +152,8 @@ async fn main() -> anyhow::Result<()> {
         scan_handle,
         jwt_secret,
         oidc,
+        oidc_only,
+        public_url: config.public_url.clone(),
     });
 
     let app = api::router(state)

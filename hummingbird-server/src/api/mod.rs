@@ -21,11 +21,17 @@ pub struct AppState {
     pub scan_handle: ScanHandle,
     pub jwt_secret: Vec<u8>,
     pub oidc: Option<OidcConfig>,
+    pub oidc_only: bool,
+    pub public_url: Option<String>,
 }
 
 pub fn router(state: Arc<AppState>) -> Router {
     let public = Router::new()
-        .route("/auth/login", axum::routing::post(auth::login));
+        .route("/auth/login", axum::routing::post(auth::login))
+        .route("/auth/providers", axum::routing::get(auth::providers))
+        .route("/auth/oidc/authorize", axum::routing::get(auth::oidc_authorize))
+        .route("/auth/oidc/callback", axum::routing::get(auth::oidc_callback))
+        .route("/auth/refresh", axum::routing::post(auth::refresh));
 
     let protected = Router::new()
         .route("/auth/me", axum::routing::get(auth::me))

@@ -27,4 +27,5 @@ pub trait UserDao: Send + Sync {
     async fn list_users(&self) -> Result<Vec<User>>;
     async fn delete_user(&self, id: i64) -> Result<()>;
     async fn update_user_password(&self, id: i64, password_hash: &str) -> Result<()>;
+    async fn update_user_role(&self, id: i64, role: &str) -> Result<()>;
 }

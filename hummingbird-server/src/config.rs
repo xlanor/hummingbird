@@ -32,4 +32,27 @@ pub struct Config {
     /// OIDC audience (client_id) for token validation.
     #[arg(long)]
     pub oidc_audience: Option<String>,
+
+    /// OIDC client_id for Authorization Code flow.
+    /// When set, enables browser login via OIDC and disables local password login.
+    #[arg(long)]
+    pub oidc_client_id: Option<String>,
+
+    /// OIDC client_secret for confidential clients.
+    #[arg(long)]
+    pub oidc_client_secret: Option<String>,
+
+    /// Base URL of this app (e.g. https://music.example.com).
+    /// Required when --oidc-client-id is set, used to build the callback URL.
+    #[arg(long)]
+    pub public_url: Option<String>,
+
+    /// OIDC claim to use for role mapping (default: "groups").
+    /// Supports dot-notation for nested claims (e.g. "realm_access.roles").
+    #[arg(long, default_value = "groups")]
+    pub oidc_role_claim: String,
+
+    /// Value in the role claim that maps to the admin role.
+    #[arg(long)]
+    pub oidc_admin_group: Option<String>,
 }

@@ -17,7 +17,10 @@ globwalk = "0.9"
 image = "0.25"
 jsonwebtoken = "9"
 mime_guess = "2"
+rand = "0.9"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+ring = "0.17"
+base64 = "0.22"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "postgres", "mysql", "chrono"] }
@@ -30,8 +33,10 @@ tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+urlencoding = "2"
 
 [dev-dependencies]
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
 tempfile = "3"
+url = "2"

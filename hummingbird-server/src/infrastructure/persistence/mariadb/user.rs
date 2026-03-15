@@ -128,4 +128,13 @@ impl UserDao for MariaDbDatabase {
             .await?;
         Ok(())
     }
+
+    async fn update_user_role(&self, id: i64, role: &str) -> Result<()> {
+        sqlx::query("UPDATE app_user SET role = ? WHERE id = ?")
+            .bind(role)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }
