@@ -111,12 +111,30 @@ impl NavigationHistory {
 
         // Cap total history at 100 entries by evicting the oldest.
         if self.history.len() >= 100 {
-            self.history.remove(0);
-            self.cursor = self.cursor.saturating_sub(1);
+            let remove_idx = self.eviction_index();
+            self.history.remove(remove_idx);
+
+            if remove_idx <= self.cursor {
+                self.cursor = self.cursor.saturating_sub(1);
+            }
         }
 
         self.history.push(message);
         self.cursor = self.history.len() - 1;
+    }
+
+    fn eviction_index(&self) -> usize {
+        let oldest_idx = 0;
+        let most_recent_key_idx = self
+            .history
+            .iter()
+            .rposition(ViewSwitchMessage::is_key_page);
+
+        if most_recent_key_idx == Some(oldest_idx) && self.history.len() > 1 {
+            1
+        } else {
+            oldest_idx
+        }
     }
 
     /// Finds the most recent history entry (before the cursor) that matches a predicate.
